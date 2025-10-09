@@ -1,0 +1,1458 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+      <Schema Namespace="GuessWhoDBModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="ACCOUNT">
+          <Key>
+            <PropertyRef Name="ACCOUNTID" />
+          </Key>
+          <Property Name="ACCOUNTID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="USERID" Type="bigint" Nullable="false" />
+          <Property Name="EMAIL" Type="nvarchar" MaxLength="254" Nullable="false" />
+          <Property Name="PASSWORD" Type="varbinary" MaxLength="512" Nullable="false" />
+          <Property Name="ISEMAILVERIFIED" Type="bit" Nullable="false" />
+          <Property Name="LASTLOGINUTC" Type="datetime2" Precision="7" />
+          <Property Name="FAILEDLOGINS" Type="int" Nullable="false" />
+          <Property Name="LOCKEDUNTILUTC" Type="datetime2" Precision="7" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="UPDATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="AVATAR">
+          <Key>
+            <PropertyRef Name="AVATARID" />
+          </Key>
+          <Property Name="AVATARID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="STORAGEURL" Type="nvarchar" MaxLength="400" Nullable="false" />
+          <Property Name="ISDEFAULT" Type="bit" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="CHARACTER">
+          <Key>
+            <PropertyRef Name="CHARACTERID" />
+          </Key>
+          <Property Name="CHARACTERID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="CHARACTERSETID" Type="bigint" Nullable="false" />
+          <Property Name="DISPLAYNAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="IMAGEURL" Type="nvarchar" MaxLength="400" Nullable="false" />
+          <Property Name="ISACTIVE" Type="bit" Nullable="false" />
+        </EntityType>
+        <EntityType Name="CHARACTER_SET">
+          <Key>
+            <PropertyRef Name="CHARACTERSETID" />
+          </Key>
+          <Property Name="CHARACTERSETID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="ISACTIVE" Type="bit" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="FRIEND_REQUEST">
+          <Key>
+            <PropertyRef Name="FRIENDREQUESTID" />
+          </Key>
+          <Property Name="FRIENDREQUESTID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="REQUESTERUSERID" Type="bigint" Nullable="false" />
+          <Property Name="ADDRESSEEUSERID" Type="bigint" Nullable="false" />
+          <Property Name="STATUSID" Type="tinyint" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="RESPONDEDATUTC" Type="datetime2" Precision="7" />
+        </EntityType>
+        <EntityType Name="FRIENDREQUESTSTATUS">
+          <Key>
+            <PropertyRef Name="STATUSID" />
+          </Key>
+          <Property Name="STATUSID" Type="tinyint" Nullable="false" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+        </EntityType>
+        <EntityType Name="FRIENDSHIP">
+          <Key>
+            <PropertyRef Name="FRIENDSHIPID" />
+          </Key>
+          <Property Name="FRIENDSHIPID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="USER1ID" Type="bigint" Nullable="false" />
+          <Property Name="USER2ID" Type="bigint" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="USERIDLOW" Type="bigint" StoreGeneratedPattern="Computed" Nullable="false" />
+          <Property Name="USERIDHIGH" Type="bigint" StoreGeneratedPattern="Computed" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MATCH">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+          </Key>
+          <Property Name="MATCHID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="VISIBILITYID" Type="tinyint" Nullable="false" />
+          <Property Name="STATUSID" Type="tinyint" Nullable="false" />
+          <Property Name="MODE" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="MATCHCODE" Type="nvarchar" MaxLength="10" Nullable="false" />
+          <Property Name="STARTTIME" Type="datetime2" Precision="7" />
+          <Property Name="ENDTIME" Type="datetime2" Precision="7" />
+          <Property Name="WINNERUSERID" Type="bigint" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MATCH_INVITATION">
+          <Key>
+            <PropertyRef Name="MATCHINVITATIONID" />
+          </Key>
+          <Property Name="MATCHINVITATIONID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="MATCHID" Type="bigint" Nullable="false" />
+          <Property Name="INVITERUSERID" Type="bigint" Nullable="false" />
+          <Property Name="TARGETUSERID" Type="bigint" />
+          <Property Name="TARGETEMAIL" Type="nvarchar" MaxLength="254" />
+          <Property Name="TOKEN" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="INVITATIONSTATUS" Type="tinyint" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="RESPONDEDATUTC" Type="datetime2" Precision="7" />
+        </EntityType>
+        <EntityType Name="MATCH_PLAYER">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+            <PropertyRef Name="USERID" />
+          </Key>
+          <Property Name="MATCHID" Type="bigint" Nullable="false" />
+          <Property Name="USERID" Type="bigint" Nullable="false" />
+          <Property Name="SLOTNUMBER" Type="tinyint" />
+          <Property Name="ISWINNER" Type="bit" Nullable="false" />
+          <Property Name="JOINEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="LEFTATUTC" Type="datetime2" Precision="7" />
+        </EntityType>
+        <EntityType Name="MATCHSTATUS">
+          <Key>
+            <PropertyRef Name="STATUSID" />
+          </Key>
+          <Property Name="STATUSID" Type="tinyint" Nullable="false" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MATCHVISIBILITY">
+          <Key>
+            <PropertyRef Name="VISIBILITYID" />
+          </Key>
+          <Property Name="VISIBILITYID" Type="tinyint" Nullable="false" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MODERATION_ACTION">
+          <Key>
+            <PropertyRef Name="MODERATIONID" />
+          </Key>
+          <Property Name="MODERATIONID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TARGETUSERID" Type="bigint" Nullable="false" />
+          <Property Name="MODERATORUSERID" Type="bigint" />
+          <Property Name="ACTIONTYPEID" Type="tinyint" Nullable="false" />
+          <Property Name="REASON" Type="nvarchar" MaxLength="255" Nullable="false" />
+          <Property Name="DURATIONMINUTES" Type="int" Nullable="false" />
+          <Property Name="SCOPEID" Type="tinyint" Nullable="false" />
+          <Property Name="MATCHID" Type="bigint" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="EXPIRESATUTC" Type="datetime2" Precision="7" StoreGeneratedPattern="Computed" />
+        </EntityType>
+        <EntityType Name="MODERATIONACTIONTYPE">
+          <Key>
+            <PropertyRef Name="ACTIONTYPEID" />
+          </Key>
+          <Property Name="ACTIONTYPEID" Type="tinyint" Nullable="false" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MODERATIONSCOPe">
+          <Key>
+            <PropertyRef Name="SCOPEID" />
+          </Key>
+          <Property Name="SCOPEID" Type="tinyint" Nullable="false" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+        </EntityType>
+        <EntityType Name="sysdiagrams">
+          <Key>
+            <PropertyRef Name="diagram_id" />
+          </Key>
+          <Property Name="name" Type="nvarchar" MaxLength="128" Nullable="false" />
+          <Property Name="principal_id" Type="int" Nullable="false" />
+          <Property Name="diagram_id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="version" Type="int" />
+          <Property Name="definition" Type="varbinary(max)" />
+        </EntityType>
+        <EntityType Name="USER_PROFILE">
+          <Key>
+            <PropertyRef Name="USERID" />
+          </Key>
+          <Property Name="USERID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="DISPLAYNAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="ISACTIVE" Type="bit" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="AVATARID" Type="bigint" />
+          <Property Name="ROWVERSION" Type="timestamp" StoreGeneratedPattern="Computed" Nullable="false" />
+        </EntityType>
+        <Association Name="FK__FRIEND_RE__STATU__591C1437">
+          <End Role="FRIENDREQUESTSTATUS" Type="Self.FRIENDREQUESTSTATUS" Multiplicity="1" />
+          <End Role="FRIEND_REQUEST" Type="Self.FRIEND_REQUEST" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="FRIENDREQUESTSTATUS">
+              <PropertyRef Name="STATUSID" />
+            </Principal>
+            <Dependent Role="FRIEND_REQUEST">
+              <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH__STATUSID__71E7C201">
+          <End Role="MATCHSTATUS" Type="Self.MATCHSTATUS" Multiplicity="1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHSTATUS">
+              <PropertyRef Name="STATUSID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH__VISIBILIT__6FFF798F">
+          <End Role="MATCHVISIBILITY" Type="Self.MATCHVISIBILITY" Multiplicity="1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHVISIBILITY">
+              <PropertyRef Name="VISIBILITYID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="VISIBILITYID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH__WINNERUSE__72DBE63A">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="0..1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="WINNERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_INV__INVIT__7F41BD1F">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MATCH_INVITATION" Type="Self.MATCH_INVITATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_INVITATION">
+              <PropertyRef Name="INVITERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_INV__MATCH__7E4D98E6">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="MATCH_INVITATION" Type="Self.MATCH_INVITATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_INVITATION">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_INV__TARGE__0035E158">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="0..1" />
+          <End Role="MATCH_INVITATION" Type="Self.MATCH_INVITATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_INVITATION">
+              <PropertyRef Name="TARGETUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_PLA__MATCH__77A09B57">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_PLA__USERI__7894BF90">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__ACTIO__08CB2759">
+          <End Role="MODERATIONACTIONTYPE" Type="Self.MODERATIONACTIONTYPE" Multiplicity="1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MODERATIONACTIONTYPE">
+              <PropertyRef Name="ACTIONTYPEID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="ACTIONTYPEID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__MATCH__0AB36FCB">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="0..1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__MODER__07D70320">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="0..1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="MODERATORUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__SCOPE__09BF4B92">
+          <End Role="MODERATIONSCOPe" Type="Self.MODERATIONSCOPe" Multiplicity="1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MODERATIONSCOPe">
+              <PropertyRef Name="SCOPEID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="SCOPEID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__TARGE__06E2DEE7">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="TARGETUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_ACCOUNT_USER_PROFILE">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="ACCOUNT" Type="Self.ACCOUNT" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="ACCOUNT">
+              <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_CHARACTER_SET">
+          <End Role="CHARACTER_SET" Type="Self.CHARACTER_SET" Multiplicity="1" />
+          <End Role="CHARACTER" Type="Self.CHARACTER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CHARACTER_SET">
+              <PropertyRef Name="CHARACTERSETID" />
+            </Principal>
+            <Dependent Role="CHARACTER">
+              <PropertyRef Name="CHARACTERSETID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_FR_REQ_ADDRESSEE">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="FRIEND_REQUEST" Type="Self.FRIEND_REQUEST" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="FRIEND_REQUEST">
+              <PropertyRef Name="ADDRESSEEUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_FR_REQ_REQUESTER">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="FRIEND_REQUEST" Type="Self.FRIEND_REQUEST" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="FRIEND_REQUEST">
+              <PropertyRef Name="REQUESTERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_FRIENDSHIP_USER1">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="FRIENDSHIP" Type="Self.FRIENDSHIP" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="FRIENDSHIP">
+              <PropertyRef Name="USER1ID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_FRIENDSHIP_USER2">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="FRIENDSHIP" Type="Self.FRIENDSHIP" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="FRIENDSHIP">
+              <PropertyRef Name="USER2ID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_USER_PROFILE_AVATAR">
+          <End Role="AVATAR" Type="Self.AVATAR" Multiplicity="0..1" />
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AVATAR">
+              <PropertyRef Name="AVATARID" />
+            </Principal>
+            <Dependent Role="USER_PROFILE">
+              <PropertyRef Name="AVATARID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Function Name="fn_diagramobjects" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="true" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" ReturnType="int" />
+        <Function Name="SP_ACCEPTFRIENDREQUEST" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="FRIENDREQUESTID" Type="bigint" Mode="In" />
+        </Function>
+        <Function Name="sp_alterdiagram" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+          <Parameter Name="version" Type="int" Mode="In" />
+          <Parameter Name="definition" Type="varbinary(max)" Mode="In" />
+        </Function>
+        <Function Name="sp_creatediagram" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+          <Parameter Name="version" Type="int" Mode="In" />
+          <Parameter Name="definition" Type="varbinary(max)" Mode="In" />
+        </Function>
+        <Function Name="SP_CREATEFRIENDREQUEST" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="REQUESTERUSERID" Type="bigint" Mode="In" />
+          <Parameter Name="ADDRESSEEUSERID" Type="bigint" Mode="In" />
+        </Function>
+        <Function Name="sp_dropdiagram" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+        </Function>
+        <Function Name="sp_helpdiagramdefinition" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+        </Function>
+        <Function Name="sp_helpdiagrams" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+        </Function>
+        <Function Name="sp_renamediagram" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+          <Parameter Name="new_diagramname" Type="nvarchar" Mode="In" />
+        </Function>
+        <Function Name="sp_upgraddiagrams" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" />
+        <EntityContainer Name="GuessWhoDBModelStoreContainer">
+          <EntitySet Name="ACCOUNT" EntityType="Self.ACCOUNT" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="AVATAR" EntityType="Self.AVATAR" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="CHARACTER" EntityType="Self.CHARACTER" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="CHARACTER_SET" EntityType="Self.CHARACTER_SET" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="FRIEND_REQUEST" EntityType="Self.FRIEND_REQUEST" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="FRIENDREQUESTSTATUS" EntityType="Self.FRIENDREQUESTSTATUS" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="FRIENDSHIP" EntityType="Self.FRIENDSHIP" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCH" EntityType="Self.MATCH" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCH_INVITATION" EntityType="Self.MATCH_INVITATION" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCH_PLAYER" EntityType="Self.MATCH_PLAYER" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCHSTATUS" EntityType="Self.MATCHSTATUS" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCHVISIBILITY" EntityType="Self.MATCHVISIBILITY" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MODERATION_ACTION" EntityType="Self.MODERATION_ACTION" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MODERATIONACTIONTYPE" EntityType="Self.MODERATIONACTIONTYPE" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MODERATIONSCOPe" EntityType="Self.MODERATIONSCOPe" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="sysdiagrams" EntityType="Self.sysdiagrams" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="USER_PROFILE" EntityType="Self.USER_PROFILE" Schema="dbo" store:Type="Tables" />
+          <AssociationSet Name="FK__FRIEND_RE__STATU__591C1437" Association="Self.FK__FRIEND_RE__STATU__591C1437">
+            <End Role="FRIENDREQUESTSTATUS" EntitySet="FRIENDREQUESTSTATUS" />
+            <End Role="FRIEND_REQUEST" EntitySet="FRIEND_REQUEST" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH__STATUSID__71E7C201" Association="Self.FK__MATCH__STATUSID__71E7C201">
+            <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH__VISIBILIT__6FFF798F" Association="Self.FK__MATCH__VISIBILIT__6FFF798F">
+            <End Role="MATCHVISIBILITY" EntitySet="MATCHVISIBILITY" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH__WINNERUSE__72DBE63A" Association="Self.FK__MATCH__WINNERUSE__72DBE63A">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_INV__INVIT__7F41BD1F" Association="Self.FK__MATCH_INV__INVIT__7F41BD1F">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_INV__MATCH__7E4D98E6" Association="Self.FK__MATCH_INV__MATCH__7E4D98E6">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_INV__TARGE__0035E158" Association="Self.FK__MATCH_INV__TARGE__0035E158">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_PLA__MATCH__77A09B57" Association="Self.FK__MATCH_PLA__MATCH__77A09B57">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_PLA__USERI__7894BF90" Association="Self.FK__MATCH_PLA__USERI__7894BF90">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__ACTIO__08CB2759" Association="Self.FK__MODERATIO__ACTIO__08CB2759">
+            <End Role="MODERATIONACTIONTYPE" EntitySet="MODERATIONACTIONTYPE" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__MATCH__0AB36FCB" Association="Self.FK__MODERATIO__MATCH__0AB36FCB">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__MODER__07D70320" Association="Self.FK__MODERATIO__MODER__07D70320">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__SCOPE__09BF4B92" Association="Self.FK__MODERATIO__SCOPE__09BF4B92">
+            <End Role="MODERATIONSCOPe" EntitySet="MODERATIONSCOPe" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__TARGE__06E2DEE7" Association="Self.FK__MODERATIO__TARGE__06E2DEE7">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK_ACCOUNT_USER_PROFILE" Association="Self.FK_ACCOUNT_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="ACCOUNT" EntitySet="ACCOUNT" />
+          </AssociationSet>
+          <AssociationSet Name="FK_CHARACTER_SET" Association="Self.FK_CHARACTER_SET">
+            <End Role="CHARACTER_SET" EntitySet="CHARACTER_SET" />
+            <End Role="CHARACTER" EntitySet="CHARACTER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FR_REQ_ADDRESSEE" Association="Self.FK_FR_REQ_ADDRESSEE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="FRIEND_REQUEST" EntitySet="FRIEND_REQUEST" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FR_REQ_REQUESTER" Association="Self.FK_FR_REQ_REQUESTER">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="FRIEND_REQUEST" EntitySet="FRIEND_REQUEST" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FRIENDSHIP_USER1" Association="Self.FK_FRIENDSHIP_USER1">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="FRIENDSHIP" EntitySet="FRIENDSHIP" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FRIENDSHIP_USER2" Association="Self.FK_FRIENDSHIP_USER2">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="FRIENDSHIP" EntitySet="FRIENDSHIP" />
+          </AssociationSet>
+          <AssociationSet Name="FK_USER_PROFILE_AVATAR" Association="Self.FK_USER_PROFILE_AVATAR">
+            <End Role="AVATAR" EntitySet="AVATAR" />
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema>
+    </edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="GuessWhoDBModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityType Name="ACCOUNT">
+          <Key>
+            <PropertyRef Name="ACCOUNTID" />
+          </Key>
+          <Property Name="ACCOUNTID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="USERID" Type="Int64" Nullable="false" />
+          <Property Name="EMAIL" Type="String" MaxLength="254" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="PASSWORD" Type="Binary" MaxLength="512" FixedLength="false" Nullable="false" />
+          <Property Name="ISEMAILVERIFIED" Type="Boolean" Nullable="false" />
+          <Property Name="LASTLOGINUTC" Type="DateTime" Precision="7" />
+          <Property Name="FAILEDLOGINS" Type="Int32" Nullable="false" />
+          <Property Name="LOCKEDUNTILUTC" Type="DateTime" Precision="7" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="UPDATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK_ACCOUNT_USER_PROFILE" FromRole="ACCOUNT" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="AVATAR">
+          <Key>
+            <PropertyRef Name="AVATARID" />
+          </Key>
+          <Property Name="AVATARID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="STORAGEURL" Type="String" MaxLength="400" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="ISDEFAULT" Type="Boolean" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK_USER_PROFILE_AVATAR" FromRole="AVATAR" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="CHARACTER">
+          <Key>
+            <PropertyRef Name="CHARACTERID" />
+          </Key>
+          <Property Name="CHARACTERID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="CHARACTERSETID" Type="Int64" Nullable="false" />
+          <Property Name="DISPLAYNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="IMAGEURL" Type="String" MaxLength="400" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="ISACTIVE" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="CHARACTER_SET" Relationship="Self.FK_CHARACTER_SET" FromRole="CHARACTER" ToRole="CHARACTER_SET" />
+        </EntityType>
+        <EntityType Name="CHARACTER_SET">
+          <Key>
+            <PropertyRef Name="CHARACTERSETID" />
+          </Key>
+          <Property Name="CHARACTERSETID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="ISACTIVE" Type="Boolean" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="CHARACTER" Relationship="Self.FK_CHARACTER_SET" FromRole="CHARACTER_SET" ToRole="CHARACTER" />
+        </EntityType>
+        <EntityType Name="FRIEND_REQUEST">
+          <Key>
+            <PropertyRef Name="FRIENDREQUESTID" />
+          </Key>
+          <Property Name="FRIENDREQUESTID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="REQUESTERUSERID" Type="Int64" Nullable="false" />
+          <Property Name="ADDRESSEEUSERID" Type="Int64" Nullable="false" />
+          <Property Name="STATUSID" Type="Byte" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="RESPONDEDATUTC" Type="DateTime" Precision="7" />
+          <NavigationProperty Name="FRIENDREQUESTSTATUS" Relationship="Self.FK__FRIEND_RE__STATU__591C1437" FromRole="FRIEND_REQUEST" ToRole="FRIENDREQUESTSTATUS" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK_FR_REQ_ADDRESSEE" FromRole="FRIEND_REQUEST" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="USER_PROFILE1" Relationship="Self.FK_FR_REQ_REQUESTER" FromRole="FRIEND_REQUEST" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="FRIENDREQUESTSTATUS">
+          <Key>
+            <PropertyRef Name="STATUSID" />
+          </Key>
+          <Property Name="STATUSID" Type="Byte" Nullable="false" />
+          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <NavigationProperty Name="FRIEND_REQUEST" Relationship="Self.FK__FRIEND_RE__STATU__591C1437" FromRole="FRIENDREQUESTSTATUS" ToRole="FRIEND_REQUEST" />
+        </EntityType>
+        <EntityType Name="FRIENDSHIP">
+          <Key>
+            <PropertyRef Name="FRIENDSHIPID" />
+          </Key>
+          <Property Name="FRIENDSHIPID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="USER1ID" Type="Int64" Nullable="false" />
+          <Property Name="USER2ID" Type="Int64" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="USERIDLOW" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Computed" />
+          <Property Name="USERIDHIGH" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Computed" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK_FRIENDSHIP_USER1" FromRole="FRIENDSHIP" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="USER_PROFILE1" Relationship="Self.FK_FRIENDSHIP_USER2" FromRole="FRIENDSHIP" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="MATCH">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+          </Key>
+          <Property Name="MATCHID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="VISIBILITYID" Type="Byte" Nullable="false" />
+          <Property Name="STATUSID" Type="Byte" Nullable="false" />
+          <Property Name="MODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="MATCHCODE" Type="String" MaxLength="10" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="STARTTIME" Type="DateTime" Precision="7" />
+          <Property Name="ENDTIME" Type="DateTime" Precision="7" />
+          <Property Name="WINNERUSERID" Type="Int64" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="MATCHSTATUS" Relationship="Self.FK__MATCH__STATUSID__71E7C201" FromRole="MATCH" ToRole="MATCHSTATUS" />
+          <NavigationProperty Name="MATCHVISIBILITY" Relationship="Self.FK__MATCH__VISIBILIT__6FFF798F" FromRole="MATCH" ToRole="MATCHVISIBILITY" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK__MATCH__WINNERUSE__72DBE63A" FromRole="MATCH" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="MATCH_INVITATION" Relationship="Self.FK__MATCH_INV__MATCH__7E4D98E6" FromRole="MATCH" ToRole="MATCH_INVITATION" />
+          <NavigationProperty Name="MATCH_PLAYER" Relationship="Self.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH" ToRole="MATCH_PLAYER" />
+          <NavigationProperty Name="MODERATION_ACTION" Relationship="Self.FK__MODERATIO__MATCH__0AB36FCB" FromRole="MATCH" ToRole="MODERATION_ACTION" />
+        </EntityType>
+        <EntityType Name="MATCH_INVITATION">
+          <Key>
+            <PropertyRef Name="MATCHINVITATIONID" />
+          </Key>
+          <Property Name="MATCHINVITATIONID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="MATCHID" Type="Int64" Nullable="false" />
+          <Property Name="INVITERUSERID" Type="Int64" Nullable="false" />
+          <Property Name="TARGETUSERID" Type="Int64" />
+          <Property Name="TARGETEMAIL" Type="String" MaxLength="254" FixedLength="false" Unicode="true" />
+          <Property Name="TOKEN" Type="Guid" Nullable="false" />
+          <Property Name="INVITATIONSTATUS" Type="Byte" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="RESPONDEDATUTC" Type="DateTime" Precision="7" />
+          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH_INV__MATCH__7E4D98E6" FromRole="MATCH_INVITATION" ToRole="MATCH" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK__MATCH_INV__INVIT__7F41BD1F" FromRole="MATCH_INVITATION" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="USER_PROFILE1" Relationship="Self.FK__MATCH_INV__TARGE__0035E158" FromRole="MATCH_INVITATION" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="MATCH_PLAYER">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+            <PropertyRef Name="USERID" />
+          </Key>
+          <Property Name="MATCHID" Type="Int64" Nullable="false" />
+          <Property Name="USERID" Type="Int64" Nullable="false" />
+          <Property Name="SLOTNUMBER" Type="Byte" />
+          <Property Name="ISWINNER" Type="Boolean" Nullable="false" />
+          <Property Name="JOINEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="LEFTATUTC" Type="DateTime" Precision="7" />
+          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH_PLAYER" ToRole="MATCH" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK__MATCH_PLA__USERI__7894BF90" FromRole="MATCH_PLAYER" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="MATCHSTATUS">
+          <Key>
+            <PropertyRef Name="STATUSID" />
+          </Key>
+          <Property Name="STATUSID" Type="Byte" Nullable="false" />
+          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH__STATUSID__71E7C201" FromRole="MATCHSTATUS" ToRole="MATCH" />
+        </EntityType>
+        <EntityType Name="MATCHVISIBILITY">
+          <Key>
+            <PropertyRef Name="VISIBILITYID" />
+          </Key>
+          <Property Name="VISIBILITYID" Type="Byte" Nullable="false" />
+          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH__VISIBILIT__6FFF798F" FromRole="MATCHVISIBILITY" ToRole="MATCH" />
+        </EntityType>
+        <EntityType Name="MODERATION_ACTION">
+          <Key>
+            <PropertyRef Name="MODERATIONID" />
+          </Key>
+          <Property Name="MODERATIONID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="TARGETUSERID" Type="Int64" Nullable="false" />
+          <Property Name="MODERATORUSERID" Type="Int64" />
+          <Property Name="ACTIONTYPEID" Type="Byte" Nullable="false" />
+          <Property Name="REASON" Type="String" MaxLength="255" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="DURATIONMINUTES" Type="Int32" Nullable="false" />
+          <Property Name="SCOPEID" Type="Byte" Nullable="false" />
+          <Property Name="MATCHID" Type="Int64" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="EXPIRESATUTC" Type="DateTime" annotation:StoreGeneratedPattern="Computed" Precision="7" />
+          <NavigationProperty Name="MATCH" Relationship="Self.FK__MODERATIO__MATCH__0AB36FCB" FromRole="MODERATION_ACTION" ToRole="MATCH" />
+          <NavigationProperty Name="MODERATIONACTIONTYPE" Relationship="Self.FK__MODERATIO__ACTIO__08CB2759" FromRole="MODERATION_ACTION" ToRole="MODERATIONACTIONTYPE" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK__MODERATIO__MODER__07D70320" FromRole="MODERATION_ACTION" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="MODERATIONSCOPe" Relationship="Self.FK__MODERATIO__SCOPE__09BF4B92" FromRole="MODERATION_ACTION" ToRole="MODERATIONSCOPe" />
+          <NavigationProperty Name="USER_PROFILE1" Relationship="Self.FK__MODERATIO__TARGE__06E2DEE7" FromRole="MODERATION_ACTION" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="MODERATIONACTIONTYPE">
+          <Key>
+            <PropertyRef Name="ACTIONTYPEID" />
+          </Key>
+          <Property Name="ACTIONTYPEID" Type="Byte" Nullable="false" />
+          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <NavigationProperty Name="MODERATION_ACTION" Relationship="Self.FK__MODERATIO__ACTIO__08CB2759" FromRole="MODERATIONACTIONTYPE" ToRole="MODERATION_ACTION" />
+        </EntityType>
+        <EntityType Name="MODERATIONSCOPe">
+          <Key>
+            <PropertyRef Name="SCOPEID" />
+          </Key>
+          <Property Name="SCOPEID" Type="Byte" Nullable="false" />
+          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <NavigationProperty Name="MODERATION_ACTION" Relationship="Self.FK__MODERATIO__SCOPE__09BF4B92" FromRole="MODERATIONSCOPe" ToRole="MODERATION_ACTION" />
+        </EntityType>
+        <EntityType Name="sysdiagrams">
+          <Key>
+            <PropertyRef Name="diagram_id" />
+          </Key>
+          <Property Name="name" Type="String" MaxLength="128" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="principal_id" Type="Int32" Nullable="false" />
+          <Property Name="diagram_id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="version" Type="Int32" />
+          <Property Name="definition" Type="Binary" MaxLength="Max" FixedLength="false" />
+        </EntityType>
+        <EntityType Name="USER_PROFILE">
+          <Key>
+            <PropertyRef Name="USERID" />
+          </Key>
+          <Property Name="USERID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="DISPLAYNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="ISACTIVE" Type="Boolean" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="AVATARID" Type="Int64" />
+          <Property Name="ROWVERSION" Type="Binary" MaxLength="8" FixedLength="true" Nullable="false" annotation:StoreGeneratedPattern="Computed" />
+          <NavigationProperty Name="ACCOUNT" Relationship="Self.FK_ACCOUNT_USER_PROFILE" FromRole="USER_PROFILE" ToRole="ACCOUNT" />
+          <NavigationProperty Name="AVATAR" Relationship="Self.FK_USER_PROFILE_AVATAR" FromRole="USER_PROFILE" ToRole="AVATAR" />
+          <NavigationProperty Name="FRIEND_REQUEST" Relationship="Self.FK_FR_REQ_ADDRESSEE" FromRole="USER_PROFILE" ToRole="FRIEND_REQUEST" />
+          <NavigationProperty Name="FRIEND_REQUEST1" Relationship="Self.FK_FR_REQ_REQUESTER" FromRole="USER_PROFILE" ToRole="FRIEND_REQUEST" />
+          <NavigationProperty Name="FRIENDSHIP" Relationship="Self.FK_FRIENDSHIP_USER1" FromRole="USER_PROFILE" ToRole="FRIENDSHIP" />
+          <NavigationProperty Name="FRIENDSHIP1" Relationship="Self.FK_FRIENDSHIP_USER2" FromRole="USER_PROFILE" ToRole="FRIENDSHIP" />
+          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH__WINNERUSE__72DBE63A" FromRole="USER_PROFILE" ToRole="MATCH" />
+          <NavigationProperty Name="MATCH_INVITATION" Relationship="Self.FK__MATCH_INV__INVIT__7F41BD1F" FromRole="USER_PROFILE" ToRole="MATCH_INVITATION" />
+          <NavigationProperty Name="MATCH_INVITATION1" Relationship="Self.FK__MATCH_INV__TARGE__0035E158" FromRole="USER_PROFILE" ToRole="MATCH_INVITATION" />
+          <NavigationProperty Name="MATCH_PLAYER" Relationship="Self.FK__MATCH_PLA__USERI__7894BF90" FromRole="USER_PROFILE" ToRole="MATCH_PLAYER" />
+          <NavigationProperty Name="MODERATION_ACTION" Relationship="Self.FK__MODERATIO__MODER__07D70320" FromRole="USER_PROFILE" ToRole="MODERATION_ACTION" />
+          <NavigationProperty Name="MODERATION_ACTION1" Relationship="Self.FK__MODERATIO__TARGE__06E2DEE7" FromRole="USER_PROFILE" ToRole="MODERATION_ACTION" />
+        </EntityType>
+        <Association Name="FK_ACCOUNT_USER_PROFILE">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="ACCOUNT" Type="Self.ACCOUNT" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="ACCOUNT">
+              <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_USER_PROFILE_AVATAR">
+          <End Role="AVATAR" Type="Self.AVATAR" Multiplicity="0..1" />
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="AVATAR">
+              <PropertyRef Name="AVATARID" />
+            </Principal>
+            <Dependent Role="USER_PROFILE">
+              <PropertyRef Name="AVATARID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_CHARACTER_SET">
+          <End Role="CHARACTER_SET" Type="Self.CHARACTER_SET" Multiplicity="1" />
+          <End Role="CHARACTER" Type="Self.CHARACTER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CHARACTER_SET">
+              <PropertyRef Name="CHARACTERSETID" />
+            </Principal>
+            <Dependent Role="CHARACTER">
+              <PropertyRef Name="CHARACTERSETID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__FRIEND_RE__STATU__591C1437">
+          <End Role="FRIENDREQUESTSTATUS" Type="Self.FRIENDREQUESTSTATUS" Multiplicity="1" />
+          <End Role="FRIEND_REQUEST" Type="Self.FRIEND_REQUEST" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="FRIENDREQUESTSTATUS">
+              <PropertyRef Name="STATUSID" />
+            </Principal>
+            <Dependent Role="FRIEND_REQUEST">
+              <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_FR_REQ_ADDRESSEE">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="FRIEND_REQUEST" Type="Self.FRIEND_REQUEST" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="FRIEND_REQUEST">
+              <PropertyRef Name="ADDRESSEEUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_FR_REQ_REQUESTER">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="FRIEND_REQUEST" Type="Self.FRIEND_REQUEST" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="FRIEND_REQUEST">
+              <PropertyRef Name="REQUESTERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_FRIENDSHIP_USER1">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="FRIENDSHIP" Type="Self.FRIENDSHIP" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="FRIENDSHIP">
+              <PropertyRef Name="USER1ID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_FRIENDSHIP_USER2">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="FRIENDSHIP" Type="Self.FRIENDSHIP" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="FRIENDSHIP">
+              <PropertyRef Name="USER2ID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH__STATUSID__71E7C201">
+          <End Role="MATCHSTATUS" Type="Self.MATCHSTATUS" Multiplicity="1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHSTATUS">
+              <PropertyRef Name="STATUSID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH__VISIBILIT__6FFF798F">
+          <End Role="MATCHVISIBILITY" Type="Self.MATCHVISIBILITY" Multiplicity="1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHVISIBILITY">
+              <PropertyRef Name="VISIBILITYID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="VISIBILITYID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH__WINNERUSE__72DBE63A">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="0..1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="WINNERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_INV__MATCH__7E4D98E6">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="MATCH_INVITATION" Type="Self.MATCH_INVITATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_INVITATION">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_PLA__MATCH__77A09B57">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__MATCH__0AB36FCB">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="0..1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_INV__INVIT__7F41BD1F">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MATCH_INVITATION" Type="Self.MATCH_INVITATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_INVITATION">
+              <PropertyRef Name="INVITERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_INV__TARGE__0035E158">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="0..1" />
+          <End Role="MATCH_INVITATION" Type="Self.MATCH_INVITATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_INVITATION">
+              <PropertyRef Name="TARGETUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_PLA__USERI__7894BF90">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__ACTIO__08CB2759">
+          <End Role="MODERATIONACTIONTYPE" Type="Self.MODERATIONACTIONTYPE" Multiplicity="1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MODERATIONACTIONTYPE">
+              <PropertyRef Name="ACTIONTYPEID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="ACTIONTYPEID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__MODER__07D70320">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="0..1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="MODERATORUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__SCOPE__09BF4B92">
+          <End Role="MODERATIONSCOPe" Type="Self.MODERATIONSCOPe" Multiplicity="1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MODERATIONSCOPe">
+              <PropertyRef Name="SCOPEID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="SCOPEID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__TARGE__06E2DEE7">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="TARGETUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityContainer Name="GuessWhoDB" annotation:LazyLoadingEnabled="true">
+          <EntitySet Name="ACCOUNT" EntityType="Self.ACCOUNT" />
+          <EntitySet Name="AVATAR" EntityType="Self.AVATAR" />
+          <EntitySet Name="CHARACTER" EntityType="Self.CHARACTER" />
+          <EntitySet Name="CHARACTER_SET" EntityType="Self.CHARACTER_SET" />
+          <EntitySet Name="FRIEND_REQUEST" EntityType="Self.FRIEND_REQUEST" />
+          <EntitySet Name="FRIENDREQUESTSTATUS" EntityType="Self.FRIENDREQUESTSTATUS" />
+          <EntitySet Name="FRIENDSHIP" EntityType="Self.FRIENDSHIP" />
+          <EntitySet Name="MATCH" EntityType="Self.MATCH" />
+          <EntitySet Name="MATCH_INVITATION" EntityType="Self.MATCH_INVITATION" />
+          <EntitySet Name="MATCH_PLAYER" EntityType="Self.MATCH_PLAYER" />
+          <EntitySet Name="MATCHSTATUS" EntityType="Self.MATCHSTATUS" />
+          <EntitySet Name="MATCHVISIBILITY" EntityType="Self.MATCHVISIBILITY" />
+          <EntitySet Name="MODERATION_ACTION" EntityType="Self.MODERATION_ACTION" />
+          <EntitySet Name="MODERATIONACTIONTYPE" EntityType="Self.MODERATIONACTIONTYPE" />
+          <EntitySet Name="MODERATIONSCOPe" EntityType="Self.MODERATIONSCOPe" />
+          <EntitySet Name="sysdiagrams" EntityType="Self.sysdiagrams" />
+          <EntitySet Name="USER_PROFILE" EntityType="Self.USER_PROFILE" />
+          <AssociationSet Name="FK_ACCOUNT_USER_PROFILE" Association="Self.FK_ACCOUNT_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="ACCOUNT" EntitySet="ACCOUNT" />
+          </AssociationSet>
+          <AssociationSet Name="FK_USER_PROFILE_AVATAR" Association="Self.FK_USER_PROFILE_AVATAR">
+            <End Role="AVATAR" EntitySet="AVATAR" />
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+          </AssociationSet>
+          <AssociationSet Name="FK_CHARACTER_SET" Association="Self.FK_CHARACTER_SET">
+            <End Role="CHARACTER_SET" EntitySet="CHARACTER_SET" />
+            <End Role="CHARACTER" EntitySet="CHARACTER" />
+          </AssociationSet>
+          <AssociationSet Name="FK__FRIEND_RE__STATU__591C1437" Association="Self.FK__FRIEND_RE__STATU__591C1437">
+            <End Role="FRIENDREQUESTSTATUS" EntitySet="FRIENDREQUESTSTATUS" />
+            <End Role="FRIEND_REQUEST" EntitySet="FRIEND_REQUEST" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FR_REQ_ADDRESSEE" Association="Self.FK_FR_REQ_ADDRESSEE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="FRIEND_REQUEST" EntitySet="FRIEND_REQUEST" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FR_REQ_REQUESTER" Association="Self.FK_FR_REQ_REQUESTER">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="FRIEND_REQUEST" EntitySet="FRIEND_REQUEST" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FRIENDSHIP_USER1" Association="Self.FK_FRIENDSHIP_USER1">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="FRIENDSHIP" EntitySet="FRIENDSHIP" />
+          </AssociationSet>
+          <AssociationSet Name="FK_FRIENDSHIP_USER2" Association="Self.FK_FRIENDSHIP_USER2">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="FRIENDSHIP" EntitySet="FRIENDSHIP" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH__STATUSID__71E7C201" Association="Self.FK__MATCH__STATUSID__71E7C201">
+            <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH__VISIBILIT__6FFF798F" Association="Self.FK__MATCH__VISIBILIT__6FFF798F">
+            <End Role="MATCHVISIBILITY" EntitySet="MATCHVISIBILITY" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH__WINNERUSE__72DBE63A" Association="Self.FK__MATCH__WINNERUSE__72DBE63A">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_INV__MATCH__7E4D98E6" Association="Self.FK__MATCH_INV__MATCH__7E4D98E6">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_PLA__MATCH__77A09B57" Association="Self.FK__MATCH_PLA__MATCH__77A09B57">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__MATCH__0AB36FCB" Association="Self.FK__MODERATIO__MATCH__0AB36FCB">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_INV__INVIT__7F41BD1F" Association="Self.FK__MATCH_INV__INVIT__7F41BD1F">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_INV__TARGE__0035E158" Association="Self.FK__MATCH_INV__TARGE__0035E158">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_PLA__USERI__7894BF90" Association="Self.FK__MATCH_PLA__USERI__7894BF90">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__ACTIO__08CB2759" Association="Self.FK__MODERATIO__ACTIO__08CB2759">
+            <End Role="MODERATIONACTIONTYPE" EntitySet="MODERATIONACTIONTYPE" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__MODER__07D70320" Association="Self.FK__MODERATIO__MODER__07D70320">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__SCOPE__09BF4B92" Association="Self.FK__MODERATIO__SCOPE__09BF4B92">
+            <End Role="MODERATIONSCOPe" EntitySet="MODERATIONSCOPe" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__TARGE__06E2DEE7" Association="Self.FK__MODERATIO__TARGE__06E2DEE7">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <FunctionImport Name="SP_ACCEPTFRIENDREQUEST">
+            <Parameter Name="FRIENDREQUESTID" Mode="In" Type="Int64" />
+          </FunctionImport>
+          <FunctionImport Name="sp_alterdiagram">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+            <Parameter Name="version" Mode="In" Type="Int32" />
+            <Parameter Name="definition" Mode="In" Type="Binary" />
+          </FunctionImport>
+          <FunctionImport Name="sp_creatediagram">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+            <Parameter Name="version" Mode="In" Type="Int32" />
+            <Parameter Name="definition" Mode="In" Type="Binary" />
+          </FunctionImport>
+          <FunctionImport Name="SP_CREATEFRIENDREQUEST">
+            <Parameter Name="REQUESTERUSERID" Mode="In" Type="Int64" />
+            <Parameter Name="ADDRESSEEUSERID" Mode="In" Type="Int64" />
+          </FunctionImport>
+          <FunctionImport Name="sp_dropdiagram">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="sp_helpdiagramdefinition" ReturnType="Collection(GuessWhoDBModel.sp_helpdiagramdefinition_Result)">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="sp_helpdiagrams" ReturnType="Collection(GuessWhoDBModel.sp_helpdiagrams_Result)">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="sp_renamediagram">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+            <Parameter Name="new_diagramname" Mode="In" Type="String" />
+          </FunctionImport>
+          <FunctionImport Name="sp_upgraddiagrams" />
+        </EntityContainer>
+        <ComplexType Name="sp_helpdiagramdefinition_Result">
+          <Property Type="Int32" Name="version" Nullable="true" />
+          <Property Type="Binary" Name="definition" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="sp_helpdiagrams_Result">
+          <Property Type="String" Name="Database" Nullable="true" MaxLength="128" />
+          <Property Type="String" Name="Name" Nullable="false" MaxLength="128" />
+          <Property Type="Int32" Name="ID" Nullable="false" />
+          <Property Type="String" Name="Owner" Nullable="true" MaxLength="128" />
+          <Property Type="Int32" Name="OwnerID" Nullable="false" />
+        </ComplexType>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="GuessWhoDBModelStoreContainer" CdmEntityContainer="GuessWhoDB">
+          <EntitySetMapping Name="ACCOUNT">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.ACCOUNT">
+              <MappingFragment StoreEntitySet="ACCOUNT">
+                <ScalarProperty Name="ACCOUNTID" ColumnName="ACCOUNTID" />
+                <ScalarProperty Name="USERID" ColumnName="USERID" />
+                <ScalarProperty Name="EMAIL" ColumnName="EMAIL" />
+                <ScalarProperty Name="PASSWORD" ColumnName="PASSWORD" />
+                <ScalarProperty Name="ISEMAILVERIFIED" ColumnName="ISEMAILVERIFIED" />
+                <ScalarProperty Name="LASTLOGINUTC" ColumnName="LASTLOGINUTC" />
+                <ScalarProperty Name="FAILEDLOGINS" ColumnName="FAILEDLOGINS" />
+                <ScalarProperty Name="LOCKEDUNTILUTC" ColumnName="LOCKEDUNTILUTC" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="UPDATEDATUTC" ColumnName="UPDATEDATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AVATAR">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.AVATAR">
+              <MappingFragment StoreEntitySet="AVATAR">
+                <ScalarProperty Name="AVATARID" ColumnName="AVATARID" />
+                <ScalarProperty Name="STORAGEURL" ColumnName="STORAGEURL" />
+                <ScalarProperty Name="ISDEFAULT" ColumnName="ISDEFAULT" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="CHARACTER">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.CHARACTER">
+              <MappingFragment StoreEntitySet="CHARACTER">
+                <ScalarProperty Name="CHARACTERID" ColumnName="CHARACTERID" />
+                <ScalarProperty Name="CHARACTERSETID" ColumnName="CHARACTERSETID" />
+                <ScalarProperty Name="DISPLAYNAME" ColumnName="DISPLAYNAME" />
+                <ScalarProperty Name="IMAGEURL" ColumnName="IMAGEURL" />
+                <ScalarProperty Name="ISACTIVE" ColumnName="ISACTIVE" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="CHARACTER_SET">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.CHARACTER_SET">
+              <MappingFragment StoreEntitySet="CHARACTER_SET">
+                <ScalarProperty Name="CHARACTERSETID" ColumnName="CHARACTERSETID" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+                <ScalarProperty Name="ISACTIVE" ColumnName="ISACTIVE" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="FRIEND_REQUEST">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.FRIEND_REQUEST">
+              <MappingFragment StoreEntitySet="FRIEND_REQUEST">
+                <ScalarProperty Name="FRIENDREQUESTID" ColumnName="FRIENDREQUESTID" />
+                <ScalarProperty Name="REQUESTERUSERID" ColumnName="REQUESTERUSERID" />
+                <ScalarProperty Name="ADDRESSEEUSERID" ColumnName="ADDRESSEEUSERID" />
+                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="RESPONDEDATUTC" ColumnName="RESPONDEDATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="FRIENDREQUESTSTATUS">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.FRIENDREQUESTSTATUS">
+              <MappingFragment StoreEntitySet="FRIENDREQUESTSTATUS">
+                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="FRIENDSHIP">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.FRIENDSHIP">
+              <MappingFragment StoreEntitySet="FRIENDSHIP">
+                <ScalarProperty Name="FRIENDSHIPID" ColumnName="FRIENDSHIPID" />
+                <ScalarProperty Name="USER1ID" ColumnName="USER1ID" />
+                <ScalarProperty Name="USER2ID" ColumnName="USER2ID" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="USERIDLOW" ColumnName="USERIDLOW" />
+                <ScalarProperty Name="USERIDHIGH" ColumnName="USERIDHIGH" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH">
+              <MappingFragment StoreEntitySet="MATCH">
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+                <ScalarProperty Name="VISIBILITYID" ColumnName="VISIBILITYID" />
+                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
+                <ScalarProperty Name="MODE" ColumnName="MODE" />
+                <ScalarProperty Name="MATCHCODE" ColumnName="MATCHCODE" />
+                <ScalarProperty Name="STARTTIME" ColumnName="STARTTIME" />
+                <ScalarProperty Name="ENDTIME" ColumnName="ENDTIME" />
+                <ScalarProperty Name="WINNERUSERID" ColumnName="WINNERUSERID" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH_INVITATION">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_INVITATION">
+              <MappingFragment StoreEntitySet="MATCH_INVITATION">
+                <ScalarProperty Name="MATCHINVITATIONID" ColumnName="MATCHINVITATIONID" />
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+                <ScalarProperty Name="INVITERUSERID" ColumnName="INVITERUSERID" />
+                <ScalarProperty Name="TARGETUSERID" ColumnName="TARGETUSERID" />
+                <ScalarProperty Name="TARGETEMAIL" ColumnName="TARGETEMAIL" />
+                <ScalarProperty Name="TOKEN" ColumnName="TOKEN" />
+                <ScalarProperty Name="INVITATIONSTATUS" ColumnName="INVITATIONSTATUS" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="RESPONDEDATUTC" ColumnName="RESPONDEDATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH_PLAYER">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_PLAYER">
+              <MappingFragment StoreEntitySet="MATCH_PLAYER">
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+                <ScalarProperty Name="USERID" ColumnName="USERID" />
+                <ScalarProperty Name="SLOTNUMBER" ColumnName="SLOTNUMBER" />
+                <ScalarProperty Name="ISWINNER" ColumnName="ISWINNER" />
+                <ScalarProperty Name="JOINEDATUTC" ColumnName="JOINEDATUTC" />
+                <ScalarProperty Name="LEFTATUTC" ColumnName="LEFTATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCHSTATUS">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCHSTATUS">
+              <MappingFragment StoreEntitySet="MATCHSTATUS">
+                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCHVISIBILITY">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCHVISIBILITY">
+              <MappingFragment StoreEntitySet="MATCHVISIBILITY">
+                <ScalarProperty Name="VISIBILITYID" ColumnName="VISIBILITYID" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MODERATION_ACTION">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MODERATION_ACTION">
+              <MappingFragment StoreEntitySet="MODERATION_ACTION">
+                <ScalarProperty Name="MODERATIONID" ColumnName="MODERATIONID" />
+                <ScalarProperty Name="TARGETUSERID" ColumnName="TARGETUSERID" />
+                <ScalarProperty Name="MODERATORUSERID" ColumnName="MODERATORUSERID" />
+                <ScalarProperty Name="ACTIONTYPEID" ColumnName="ACTIONTYPEID" />
+                <ScalarProperty Name="REASON" ColumnName="REASON" />
+                <ScalarProperty Name="DURATIONMINUTES" ColumnName="DURATIONMINUTES" />
+                <ScalarProperty Name="SCOPEID" ColumnName="SCOPEID" />
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="EXPIRESATUTC" ColumnName="EXPIRESATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MODERATIONACTIONTYPE">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MODERATIONACTIONTYPE">
+              <MappingFragment StoreEntitySet="MODERATIONACTIONTYPE">
+                <ScalarProperty Name="ACTIONTYPEID" ColumnName="ACTIONTYPEID" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MODERATIONSCOPe">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MODERATIONSCOPe">
+              <MappingFragment StoreEntitySet="MODERATIONSCOPe">
+                <ScalarProperty Name="SCOPEID" ColumnName="SCOPEID" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="sysdiagrams">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.sysdiagrams">
+              <MappingFragment StoreEntitySet="sysdiagrams">
+                <ScalarProperty Name="name" ColumnName="name" />
+                <ScalarProperty Name="principal_id" ColumnName="principal_id" />
+                <ScalarProperty Name="diagram_id" ColumnName="diagram_id" />
+                <ScalarProperty Name="version" ColumnName="version" />
+                <ScalarProperty Name="definition" ColumnName="definition" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="USER_PROFILE">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.USER_PROFILE">
+              <MappingFragment StoreEntitySet="USER_PROFILE">
+                <ScalarProperty Name="USERID" ColumnName="USERID" />
+                <ScalarProperty Name="DISPLAYNAME" ColumnName="DISPLAYNAME" />
+                <ScalarProperty Name="ISACTIVE" ColumnName="ISACTIVE" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="AVATARID" ColumnName="AVATARID" />
+                <ScalarProperty Name="ROWVERSION" ColumnName="ROWVERSION" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <FunctionImportMapping FunctionImportName="SP_ACCEPTFRIENDREQUEST" FunctionName="GuessWhoDBModel.Store.SP_ACCEPTFRIENDREQUEST" />
+          <FunctionImportMapping FunctionImportName="sp_alterdiagram" FunctionName="GuessWhoDBModel.Store.sp_alterdiagram" />
+          <FunctionImportMapping FunctionImportName="sp_creatediagram" FunctionName="GuessWhoDBModel.Store.sp_creatediagram" />
+          <FunctionImportMapping FunctionImportName="SP_CREATEFRIENDREQUEST" FunctionName="GuessWhoDBModel.Store.SP_CREATEFRIENDREQUEST" />
+          <FunctionImportMapping FunctionImportName="sp_dropdiagram" FunctionName="GuessWhoDBModel.Store.sp_dropdiagram" />
+          <FunctionImportMapping FunctionImportName="sp_helpdiagramdefinition" FunctionName="GuessWhoDBModel.Store.sp_helpdiagramdefinition">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="GuessWhoDBModel.sp_helpdiagramdefinition_Result">
+                <ScalarProperty Name="version" ColumnName="version" />
+                <ScalarProperty Name="definition" ColumnName="definition" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_helpdiagrams" FunctionName="GuessWhoDBModel.Store.sp_helpdiagrams">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="GuessWhoDBModel.sp_helpdiagrams_Result">
+                <ScalarProperty Name="Database" ColumnName="Database" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="Owner" ColumnName="Owner" />
+                <ScalarProperty Name="OwnerID" ColumnName="OwnerID" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_renamediagram" FunctionName="GuessWhoDBModel.Store.sp_renamediagram" />
+          <FunctionImportMapping FunctionImportName="sp_upgraddiagrams" FunctionName="GuessWhoDBModel.Store.sp_upgraddiagrams" />
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="false" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="Ninguno" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>
