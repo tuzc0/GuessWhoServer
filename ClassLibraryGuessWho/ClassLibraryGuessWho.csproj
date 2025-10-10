@@ -54,8 +54,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Contracts\Dtos\LoginResponse.cs" />
+    <Compile Include="Contracts\Dtos\LoginRequest.cs" />
     <Compile Include="Contracts\Dtos\RegisterRequest.cs" />
     <Compile Include="Contracts\Dtos\RegisterResponse.cs" />
+    <Compile Include="Contracts\Services\ILoginService.cs" />
     <Compile Include="Contracts\Services\IUserService.cs" />
     <Compile Include="Data\ACCOUNT.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
@@ -157,7 +160,9 @@
       <LastGenOutput>GuessWhoEDModel.cs</LastGenOutput>
     </Content>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
