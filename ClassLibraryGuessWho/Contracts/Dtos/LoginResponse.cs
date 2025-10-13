@@ -5,10 +5,13 @@ namespace ClassLibraryGuessWho.Contracts.Dtos
     [DataContract]
     public class LoginResponse
     {
-        [DataMember(IsRequired = true)]
+        [DataMember]
         public string User { get; set; }
 
-        [DataMember(IsRequired = true)]
+        [DataMember]
         public string Password { get; set; }
+
+        [DataMember(IsRequired = false)]
+        public string ValidUser { get; set; }
     }
 }
