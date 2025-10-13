@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Linq;
 using System.ServiceModel;
-using GuessWho.Services.WCF.Security;
 using ClassLibraryGuessWho.Contracts.Dtos;
 using ClassLibraryGuessWho.Contracts.Services;
-
 using ClassLibraryGuessWho.Data;
+using GuessWho.Services.WCF.Security;
+
 namespace WcfServiceLibraryGuessWho.Services
 {
     public class LoginService : ILoginService
@@ -25,11 +25,20 @@ namespace WcfServiceLibraryGuessWho.Services
             {
                 try
                 {
-                    var account = db.ACCOUNT
-                        .FirstOrDefault(a => a.EMAIL == email); if (account == null || !PasswordHasher.Verify(password, account.PASSWORD))
-                        throw new FaultException("Invalid email or password.");
-                    // Buscar el perfil del usuario
+                    var account = db.ACCOUNT.FirstOrDefault(a => a.EMAIL == email);
+
+                    if (account == null || !PasswordHasher.Verify(password, account.PASSWORD))
+                    {
+                        return new LoginResponse
+                        {
+                            User = "Invalid",
+                            Password = string.Empty,
+                            ValidUser = "False"
+                        };
+                    }
+
                     var profile = db.USER_PROFILE.FirstOrDefault(u => u.USERID == account.USERID);
+
                     // Actualizar fecha de último acceso
                     account.LASTLOGINUTC = DateTime.UtcNow;
                     db.SaveChanges();
@@ -37,12 +46,9 @@ namespace WcfServiceLibraryGuessWho.Services
                     return new LoginResponse
                     {
                         User = profile?.DISPLAYNAME ?? "Unknown",
-                        Password = account.EMAIL
+                        Password = account.EMAIL,
+                        ValidUser = "True"
                     };
-                }
-                catch (FaultException)
-                {
-                    throw;
                 }
                 catch (Exception)
                 {
