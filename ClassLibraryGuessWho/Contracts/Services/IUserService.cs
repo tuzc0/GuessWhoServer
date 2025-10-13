@@ -7,6 +7,7 @@ namespace GuessWho.Contracts.Services
     public interface IUserService
     {
         [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
         RegisterResponse RegisterUser(RegisterRequest request);
 
     }

@@ -60,6 +60,8 @@
     <Compile Include="Contracts\Dtos\ProfileResponse.cs" />
     <Compile Include="Contracts\Dtos\RegisterRequest.cs" />
     <Compile Include="Contracts\Dtos\RegisterResponse.cs" />
+    <Compile Include="Contracts\Faults\Faults.cs" />
+    <Compile Include="Contracts\Faults\ServiceFault.cs" />
     <Compile Include="Contracts\Services\ILoginService.cs" />
     <Compile Include="Contracts\Services\IProfileService.cs" />
     <Compile Include="Contracts\Services\IUserService.cs" />
@@ -99,6 +101,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>GuessWhoEDModel.edmx</DependentUpon>
     </Compile>
+    <Compile Include="Data\Helpers\SqlExceptionInspector.cs" />
     <Compile Include="Data\MATCH.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>

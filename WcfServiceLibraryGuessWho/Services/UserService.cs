@@ -1,103 +1,96 @@
 ﻿using ClassLibraryGuessWho.Data;
+using ClassLibraryGuessWho.Data.Helpers; 
 using GuessWho.Contracts.Dtos;
 using GuessWho.Contracts.Services;
 using GuessWho.Services.WCF.Security;
 using System;
-using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.ServiceModel;
 
 namespace GuessWho.Services.WCF.Services
 {
+    [ServiceBehavior(IncludeExceptionDetailInFaults = false)]
     public class UserService : IUserService
     {
-        public RegisterResponse RegisterUser(RegisterRequest registrationRequest)
+        public RegisterResponse RegisterUser(RegisterRequest request)
         {
-
-            if (registrationRequest == null)
+            if (request == null)
             {
-                throw new FaultException("Invalid request.");
+                throw Faults.Create("InvalidRequest", "Registration request cannot be null.");
             }
 
-            string email = (registrationRequest.Email ?? string.Empty).Trim();
-            string displayName = (registrationRequest.DisplayName ?? string.Empty).Trim();
-            string password = registrationRequest.Password ?? string.Empty;
+            var email = (request.Email ?? string.Empty).Trim();
+            var displayName = (request.DisplayName ?? string.Empty).Trim();
+            var password = request.Password ?? string.Empty;
+            var nowUtc = DateTime.UtcNow;
 
-            DateTime currentUtcDateTime = DateTime.UtcNow;
-
-            using (var databaseContext = new GuessWhoDB())
-            using (var databaseTransaction = databaseContext.Database.BeginTransaction())
+            using (var dataBaseContext = new GuessWhoDB())
+            using (var transaction = dataBaseContext.Database.BeginTransaction())
             {
                 try
                 {
-                    bool emailAlreadyExists = databaseContext.ACCOUNT.Any(account => account.EMAIL == email);
-
-                    if (emailAlreadyExists)
+                    if (dataBaseContext.ACCOUNT.Any(a => a.EMAIL == email))
                     {
-                        throw new FaultException("Email already registered.");
+                        throw Faults.Create("DuplicateEmail", "Email already registered.");
                     }
 
-                    var newUserProfile = new USER_PROFILE
+                    var profile = new USER_PROFILE
                     {
                         DISPLAYNAME = displayName,
                         ISACTIVE = true,
-                        CREATEDATUTC = currentUtcDateTime,
-                        AVATARID = null
+                        CREATEDATUTC = nowUtc
                     };
 
-                    byte[] hashedPassword = PasswordHasher.HashPassword(password);
-
-                    var newUserAccount = new ACCOUNT
+                    var account = new ACCOUNT
                     {
-                        USER_PROFILE = newUserProfile,
+                        USER_PROFILE = profile,
                         EMAIL = email,
-                        PASSWORD = hashedPassword,
+                        PASSWORD = PasswordHasher.HashPassword(password),
                         ISEMAILVERIFIED = false,
-                        LASTLOGINUTC = null,
-                        FAILEDLOGINS = 0,
-                        LOCKEDUNTILUTC = null,
-                        CREATEDATUTC = currentUtcDateTime,
-                        UPDATEDATUTC = currentUtcDateTime
+                        CREATEDATUTC = nowUtc,
+                        UPDATEDATUTC = nowUtc
                     };
 
-                    databaseContext.ACCOUNT.Add(newUserAccount);
-                    databaseContext.SaveChanges();
-                    databaseTransaction.Commit();
+                    dataBaseContext.ACCOUNT.Add(account);
+                    dataBaseContext.SaveChanges();
+                    transaction.Commit();
 
                     return new RegisterResponse
                     {
-                        AccountId = newUserAccount.ACCOUNTID,
-                        UserId = newUserProfile.USERID,
+                        AccountId = account.ACCOUNTID,
+                        UserId = profile.USERID,
                         Email = email,
                         DisplayName = displayName,
                         EmailVerificationRequired = true
                     };
                 }
-                catch (DbUpdateException databaseUpdateException)
+                catch (FaultException<ServiceFault>)
                 {
-                    databaseTransaction.Rollback();
-                    if (IsUniqueConstraintViolation(databaseUpdateException))
-                        throw new FaultException("Email already registered.");
-                    throw new FaultException("Unexpected database error.");
+                    transaction.Rollback();
+                    throw; 
                 }
-                catch (FaultException)
+                catch (DbUpdateException ex) when (SqlExceptionInspector.IsForeignKeyViolation(ex))
                 {
-                    databaseTransaction.Rollback();
-                    throw;
+                    transaction.Rollback();
+                    throw Faults.Create("ForeignKey", "Operation violates an existing relation.");
+                }
+                catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
+                {
+                    transaction.Rollback();
+                    throw Faults.Create("DatabaseTimeout", "The database did not respond in time.");
+                }
+                catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
+                {
+                    transaction.Rollback();
+                    throw Faults.Create("DatabaseConnection", "Unable to connect to the database.");
                 }
                 catch (Exception)
                 {
-                    databaseTransaction.Rollback();
-                    throw new FaultException("Unexpected server error.");
+                    transaction.Rollback();
+                    throw Faults.Create("Unexpected", "Unexpected server error.");
                 }
             }
-        }
-
-        private static bool IsUniqueConstraintViolation(DbUpdateException databaseUpdateException)
-        {
-            var sqlException = databaseUpdateException.InnerException?.InnerException as System.Data.SqlClient.SqlException;
-            return sqlException != null && (sqlException.Number == 2627 || sqlException.Number == 2601);
         }
     }
 }
