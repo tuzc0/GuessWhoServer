@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ServiceModel;
 using GuessWho.Services.WCF.Security;
 using ClassLibraryGuessWho.Contracts.Dtos;
 using ClassLibraryGuessWho.Contracts.Services;
@@ -14,25 +12,47 @@ namespace WcfServiceLibraryGuessWho.Services
     {
         public LoginResponse LoginUser(LoginRequest request)
         {
+            if (request == null)
+                throw new FaultException("Invalid request.");
+
+            string email = (request.User ?? string.Empty).Trim();
+            string password = request.Password ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                throw new FaultException("Email and password are required.");
+
             using (var db = new GuessWhoDB())
             {
-                var account = db.ACCOUNT
-                    .Where(a => a.EMAIL == request.User)
-                    .Select(a => new { a.PASSWORD, a.USERID })
-                    .FirstOrDefault();
-
-                if (account == null || !PasswordHasher.Verify(request.Password, account.PASSWORD))
-                    return null;
-
-                var profile = db.USER_PROFILE.FirstOrDefault(u => u.USERID == account.USERID);
-
-                return new LoginResponse
+                try
                 {
-                    User = account.USERID.ToString(),
-                    Password = profile?.DISPLAYNAME
-                };
+                    var account = db.ACCOUNT
+                        .FirstOrDefault(a => a.EMAIL == email);
+
+                    if (account == null || !PasswordHasher.Verify(password, account.PASSWORD))
+                        throw new FaultException("Invalid email or password.");
+
+                    // Buscar el perfil del usuario
+                    var profile = db.USER_PROFILE.FirstOrDefault(u => u.USERID == account.USERID);
+
+                    // Actualizar fecha de último acceso
+                    account.LASTLOGINUTC = DateTime.UtcNow;
+                    db.SaveChanges();
+
+                    return new LoginResponse
+                    {
+                        User = profile?.DISPLAYNAME ?? "Unknown",
+                        Password = account.EMAIL
+                    };
+                }
+                catch (FaultException)
+                {
+                    throw;
+                }
+                catch (Exception)
+                {
+                    throw new FaultException("Unexpected server error.");
+                }
             }
         }
-
     }
 }

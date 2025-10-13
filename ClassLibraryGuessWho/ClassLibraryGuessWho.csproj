@@ -54,11 +54,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Contracts\Dtos\ProfileRequest.cs" />
     <Compile Include="Contracts\Dtos\LoginResponse.cs" />
     <Compile Include="Contracts\Dtos\LoginRequest.cs" />
+    <Compile Include="Contracts\Dtos\ProfileResponse.cs" />
     <Compile Include="Contracts\Dtos\RegisterRequest.cs" />
     <Compile Include="Contracts\Dtos\RegisterResponse.cs" />
     <Compile Include="Contracts\Services\ILoginService.cs" />
+    <Compile Include="Contracts\Services\IProfileService.cs" />
     <Compile Include="Contracts\Services\IUserService.cs" />
     <Compile Include="Data\ACCOUNT.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
