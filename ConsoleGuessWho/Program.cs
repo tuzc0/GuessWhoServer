@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ServiceModel;
 using GuessWho.Services.WCF.Services;
+using WcfServiceLibraryGuessWho.Services;
 
 namespace ConsoleGuessWho
 {
@@ -8,34 +9,43 @@ namespace ConsoleGuessWho
     {
         private static void Main()
         {
-            using (var host = new ServiceHost(typeof(UserService)))
+            using (var hostUser = new ServiceHost(typeof(UserService)))
+            using (var hostLogin = new ServiceHost(typeof(LoginService)))
             {
                 try
                 {
-                    host.Open();
+                    hostUser.Open();
+                    hostLogin.Open();
 
                     Console.WriteLine("[UserService] Host abierto. Endpoints:");
-                    foreach (var ep in host.Description.Endpoints)
+                    foreach (var ep in hostUser.Description.Endpoints)
                         Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
 
-                    Console.WriteLine("Presiona ENTER para detener el servicio...");
+                    Console.WriteLine("\n[LoginService] Host abierto. Endpoints:");
+                    foreach (var ep in hostLogin.Description.Endpoints)
+                        Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
+
+                    Console.WriteLine("\nPresiona ENTER para detener los servicios...");
                     Console.ReadLine();
 
-                    host.Close();
+                    hostLogin.Close();
+                    hostUser.Close();
                 }
-                catch (AddressAlreadyInUseException)
+                catch (AddressAlreadyInUseException ex)
                 {
-                    Console.Error.WriteLine("El puerto ya está en uso (8095). Cierra el proceso que lo ocupa o cambia el puerto en ambos configs.");
+                    Console.Error.WriteLine("El puerto ya está en uso. Cierra el proceso que lo ocupa o cambia el puerto en App.config.\n" + ex.Message);
                 }
                 catch (CommunicationException ex)
                 {
                     Console.Error.WriteLine("Fallo de comunicación al abrir el host: " + ex.Message);
-                    host.Abort();
+                    hostUser.Abort();
+                    hostLogin.Abort();
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine("Error inesperado: " + ex.Message);
-                    host.Abort();
+                    hostUser.Abort();
+                    hostLogin.Abort();
                 }
             }
         }
