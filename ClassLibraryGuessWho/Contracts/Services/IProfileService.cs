@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ClassLibraryGuessWho.Contracts.Services
 {
     [ServiceContract]
-    internal interface IProfileService
+    public interface IProfileService
     {
         [OperationContract]
         ProfileResponse Profile(ProfileRequest request);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ServiceModel;
 using GuessWho.Services.WCF.Services;
+using WcfServiceLibraryGuessWho.Services;
 
 namespace ConsoleGuessWho
 {
@@ -8,34 +9,57 @@ namespace ConsoleGuessWho
     {
         private static void Main()
         {
-            using (var host = new ServiceHost(typeof(UserService)))
+            using (var hostUser = new ServiceHost(typeof(UserService)))
+            using (var hostLogin = new ServiceHost(typeof(LoginService)))
+            using (var hostChat = new ServiceHost(typeof(ChatService))) // <-- Host para ChatService
             {
                 try
                 {
-                    host.Open();
+                    // Abrir todos los hosts
+                    hostUser.Open();
+                    hostLogin.Open();
+                    hostChat.Open();
 
+                    // Mostrar información de UserService
                     Console.WriteLine("[UserService] Host abierto. Endpoints:");
-                    foreach (var ep in host.Description.Endpoints)
+                    foreach (var ep in hostUser.Description.Endpoints)
                         Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
 
-                    Console.WriteLine("Presiona ENTER para detener el servicio...");
+                    // Mostrar información de LoginService
+                    Console.WriteLine("\n[LoginService] Host abierto. Endpoints:");
+                    foreach (var ep in hostLogin.Description.Endpoints)
+                        Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
+
+                    // Mostrar información de ChatService
+                    Console.WriteLine("\n[ChatService] Host abierto. Endpoints:");
+                    foreach (var ep in hostChat.Description.Endpoints)
+                        Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
+
+                    Console.WriteLine("\nPresiona ENTER para detener los servicios...");
                     Console.ReadLine();
 
-                    host.Close();
+                    // Cerrar hosts
+                    hostChat.Close();
+                    hostLogin.Close();
+                    hostUser.Close();
                 }
-                catch (AddressAlreadyInUseException)
+                catch (AddressAlreadyInUseException ex)
                 {
-                    Console.Error.WriteLine("El puerto ya está en uso (8095). Cierra el proceso que lo ocupa o cambia el puerto en ambos configs.");
+                    Console.Error.WriteLine("El puerto ya está en uso. Cierra el proceso que lo ocupa o cambia el puerto en App.config.\n" + ex.Message);
                 }
                 catch (CommunicationException ex)
                 {
                     Console.Error.WriteLine("Fallo de comunicación al abrir el host: " + ex.Message);
-                    host.Abort();
+                    hostUser.Abort();
+                    hostLogin.Abort();
+                    hostChat.Abort();
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine("Error inesperado: " + ex.Message);
-                    host.Abort();
+                    hostUser.Abort();
+                    hostLogin.Abort();
+                    hostChat.Abort();
                 }
             }
         }

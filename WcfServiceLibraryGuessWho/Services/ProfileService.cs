@@ -6,9 +6,9 @@ using System;
 using System.Data.Entity;
 using System.Linq;
 using System.ServiceModel;
-
+using ClassLibraryGuessWho.Contracts.Services;
 namespace GuessWho.Services.WCF.Services
-{/*
+{
     public class ProfileService : IProfileService
     {
         public ProfileResponse Profile(ProfileRequest request)
@@ -52,5 +52,5 @@ namespace GuessWho.Services.WCF.Services
                 }
             }
         }
-    }*/
+    }
 }
