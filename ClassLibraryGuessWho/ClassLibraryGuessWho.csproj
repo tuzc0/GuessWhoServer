@@ -62,6 +62,8 @@
     <Compile Include="Contracts\Dtos\RegisterResponse.cs" />
     <Compile Include="Contracts\Faults\Faults.cs" />
     <Compile Include="Contracts\Faults\ServiceFault.cs" />
+    <Compile Include="Contracts\Services\IChatService.cs" />
+    <Compile Include="Contracts\Services\IChatServiceCallback.cs" />
     <Compile Include="Contracts\Services\ILoginService.cs" />
     <Compile Include="Contracts\Services\IProfileService.cs" />
     <Compile Include="Contracts\Services\IUserService.cs" />
