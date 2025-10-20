@@ -11,23 +11,35 @@ namespace ConsoleGuessWho
         {
             using (var hostUser = new ServiceHost(typeof(UserService)))
             using (var hostLogin = new ServiceHost(typeof(LoginService)))
+            using (var hostChat = new ServiceHost(typeof(ChatService))) // <-- Host para ChatService
             {
                 try
                 {
+                    // Abrir todos los hosts
                     hostUser.Open();
                     hostLogin.Open();
+                    hostChat.Open();
 
+                    // Mostrar información de UserService
                     Console.WriteLine("[UserService] Host abierto. Endpoints:");
                     foreach (var ep in hostUser.Description.Endpoints)
                         Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
 
+                    // Mostrar información de LoginService
                     Console.WriteLine("\n[LoginService] Host abierto. Endpoints:");
                     foreach (var ep in hostLogin.Description.Endpoints)
+                        Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
+
+                    // Mostrar información de ChatService
+                    Console.WriteLine("\n[ChatService] Host abierto. Endpoints:");
+                    foreach (var ep in hostChat.Description.Endpoints)
                         Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
 
                     Console.WriteLine("\nPresiona ENTER para detener los servicios...");
                     Console.ReadLine();
 
+                    // Cerrar hosts
+                    hostChat.Close();
                     hostLogin.Close();
                     hostUser.Close();
                 }
@@ -40,12 +52,14 @@ namespace ConsoleGuessWho
                     Console.Error.WriteLine("Fallo de comunicación al abrir el host: " + ex.Message);
                     hostUser.Abort();
                     hostLogin.Abort();
+                    hostChat.Abort();
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine("Error inesperado: " + ex.Message);
                     hostUser.Abort();
                     hostLogin.Abort();
+                    hostChat.Abort();
                 }
             }
         }
