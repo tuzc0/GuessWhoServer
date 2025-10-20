@@ -14,6 +14,12 @@ namespace ClassLibraryGuessWho.Data
     
     public partial class ACCOUNT
     {
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
+        public ACCOUNT()
+        {
+            this.EMAIL_VERIFICATION = new HashSet<EMAIL_VERIFICATION>();
+        }
+    
         public long ACCOUNTID { get; set; }
         public long USERID { get; set; }
         public string EMAIL { get; set; }
@@ -26,5 +32,7 @@ namespace ClassLibraryGuessWho.Data
         public System.DateTime UPDATEDATUTC { get; set; }
     
         public virtual USER_PROFILE USER_PROFILE { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<EMAIL_VERIFICATION> EMAIL_VERIFICATION { get; set; }
     }
 }

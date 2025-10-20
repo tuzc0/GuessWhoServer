@@ -54,16 +54,30 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Contracts\Dtos\AcceptFriendRequestRequest.cs" />
+    <Compile Include="Contracts\Dtos\BasicResponse.cs" />
     <Compile Include="Contracts\Dtos\LoginResponse.cs" />
     <Compile Include="Contracts\Dtos\LoginRequest.cs" />
     <Compile Include="Contracts\Dtos\ProfileRequest.cs" />
     <Compile Include="Contracts\Dtos\ProfileResponse.cs" />
     <Compile Include="Contracts\Dtos\RegisterRequest.cs" />
     <Compile Include="Contracts\Dtos\RegisterResponse.cs" />
+    <Compile Include="Contracts\Dtos\ResendVerificationRequest.cs" />
+    <Compile Include="Contracts\Dtos\SearchProfilesRequest.cs" />
+    <Compile Include="Contracts\Dtos\SearchProfilesResponse.cs" />
+    <Compile Include="Contracts\Dtos\SendFriendRequestRequest.cs" />
+    <Compile Include="Contracts\Dtos\SendFriendRequestResponse.cs" />
+    <Compile Include="Contracts\Dtos\UserProfileSearchResult.cs" />
+    <Compile Include="Contracts\Dtos\VerifyEmailRequest.cs" />
+    <Compile Include="Contracts\Dtos\VerifyEmailResponse.cs" />
     <Compile Include="Contracts\Faults\Faults.cs" />
     <Compile Include="Contracts\Faults\ServiceFault.cs" />
+<<<<<<< Updated upstream
     <Compile Include="Contracts\Services\IChatService.cs" />
     <Compile Include="Contracts\Services\IChatServiceCallback.cs" />
+=======
+    <Compile Include="Contracts\Services\IFriendService.cs" />
+>>>>>>> Stashed changes
     <Compile Include="Contracts\Services\ILoginService.cs" />
     <Compile Include="Contracts\Services\IProfileService.cs" />
     <Compile Include="Contracts\Services\IUserService.cs" />
@@ -77,6 +91,9 @@
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\CHARACTER_SET.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\EMAIL_VERIFICATION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\FRIENDREQUESTSTATUS.cs">

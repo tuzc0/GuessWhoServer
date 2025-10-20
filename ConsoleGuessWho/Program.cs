@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.ServiceModel;
 using GuessWho.Services.WCF.Services;
 using WcfServiceLibraryGuessWho.Services;
@@ -25,6 +26,7 @@ namespace ConsoleGuessWho
                     foreach (var ep in hostUser.Description.Endpoints)
                         Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
 
+<<<<<<< Updated upstream
                     // Mostrar información de LoginService
                     Console.WriteLine("\n[LoginService] Host abierto. Endpoints:");
                     foreach (var ep in hostLogin.Description.Endpoints)
@@ -36,6 +38,11 @@ namespace ConsoleGuessWho
                         Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
 
                     Console.WriteLine("\nPresiona ENTER para detener los servicios...");
+=======
+                    Console.WriteLine("[CFG] " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                    Console.WriteLine("[SMTP User] " + ConfigurationManager.AppSettings["Smtp.User"]);
+                    Console.WriteLine("Presiona ENTER para detener el servicio...");
+>>>>>>> Stashed changes
                     Console.ReadLine();
 
                     // Cerrar hosts
