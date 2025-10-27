@@ -40,6 +40,9 @@
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.5.1\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
+    <Reference Include="StructureMap, Version=4.7.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\StructureMap.4.7.1\lib\net45\StructureMap.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
@@ -70,14 +73,12 @@
     <Compile Include="Contracts\Dtos\UserProfileSearchResult.cs" />
     <Compile Include="Contracts\Dtos\VerifyEmailRequest.cs" />
     <Compile Include="Contracts\Dtos\VerifyEmailResponse.cs" />
+    <Compile Include="Contracts\Enums\FriendRequestStatus.cs" />
     <Compile Include="Contracts\Faults\Faults.cs" />
     <Compile Include="Contracts\Faults\ServiceFault.cs" />
-<<<<<<< Updated upstream
     <Compile Include="Contracts\Services\IChatService.cs" />
     <Compile Include="Contracts\Services\IChatServiceCallback.cs" />
-=======
     <Compile Include="Contracts\Services\IFriendService.cs" />
->>>>>>> Stashed changes
     <Compile Include="Contracts\Services\ILoginService.cs" />
     <Compile Include="Contracts\Services\IProfileService.cs" />
     <Compile Include="Contracts\Services\IUserService.cs" />
@@ -93,6 +94,11 @@
     <Compile Include="Data\CHARACTER_SET.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\DataAccess\Accounts\CreateAccountArgs.cs" />
+    <Compile Include="Data\DataAccess\Accounts\UserAccountData.cs" />
+    <Compile Include="Data\DataAccess\EmailVerification\CreateEmailTokenArgs.cs" />
+    <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationData.cs" />
+    <Compile Include="Data\DataAccess\Friends\FriendshipData.cs" />
     <Compile Include="Data\EMAIL_VERIFICATION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
@@ -169,6 +175,9 @@
       <DependentUpon>GuessWhoEDModel.edmx</DependentUpon>
     </None>
     <None Include="packages.config" />
+    <Content Include="Secrets\ConnectionBDSecret.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
@@ -188,6 +197,7 @@
   <ItemGroup>
     <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

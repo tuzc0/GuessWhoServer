@@ -10,8 +10,7 @@ namespace ClassLibraryGuessWho.Contracts.Dtos
     [DataContract]
     public class SendFriendRequestRequest
     {
-        [DataMember(IsRequired = true)] public string FromAccountId { get; set; }
-        [DataMember(IsRequired = true)] public string ToAccountId { get; set; }
-
+        [DataMember(IsRequired = true)] public long FromAccountId { get; set; }
+        [DataMember(IsRequired = true)] public long ToUserId { get; set; }
     }
 }

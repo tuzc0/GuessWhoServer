@@ -20,22 +20,23 @@ namespace WcfServiceLibraryGuessWho.Communication.Email
 
         public VerificationEmailSender()
         {
-            var app = ConfigurationManager.AppSettings;
+            var configuration = ConfigurationManager.AppSettings;
 
-            smtpHost = app["Smtp.Host"] ?? "smtp.gmail.com";
-            smtpPort = int.TryParse(app["Smtp.Port"], out var parsedPort) ? parsedPort : 587;
-            secureSslConnection = !bool.TryParse(app["Smtp.EnableSsl"], out var enableSsl) || enableSsl;
-            smtpUser = app["Smtp.User"];
-            smtpPassword = app["Smtp.Password"];
-            fromAddress = app["Smtp.From"] ?? smtpUser;
-            displayName = app["Smtp.DisplayName"] ?? "GuessWho";
-            timeoutMs = int.TryParse(app["Smtp.TimeoutMs"], out var parsedTimeout) ? parsedTimeout : 15000;
+            smtpHost = configuration["Smtp.Host"] ?? "smtp.gmail.com";
+            smtpPort = int.TryParse(configuration["Smtp.Port"], out var parsedPort) ? parsedPort : 587;
+            secureSslConnection = !bool.TryParse(configuration["Smtp.EnableSsl"], out var enableSsl) || enableSsl;
+            smtpUser = configuration["Smtp.User"];
+            smtpPassword = configuration["Smtp.Password"];
+            fromAddress = configuration["Smtp.From"] ?? smtpUser;
+            displayName = configuration["Smtp.DisplayName"] ?? "GuessWho";
+            timeoutMs = int.TryParse(configuration["Smtp.TimeoutMs"], out var parsedTimeout) ? parsedTimeout : 30000;
 
             if (string.IsNullOrWhiteSpace(smtpUser) || string.IsNullOrWhiteSpace(smtpPassword))
             {
                 throw new EmailSendException("SMTPNotConfigured", "SMTP settings are missing");
             }
         }
+
         public void SendVerificationCode(string recipientEmailAddress, string verificationCode)
         {
             if (!IsValidEmail(recipientEmailAddress))
@@ -111,7 +112,8 @@ namespace WcfServiceLibraryGuessWho.Communication.Email
         {
             try 
             { 
-                var address = new MailAddress(email); return address.Address == email; 
+                var address = new MailAddress(email);
+                return address.Address == email; 
             }
             catch 
             { 
@@ -143,6 +145,5 @@ namespace WcfServiceLibraryGuessWho.Communication.Email
 
             return false;
         }
-
     }
 }

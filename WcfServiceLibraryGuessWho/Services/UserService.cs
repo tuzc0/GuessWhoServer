@@ -1,5 +1,7 @@
 ﻿using ClassLibraryGuessWho.Contracts.Dtos;
 using ClassLibraryGuessWho.Data;
+using ClassLibraryGuessWho.Data.DataAccess.Accounts;
+using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
 using ClassLibraryGuessWho.Data.Helpers; 
 using GuessWho.Contracts.Dtos;
 using GuessWho.Contracts.Services;
@@ -20,8 +22,13 @@ namespace GuessWho.Services.WCF.Services
     [ServiceBehavior(IncludeExceptionDetailInFaults = false)]
     public class UserService : IUserService
     {
+        private readonly TimeSpan VerificationCodeLifeTime = TimeSpan.FromMinutes(10);
+        private readonly UserAccountData userAccountData = new UserAccountData();
+        private readonly EmailVerificationData emailVerificationData = new EmailVerificationData();
+
         public RegisterResponse RegisterUser(RegisterRequest request)
         {
+
             if (request == null)
             {
                 throw Faults.Create("InvalidRequest", "Registration request cannot be null.");
@@ -30,166 +37,115 @@ namespace GuessWho.Services.WCF.Services
             var email = (request.Email ?? "").Trim().ToLowerInvariant();
             var displayName = (request.DisplayName ?? string.Empty).Trim();
             var password = request.Password ?? string.Empty;
-            var nowUtc = DateTime.UtcNow;
+            var dateNowUtc = DateTime.UtcNow;
 
-            string verificationCode;
-
-            using (var dataBaseContext = new GuessWhoDB())
-            using (var transaction = dataBaseContext.Database.BeginTransaction())
+            try
             {
-                try
+
+                if (userAccountData.EmailExists(email))
                 {
-                    if (dataBaseContext.ACCOUNT.Any(a => a.EMAIL == email))
-                    {
-                        throw Faults.Create("DuplicateEmail", "Email already registered.");
-                    }
-
-                    var profile = new USER_PROFILE
-                    {
-                        DISPLAYNAME = displayName,
-                        ISACTIVE = true,
-                        CREATEDATUTC = nowUtc
-                    };
-
-                    var account = new ACCOUNT
-                    {
-                        USER_PROFILE = profile,
-                        EMAIL = email,
-                        PASSWORD = PasswordHasher.HashPassword(password),
-                        ISEMAILVERIFIED = false,
-                        CREATEDATUTC = nowUtc,
-                        UPDATEDATUTC = nowUtc
-                    };
-
-                    dataBaseContext.ACCOUNT.Add(account);
-                    dataBaseContext.SaveChanges();
-
-                    var (Plain, Hash) = CreateVerificationCodeOrFault();
-                    verificationCode = Plain;
-                    var verificationCodeHash = Hash;
-
-
-                    var token = new EMAIL_VERIFICATION
-                    {
-                        TOKENID = Guid.NewGuid(),
-                        ACCOUNTID = account.ACCOUNTID,
-                        CODEHASH = verificationCodeHash,
-                        EXPIRESUTC = nowUtc.AddMinutes(10),
-                        CREATEDATUTC = nowUtc,
-                        CONSUMEDUTC = null
-                    };
-
-                    dataBaseContext.EMAIL_VERIFICATION.Add(token);
-                    dataBaseContext.SaveChanges();
-                    transaction.Commit();
-
-                    TrySendVerificationEmailOrThrow(account.EMAIL, verificationCode);
-
-                    return new RegisterResponse
-                    {
-                        AccountId = account.ACCOUNTID,
-                        UserId = profile.USERID,
-                        Email = email,
-                        DisplayName = displayName,
-                        EmailVerificationRequired = true
-                    };
-                }
-                catch (FaultException<ServiceFault>)
-                {
-                    transaction.Rollback();
-                    throw;
-                }
-                catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueViolation(ex, "UQ_ACCOUNT_EMAIL"))
-                {
-                    transaction.Rollback();
-
                     throw Faults.Create("DuplicateEmail", "Email already registered.");
                 }
-                catch (DbUpdateException ex) when (SqlExceptionInspector.IsForeignKeyViolation(ex))
+
+                var passwordHash = PasswordHasher.HashPassword(password);
+                var (Plain, Hash) = CreateVerificationCodeOrFault();
+
+                var createAccountArgs = new CreateAccountArgs
                 {
-                    transaction.Rollback();
-                    throw Faults.Create("ForeignKey", "Operation violates an existing relation.");
-                }
-                catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
+                    Email = email,
+                    Password = passwordHash,
+                    DisplayName = displayName,
+                    CreationDate = dateNowUtc
+                };
+
+                var (account, profile) = userAccountData.CreateAccount(createAccountArgs);
+
+                var createTokenArgs = new CreateEmailTokenArgs
                 {
-                    transaction.Rollback();
-                    throw Faults.Create("DatabaseTimeout", "The database did not respond in time.");
-                }
-                catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
+                    AccountId = account.ACCOUNTID,
+                    CodeHash = Hash,
+                    NowUtc = dateNowUtc,
+                    LifeSpan = VerificationCodeLifeTime
+                };
+
+                emailVerificationData.AddVerificationToken(createTokenArgs);
+
+                TrySendVerificationEmailOrThrow(account.EMAIL, Plain);
+
+                return new RegisterResponse
                 {
-                    transaction.Rollback();
-                    throw Faults.Create("DatabaseConnection", "Unable to connect to the database.");
-                }
-                catch (Exception)
-                {
-                    transaction.Rollback();
-                    throw Faults.Create("Unexpected", "Unexpected server error.");
-                }
+                    AccountId = account.ACCOUNTID,
+                    UserId = profile.USERID,
+                    Email = email,
+                    DisplayName = displayName,
+                    EmailVerificationRequired = true
+                };
+            }
+            catch (FaultException<ServiceFault>)
+            {
+                throw;
+            }
+            catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueViolation(ex, "UQ_ACCOUNT_EMAIL"))
+            {
+                throw Faults.Create("DuplicateEmail", "Email already registered.");
+            }
+            catch (DbUpdateException ex) when (SqlExceptionInspector.IsForeignKeyViolation(ex))
+            {
+                throw Faults.Create("ForeignKey", "Operation violates an existing relation.");
+            }
+            catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
+            {
+                throw Faults.Create("DatabaseTimeout", "The database did not respond in time.");
+            }
+            catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
+            {
+                throw Faults.Create("DatabaseConnection", "Unable to connect to the database.");
+            }
+            catch (Exception)
+            {
+                throw Faults.Create("Unexpected", "Unexpected server error.");
             }
         }
 
         public VerifyEmailResponse ConfirmEmailAddressWithVerificationCode(VerifyEmailRequest request)
         {
-            var currentUtcTimestamp = DateTime.UtcNow;
-            var normalizedCode = (request.Code ?? string.Empty).Trim();
 
-            if (!Regex.IsMatch(normalizedCode, @"^\d{6}$"))
+            var currentUtcTimestamp = DateTime.UtcNow;
+            var code = (request.Code ?? string.Empty).Trim();
+
+            if (!Regex.IsMatch(code, @"^\d{6}$"))
             {
                 throw Faults.Create("InvalidOrExpiredCode", "Invalid code.");
             }
 
-            using (var dataBaseContext = new GuessWhoDB())
-            using (var transaction = dataBaseContext.Database.BeginTransaction())
+            var account = userAccountData.GetAccountById(request.AccountId)
+                ?? throw Faults.Create("NotFound", "Account not found.");
+
+            if (account.ISEMAILVERIFIED)
             {
-                var accountEntity = dataBaseContext.ACCOUNT
-                    .SingleOrDefault(a => a.ACCOUNTID == request.AccountId)
-                    ?? throw Faults.Create("NotFound", "Account not found.");
-
-                if (accountEntity.ISEMAILVERIFIED)
-                {
-                    return new VerifyEmailResponse { Success = true };
-                }
-
-                var activeVerificationToken = dataBaseContext.EMAIL_VERIFICATION
-                    .Where(t => t.ACCOUNTID == request.AccountId &&
-                                t.CONSUMEDUTC == null &&
-                                t.EXPIRESUTC >= currentUtcTimestamp)
-                    .OrderByDescending(t => t.CREATEDATUTC)
-                    .FirstOrDefault() ?? throw Faults.Create("InvalidOrExpiredCode", "Code expired.");
-
-                var enteredVerificationCodeHash = VerificationCodeGenerator.ComputeSha256Hash(normalizedCode);
-
-                if (!AreByteSequencesEqualInConstantTime(enteredVerificationCodeHash, activeVerificationToken.CODEHASH))
-                {
-                    dataBaseContext.Database.ExecuteSqlCommand(
-                        @"UPDATE dbo.EMAIL_VERIFICATION
-                        SET FAILEDATTEMPTS = FAILEDATTEMPTS + 1,
-                        EXPIRESUTC = CASE WHEN FAILEDATTEMPTS + 1 >= 5 THEN @p0 ELSE EXPIRESUTC END
-                        WHERE TOKENID = @p1 AND CONSUMEDUTC IS NULL AND EXPIRESUTC >= @p0",
-                        currentUtcTimestamp, activeVerificationToken.TOKENID);
-
-                    throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
-                }
-
-                var affectedRows = dataBaseContext.Database.ExecuteSqlCommand(
-                    @"UPDATE dbo.EMAIL_VERIFICATION
-                    SET CONSUMEDUTC = SYSUTCDATETIME()
-                    WHERE TOKENID = @p0 AND CONSUMEDUTC IS NULL",
-                    activeVerificationToken.TOKENID);
-
-                if (affectedRows == 0)
-                {
-                    throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
-                }
-
-                accountEntity.ISEMAILVERIFIED = true;
-                accountEntity.UPDATEDATUTC = currentUtcTimestamp;
-
-                dataBaseContext.SaveChanges();
-                transaction.Commit();
-
                 return new VerifyEmailResponse { Success = true };
             }
+
+            var token = emailVerificationData.GetLatestTokenByAccountId(request.AccountId, currentUtcTimestamp)
+                ?? throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
+
+            var codeHash = VerificationCodeGenerator.ComputeSha256Hash(code);
+
+            if (!AreByteSequencesEqualInConstantTime(codeHash, token.CODEHASH))
+            {
+                emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(token.TOKENID, currentUtcTimestamp);
+                throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
+            }
+
+            var consumedRows = emailVerificationData.ConsumeToken(token.TOKENID);
+
+            if (consumedRows == 0)
+            {
+                throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
+            }
+
+            userAccountData.MarkEmailVerified(request.AccountId, currentUtcTimestamp);
+            return new VerifyEmailResponse { Success = true };
         }
 
 
@@ -197,72 +153,42 @@ namespace GuessWho.Services.WCF.Services
         {
             var currentUtcTimestamp = DateTime.UtcNow;
 
-            using (var dataBaseContext = new GuessWhoDB())
-            using (var transaction = dataBaseContext.Database.BeginTransaction())
+            var account = userAccountData.GetAccountById(request.AccountId)
+                ?? throw Faults.Create("NotFound", "Account not found.");
+
+            if (account.ISEMAILVERIFIED)
             {
-                var accountEntity = dataBaseContext.ACCOUNT
-                    .SingleOrDefault(a => a.ACCOUNTID == request.AccountId)
-                    ?? throw Faults.Create("NotFound", "Account not found.");
-
-                if (accountEntity.ISEMAILVERIFIED)
-                {
-                    return;
-                }
-
-                var lastVerificationToken = dataBaseContext.EMAIL_VERIFICATION
-                    .Where(t => t.ACCOUNTID == request.AccountId)
-                    .OrderByDescending(t => t.CREATEDATUTC)
-                    .FirstOrDefault();
-
-                if (lastVerificationToken != null &&
-                    (currentUtcTimestamp - lastVerificationToken.CREATEDATUTC).TotalSeconds < 60)
-                {
-                    throw Faults.Create("RateLimited", "Try again in one minute.");
-                }
-
-                var oneHourAgo = currentUtcTimestamp.AddHours(-1);
-
-                var tokensSentInLastHour = dataBaseContext.EMAIL_VERIFICATION
-                    .Count(t => t.ACCOUNTID == request.AccountId &&
-                                t.CREATEDATUTC >= oneHourAgo);
-
-                if (tokensSentInLastHour >= 5)
-                {
-                    throw Faults.Create("RateLimited", "Resend limit reached.");
-                }
-
-                dataBaseContext.Database.ExecuteSqlCommand(
-                    @"UPDATE dbo.EMAIL_VERIFICATION
-                    SET EXPIRESUTC = @p0
-                    WHERE ACCOUNTID = @p1
-                    AND CONSUMEDUTC IS NULL
-                    AND EXPIRESUTC > @p0",
-                    currentUtcTimestamp, accountEntity.ACCOUNTID);
-
-                var (Plain, Hash) = CreateVerificationCodeOrFault();
-                var verificationCode = Plain;
-                var verificationCodeHash = Hash;
-
-                var newVerificationToken = new EMAIL_VERIFICATION
-                {
-                    TOKENID = Guid.NewGuid(),
-                    ACCOUNTID = accountEntity.ACCOUNTID,
-                    CODEHASH = verificationCodeHash,
-                    EXPIRESUTC = currentUtcTimestamp.AddMinutes(10),
-                    CREATEDATUTC = currentUtcTimestamp
-                };
-
-                dataBaseContext.EMAIL_VERIFICATION.Add(newVerificationToken);
-                dataBaseContext.SaveChanges();
-
-                transaction.Commit();
-
-                TrySendVerificationEmailOrThrow(accountEntity.EMAIL, verificationCode);
+                return; 
             }
+
+            var (perMinute, withingHourcap, _, _) = emailVerificationData.GetEmailVerificationResendLimits(
+                request.AccountId, currentUtcTimestamp);
+
+            if (perMinute)
+            {
+                throw Faults.Create("RateLimited", "Try again in one minute.");
+            }
+
+            if (!withingHourcap)
+            {
+                throw Faults.Create("HourlyLimitExceeded", "Hourly resend limit exceeded.");
+            }
+
+            var (Plain, Hash) = CreateVerificationCodeOrFault();
+            var createTokenArgs = new CreateEmailTokenArgs
+            {
+                AccountId = request.AccountId,
+                CodeHash = Hash,
+                NowUtc = currentUtcTimestamp
+            };
+
+            emailVerificationData.AddVerificationToken(createTokenArgs);
+            TrySendVerificationEmailOrThrow(account.EMAIL,Plain);
         }
 
         private static bool AreByteSequencesEqualInConstantTime(byte[] firstByteSequence, byte[] secondByteSequence)
         {
+
             if (firstByteSequence == null || secondByteSequence == null)
             {
                 return firstByteSequence == secondByteSequence;
@@ -283,6 +209,7 @@ namespace GuessWho.Services.WCF.Services
 
         private static void TrySendVerificationEmailOrThrow(string email, string code)
         {
+
             try
             {
                 new VerificationEmailSender().SendVerificationCode(email, code);
@@ -330,6 +257,7 @@ namespace GuessWho.Services.WCF.Services
 
         private static (string Plain, byte[] Hash) CreateVerificationCodeOrFault()
         {
+
             try
             {
                 var code = VerificationCodeGenerator.GenerateNumericCode();

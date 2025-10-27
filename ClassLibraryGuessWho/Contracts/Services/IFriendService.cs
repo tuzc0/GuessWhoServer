@@ -1,11 +1,10 @@
 ﻿using ClassLibraryGuessWho.Contracts.Dtos;
 using System.ServiceModel;
 
-/*
 namespace ClassLibraryGuessWho.Contracts.Services
 {
     [ServiceContract]
-    public class IFriendService
+    public interface IFriendService
     {
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
@@ -28,4 +27,3 @@ namespace ClassLibraryGuessWho.Contracts.Services
         BasicResponse CancelFriendRequest(AcceptFriendRequestRequest request);
     }
 }
-*/

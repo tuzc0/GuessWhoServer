@@ -23,5 +23,7 @@ namespace ClassLibraryGuessWho.Data
     
         public virtual USER_PROFILE USER_PROFILE { get; set; }
         public virtual USER_PROFILE USER_PROFILE1 { get; set; }
+        public long USERID1 { get; internal set; }
+        public long USERID2 { get; internal set; }
     }
 }
