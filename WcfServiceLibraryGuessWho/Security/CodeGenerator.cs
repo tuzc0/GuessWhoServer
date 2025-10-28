@@ -4,7 +4,7 @@ using System.Text;
 
 namespace GuessWho.Services.Security
 {
-    public static class VerificationCodeGenerator
+    public static class CodeGenerator
     {
         public static string GenerateNumericCode()
         {

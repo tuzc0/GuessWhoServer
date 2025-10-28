@@ -39,7 +39,6 @@ namespace WcfServiceLibraryGuessWho.Services
 
                     var profile = db.USER_PROFILE.FirstOrDefault(u => u.USERID == account.USERID);
 
-                    // Actualizar fecha de último acceso
                     account.LASTLOGINUTC = DateTime.UtcNow;
                     db.SaveChanges();
 

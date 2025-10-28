@@ -14,7 +14,6 @@ namespace WcfServiceLibraryGuessWho.Services
         UseSynchronizationContext = false)]
     public class ChatService : IChatService
     {
-        // Lista de clientes conectados
         private readonly List<IChatServiceCallback> clients = new List<IChatServiceCallback>();
 
         public void Join(string user)
@@ -22,7 +21,6 @@ namespace WcfServiceLibraryGuessWho.Services
             var callback = OperationContext.Current.GetCallbackChannel<IChatServiceCallback>();
             var channel = (IClientChannel)callback;
 
-            // Evita registrar el mismo cliente varias veces
             if (!clients.Exists(c => ((IClientChannel)c).SessionId == channel.SessionId))
                 clients.Add(callback);
 
@@ -51,7 +49,6 @@ namespace WcfServiceLibraryGuessWho.Services
                 }
                 catch
                 {
-                    // El cliente se desconectó, lo eliminamos
                     clients.Remove(client);
                 }
             }

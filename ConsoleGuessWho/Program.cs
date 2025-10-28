@@ -12,12 +12,11 @@ namespace ConsoleGuessWho
         {
             using (var hostUser = new ServiceHost(typeof(UserService)))
             using (var hostLogin = new ServiceHost(typeof(LoginService)))
-            using (var hostChat = new ServiceHost(typeof(ChatService))) // <-- Host para ChatService
+            using (var hostChat = new ServiceHost(typeof(ChatService)))
             using (var hostFriendRequest = new ServiceHost(typeof(FriendService)))
             {
                 try
                 {
-                    // Abrir todos los hosts
                     hostUser.Open();
                     hostLogin.Open();
                     hostChat.Open();
@@ -39,11 +38,14 @@ namespace ConsoleGuessWho
                         Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
 
                     Console.WriteLine("[CFG] " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+
+                    var cs = ConfigurationManager.ConnectionStrings["GuessWhoDB"];
+                    Console.WriteLine(cs != null ? "Conn OK" : "Conn MISSING");
+
                     Console.WriteLine("[SMTP User] " + ConfigurationManager.AppSettings["Smtp.User"]);
                     Console.WriteLine("Presiona ENTER para detener el servicio...");
                     Console.ReadLine();
 
-                    // Cerrar hosts
                     hostChat.Close();
                     hostFriendRequest.Close();
                     hostLogin.Close();

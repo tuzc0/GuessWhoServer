@@ -52,12 +52,13 @@
           <Key>
             <PropertyRef Name="TOKENID" />
           </Key>
-          <Property Name="TOKENID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="TOKENID" Type="uniqueidentifier" Nullable="false" StoreGeneratedPattern="Identity" />
           <Property Name="ACCOUNTID" Type="bigint" Nullable="false" />
           <Property Name="CODEHASH" Type="varbinary" MaxLength="32" Nullable="false" />
           <Property Name="EXPIRESUTC" Type="datetime2" Precision="0" Nullable="false" />
           <Property Name="CONSUMEDUTC" Type="datetime2" Precision="0" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="FAILEDATTEMPTS" Type="int" Nullable="false" />
         </EntityType>
         <EntityType Name="FRIEND_REQUEST">
           <Key>
@@ -127,6 +128,8 @@
           <Property Name="ISWINNER" Type="bit" Nullable="false" />
           <Property Name="JOINEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
           <Property Name="LEFTATUTC" Type="datetime2" Precision="7" />
+          <Property Name="ISHOST" Type="bit" Nullable="false" />
+          <Property Name="ISREADY" Type="bit" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCHSTATUS">
           <Key>
@@ -448,6 +451,30 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_MATCH_PLAYER_MATCH">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1" />
+          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_STATUS">
+          <End Role="MATCHSTATUS" Type="Self.MATCHSTATUS" Multiplicity="1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHSTATUS">
+              <PropertyRef Name="STATUSID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_USER_PROFILE_AVATAR">
           <End Role="AVATAR" Type="Self.AVATAR" Multiplicity="0..1" />
           <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="*" />
@@ -600,6 +627,14 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="FRIENDSHIP" EntitySet="FRIENDSHIP" />
           </AssociationSet>
+          <AssociationSet Name="FK_MATCH_PLAYER_MATCH" Association="Self.FK_MATCH_PLAYER_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_STATUS" Association="Self.FK_MATCH_STATUS">
+            <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
           <AssociationSet Name="FK_USER_PROFILE_AVATAR" Association="Self.FK_USER_PROFILE_AVATAR">
             <End Role="AVATAR" EntitySet="AVATAR" />
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
@@ -742,6 +777,8 @@
           <Property Name="LEFTATUTC" Type="DateTime" Precision="7" />
           <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH_PLAYER" ToRole="MATCH" />
           <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK__MATCH_PLA__USERI__7894BF90" FromRole="MATCH_PLAYER" ToRole="USER_PROFILE" />
+          <Property Name="ISHOST" Type="Boolean" Nullable="false" />
+          <Property Name="ISREADY" Type="Boolean" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCHSTATUS">
           <Key>
@@ -1244,13 +1281,14 @@
           <Key>
             <PropertyRef Name="TOKENID" />
           </Key>
-          <Property Name="TOKENID" Type="Guid" Nullable="false" />
+          <Property Name="TOKENID" Type="Guid" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
           <Property Name="ACCOUNTID" Type="Int64" Nullable="false" />
           <Property Name="CODEHASH" Type="Binary" Nullable="false" MaxLength="32" FixedLength="false" />
           <Property Name="EXPIRESUTC" Type="DateTime" Nullable="false" Precision="0" />
           <Property Name="CONSUMEDUTC" Type="DateTime" Precision="0" />
           <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
           <NavigationProperty Name="ACCOUNT" Relationship="GuessWhoDBModel.FK_EMAIL_VERIF_ACCOUNT" FromRole="EMAIL_VERIFICATION" ToRole="ACCOUNT" />
+          <Property Name="FAILEDATTEMPTS" Type="Int32" Nullable="false" />
         </EntityType>
         <Association Name="FK_EMAIL_VERIF_ACCOUNT">
           <End Type="GuessWhoDBModel.ACCOUNT" Role="ACCOUNT" Multiplicity="1" />
@@ -1382,6 +1420,8 @@
           <EntitySetMapping Name="MATCH_PLAYER">
             <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_PLAYER">
               <MappingFragment StoreEntitySet="MATCH_PLAYER">
+                <ScalarProperty Name="ISREADY" ColumnName="ISREADY" />
+                <ScalarProperty Name="ISHOST" ColumnName="ISHOST" />
                 <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
                 <ScalarProperty Name="USERID" ColumnName="USERID" />
                 <ScalarProperty Name="SLOTNUMBER" ColumnName="SLOTNUMBER" />
@@ -1491,6 +1531,7 @@
           <EntitySetMapping Name="EMAIL_VERIFICATION">
             <EntityTypeMapping TypeName="GuessWhoDBModel.EMAIL_VERIFICATION">
               <MappingFragment StoreEntitySet="EMAIL_VERIFICATION">
+                <ScalarProperty Name="FAILEDATTEMPTS" ColumnName="FAILEDATTEMPTS" />
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
                 <ScalarProperty Name="CONSUMEDUTC" ColumnName="CONSUMEDUTC" />
                 <ScalarProperty Name="EXPIRESUTC" ColumnName="EXPIRESUTC" />

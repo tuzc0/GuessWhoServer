@@ -26,7 +26,6 @@ namespace GuessWho.Services.WCF.Services
             {
                 try
                 {
-                    // Buscar el perfil y su cuenta asociada
                     var user = databaseContext.ACCOUNT
                         .Include(a => a.USER_PROFILE)
                         .FirstOrDefault(a => a.EMAIL == email);

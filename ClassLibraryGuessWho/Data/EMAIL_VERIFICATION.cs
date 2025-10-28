@@ -20,6 +20,7 @@ namespace ClassLibraryGuessWho.Data
         public System.DateTime EXPIRESUTC { get; set; }
         public Nullable<System.DateTime> CONSUMEDUTC { get; set; }
         public System.DateTime CREATEDATUTC { get; set; }
+        public int FAILEDATTEMPTS { get; set; }
     
         public virtual ACCOUNT ACCOUNT { get; set; }
     }

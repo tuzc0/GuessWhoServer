@@ -1,5 +1,4 @@
 ﻿using ClassLibraryGuessWho.Contracts.Dtos;
-using ClassLibraryGuessWho.Data;
 using ClassLibraryGuessWho.Data.DataAccess.Accounts;
 using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
 using ClassLibraryGuessWho.Data.Helpers; 
@@ -101,8 +100,10 @@ namespace GuessWho.Services.WCF.Services
             {
                 throw Faults.Create("DatabaseConnection", "Unable to connect to the database.");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.Write(ex);
+                System.Diagnostics.Trace.TraceError($"[UserService.RegisterUser] {ex}");
                 throw Faults.Create("Unexpected", "Unexpected server error.");
             }
         }
@@ -129,7 +130,7 @@ namespace GuessWho.Services.WCF.Services
             var token = emailVerificationData.GetLatestTokenByAccountId(request.AccountId, currentUtcTimestamp)
                 ?? throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
 
-            var codeHash = VerificationCodeGenerator.ComputeSha256Hash(code);
+            var codeHash = CodeGenerator.ComputeSha256Hash(code);
 
             if (!AreByteSequencesEqualInConstantTime(codeHash, token.CODEHASH))
             {
@@ -179,7 +180,8 @@ namespace GuessWho.Services.WCF.Services
             {
                 AccountId = request.AccountId,
                 CodeHash = Hash,
-                NowUtc = currentUtcTimestamp
+                NowUtc = currentUtcTimestamp,
+                LifeSpan = VerificationCodeLifeTime
             };
 
             emailVerificationData.AddVerificationToken(createTokenArgs);
@@ -249,8 +251,10 @@ namespace GuessWho.Services.WCF.Services
             {
                 throw Faults.Create("SMTPUnavailable", "Email service unavailable.");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.Write(ex);
+                System.Diagnostics.Trace.TraceError($"[UserService.RegisterUser] {ex}");
                 throw Faults.Create("EmailSendFailed", "Unable to send verification email.");
             }
         }
@@ -260,8 +264,8 @@ namespace GuessWho.Services.WCF.Services
 
             try
             {
-                var code = VerificationCodeGenerator.GenerateNumericCode();
-                var hashCode = VerificationCodeGenerator.ComputeSha256Hash(code);
+                var code = CodeGenerator.GenerateNumericCode();
+                var hashCode = CodeGenerator.ComputeSha256Hash(code);
                 return (code, hashCode);
             }
             catch (ArgumentNullException)

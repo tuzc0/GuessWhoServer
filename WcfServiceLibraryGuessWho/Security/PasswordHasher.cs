@@ -31,9 +31,9 @@ namespace GuessWho.Services.WCF.Security
             }
 
             var salt = new byte[SALT_SIZE_IN_BYTES];
-            using (var rng = RandomNumberGenerator.Create())
+            using (var randomNumberGenerator = RandomNumberGenerator.Create())
             {
-                rng.GetBytes(salt);
+                randomNumberGenerator.GetBytes(salt);
             }
 
             byte[] hash;

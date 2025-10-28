@@ -120,19 +120,20 @@
     <Compile Include="Communication\Email\VerificationEmailSender.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\PasswordHasher.cs" />
-    <Compile Include="Security\VerificationCodeGenerator.cs" />
+    <Compile Include="Security\CodeGenerator.cs" />
     <Compile Include="Services\FriendService.cs" />
     <Compile Include="Services\ChatService.cs" />
     <Compile Include="Services\LoginService.cs" />
+    <Compile Include="Services\MatchService.cs" />
     <Compile Include="Services\ProfileService.cs" />
     <Compile Include="Services\UserService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-    <Content Include="Secrests\ConnectionSecret.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Connected Services\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ClassLibraryGuessWho\ClassLibraryGuessWho.csproj">
@@ -140,10 +141,6 @@
       <Name>ClassLibraryGuessWho</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <WCFMetadata Include="Connected Services\" />
-  </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <VSToolsPath Condition="'$(VSToolsPath)' == '' and '$(VisualStudioVersion)' != '' and '$(VisualStudioVersion)' != '11.0'">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>

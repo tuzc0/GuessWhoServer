@@ -59,6 +59,12 @@
   <ItemGroup>
     <Compile Include="Contracts\Dtos\AcceptFriendRequestRequest.cs" />
     <Compile Include="Contracts\Dtos\BasicResponse.cs" />
+    <Compile Include="Contracts\Dtos\CreateMatchRequest.cs" />
+    <Compile Include="Contracts\Dtos\CreateMatchResponse.cs" />
+    <Compile Include="Contracts\Dtos\JoinMatchRequest.cs" />
+    <Compile Include="Contracts\Dtos\JoinMatchResponse.cs" />
+    <Compile Include="Contracts\Dtos\LeaveMatchRequest.cs" />
+    <Compile Include="Contracts\Dtos\LobbyPlayerDTO.cs" />
     <Compile Include="Contracts\Dtos\LoginResponse.cs" />
     <Compile Include="Contracts\Dtos\LoginRequest.cs" />
     <Compile Include="Contracts\Dtos\ProfileRequest.cs" />
@@ -70,6 +76,8 @@
     <Compile Include="Contracts\Dtos\SearchProfilesResponse.cs" />
     <Compile Include="Contracts\Dtos\SendFriendRequestRequest.cs" />
     <Compile Include="Contracts\Dtos\SendFriendRequestResponse.cs" />
+    <Compile Include="Contracts\Dtos\SetPlayerReadyStatusRequest.cs" />
+    <Compile Include="Contracts\Dtos\StartMatchRequest.cs" />
     <Compile Include="Contracts\Dtos\UserProfileSearchResult.cs" />
     <Compile Include="Contracts\Dtos\VerifyEmailRequest.cs" />
     <Compile Include="Contracts\Dtos\VerifyEmailResponse.cs" />
@@ -80,6 +88,7 @@
     <Compile Include="Contracts\Services\IChatServiceCallback.cs" />
     <Compile Include="Contracts\Services\IFriendService.cs" />
     <Compile Include="Contracts\Services\ILoginService.cs" />
+    <Compile Include="Contracts\Services\IMatchService.cs" />
     <Compile Include="Contracts\Services\IProfileService.cs" />
     <Compile Include="Contracts\Services\IUserService.cs" />
     <Compile Include="Data\ACCOUNT.cs">
@@ -99,6 +108,8 @@
     <Compile Include="Data\DataAccess\EmailVerification\CreateEmailTokenArgs.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationData.cs" />
     <Compile Include="Data\DataAccess\Friends\FriendshipData.cs" />
+    <Compile Include="Data\DataAccess\Match\CreateMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Match\MatchData.cs" />
     <Compile Include="Data\EMAIL_VERIFICATION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
@@ -166,6 +177,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="..\SharedSecrets\ConnectionStrings.local.config">
+      <Link>Secrets\ConnectionStrings.local.config</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="App.config" />
     <EntityDeploy Include="Data\GuessWhoEDModel.edmx">
       <Generator>EntityModelCodeGenerator</Generator>
@@ -175,9 +190,6 @@
       <DependentUpon>GuessWhoEDModel.edmx</DependentUpon>
     </None>
     <None Include="packages.config" />
-    <Content Include="Secrets\ConnectionBDSecret.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
