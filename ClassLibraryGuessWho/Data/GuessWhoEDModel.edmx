@@ -4,7 +4,7 @@
   <edmx:Runtime>
     <!-- SSDL content -->
     <edmx:StorageModels>
-      <Schema Namespace="GuessWhoDBModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+    <Schema Namespace="GuessWhoDBModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
         <EntityType Name="ACCOUNT">
           <Key>
             <PropertyRef Name="ACCOUNTID" />
@@ -47,6 +47,17 @@
           <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="ISACTIVE" Type="bit" Nullable="false" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="EMAIL_VERIFICATION">
+          <Key>
+            <PropertyRef Name="TOKENID" />
+          </Key>
+          <Property Name="TOKENID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="ACCOUNTID" Type="bigint" Nullable="false" />
+          <Property Name="CODEHASH" Type="varbinary" MaxLength="32" Nullable="false" />
+          <Property Name="EXPIRESUTC" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="CONSUMEDUTC" Type="datetime2" Precision="0" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
         </EntityType>
         <EntityType Name="FRIEND_REQUEST">
           <Key>
@@ -377,6 +388,18 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_EMAIL_VERIF_ACCOUNT">
+          <End Role="ACCOUNT" Type="Self.ACCOUNT" Multiplicity="1" />
+          <End Role="EMAIL_VERIFICATION" Type="Self.EMAIL_VERIFICATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ACCOUNT">
+              <PropertyRef Name="ACCOUNTID" />
+            </Principal>
+            <Dependent Role="EMAIL_VERIFICATION">
+              <PropertyRef Name="ACCOUNTID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_FR_REQ_ADDRESSEE">
           <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
           <End Role="FRIEND_REQUEST" Type="Self.FRIEND_REQUEST" Multiplicity="*" />
@@ -437,7 +460,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Function Name="fn_diagramobjects" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="true" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" ReturnType="int" />
         <Function Name="SP_ACCEPTFRIENDREQUEST" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
           <Parameter Name="FRIENDREQUESTID" Type="bigint" Mode="In" />
         </Function>
@@ -480,6 +502,7 @@
           <EntitySet Name="AVATAR" EntityType="Self.AVATAR" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="CHARACTER" EntityType="Self.CHARACTER" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="CHARACTER_SET" EntityType="Self.CHARACTER_SET" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="EMAIL_VERIFICATION" EntityType="Self.EMAIL_VERIFICATION" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="FRIEND_REQUEST" EntityType="Self.FRIEND_REQUEST" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="FRIENDREQUESTSTATUS" EntityType="Self.FRIENDREQUESTSTATUS" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="FRIENDSHIP" EntityType="Self.FRIENDSHIP" Schema="dbo" store:Type="Tables" />
@@ -557,6 +580,10 @@
             <End Role="CHARACTER_SET" EntitySet="CHARACTER_SET" />
             <End Role="CHARACTER" EntitySet="CHARACTER" />
           </AssociationSet>
+          <AssociationSet Name="FK_EMAIL_VERIF_ACCOUNT" Association="Self.FK_EMAIL_VERIF_ACCOUNT">
+            <End Role="ACCOUNT" EntitySet="ACCOUNT" />
+            <End Role="EMAIL_VERIFICATION" EntitySet="EMAIL_VERIFICATION" />
+          </AssociationSet>
           <AssociationSet Name="FK_FR_REQ_ADDRESSEE" Association="Self.FK_FR_REQ_ADDRESSEE">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="FRIEND_REQUEST" EntitySet="FRIEND_REQUEST" />
@@ -578,8 +605,7 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
           </AssociationSet>
         </EntityContainer>
-      </Schema>
-    </edmx:StorageModels>
+      </Schema></edmx:StorageModels>
     <!-- CSDL content -->
     <edmx:ConceptualModels>
       <Schema Namespace="GuessWhoDBModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
@@ -598,6 +624,7 @@
           <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
           <Property Name="UPDATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
           <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK_ACCOUNT_USER_PROFILE" FromRole="ACCOUNT" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="EMAIL_VERIFICATION" Relationship="GuessWhoDBModel.FK_EMAIL_VERIF_ACCOUNT" FromRole="ACCOUNT" ToRole="EMAIL_VERIFICATION" />
         </EntityType>
         <EntityType Name="AVATAR">
           <Key>
@@ -1160,7 +1187,7 @@
             <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
           </AssociationSet>
           <FunctionImport Name="SP_ACCEPTFRIENDREQUEST">
-            <Parameter Name="FRIENDREQUESTID" Mode="In" Type="Int64" />
+          <Parameter Name="FRIENDREQUESTID" Mode="In" Type="Int64" />
           </FunctionImport>
           <FunctionImport Name="sp_alterdiagram">
             <Parameter Name="diagramname" Mode="In" Type="String" />
@@ -1196,6 +1223,11 @@
             <Parameter Name="new_diagramname" Mode="In" Type="String" />
           </FunctionImport>
           <FunctionImport Name="sp_upgraddiagrams" />
+          <EntitySet Name="EMAIL_VERIFICATION" EntityType="GuessWhoDBModel.EMAIL_VERIFICATION" />
+          <AssociationSet Name="FK_EMAIL_VERIF_ACCOUNT" Association="GuessWhoDBModel.FK_EMAIL_VERIF_ACCOUNT">
+            <End Role="ACCOUNT" EntitySet="ACCOUNT" />
+            <End Role="EMAIL_VERIFICATION" EntitySet="EMAIL_VERIFICATION" />
+          </AssociationSet>
         </EntityContainer>
         <ComplexType Name="sp_helpdiagramdefinition_Result">
           <Property Type="Int32" Name="version" Nullable="true" />
@@ -1208,6 +1240,30 @@
           <Property Type="String" Name="Owner" Nullable="true" MaxLength="128" />
           <Property Type="Int32" Name="OwnerID" Nullable="false" />
         </ComplexType>
+        <EntityType Name="EMAIL_VERIFICATION">
+          <Key>
+            <PropertyRef Name="TOKENID" />
+          </Key>
+          <Property Name="TOKENID" Type="Guid" Nullable="false" />
+          <Property Name="ACCOUNTID" Type="Int64" Nullable="false" />
+          <Property Name="CODEHASH" Type="Binary" Nullable="false" MaxLength="32" FixedLength="false" />
+          <Property Name="EXPIRESUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="CONSUMEDUTC" Type="DateTime" Precision="0" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <NavigationProperty Name="ACCOUNT" Relationship="GuessWhoDBModel.FK_EMAIL_VERIF_ACCOUNT" FromRole="EMAIL_VERIFICATION" ToRole="ACCOUNT" />
+        </EntityType>
+        <Association Name="FK_EMAIL_VERIF_ACCOUNT">
+          <End Type="GuessWhoDBModel.ACCOUNT" Role="ACCOUNT" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.EMAIL_VERIFICATION" Role="EMAIL_VERIFICATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ACCOUNT">
+              <PropertyRef Name="ACCOUNTID" />
+            </Principal>
+            <Dependent Role="EMAIL_VERIFICATION">
+              <PropertyRef Name="ACCOUNTID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -1432,6 +1488,18 @@
           </FunctionImportMapping>
           <FunctionImportMapping FunctionImportName="sp_renamediagram" FunctionName="GuessWhoDBModel.Store.sp_renamediagram" />
           <FunctionImportMapping FunctionImportName="sp_upgraddiagrams" FunctionName="GuessWhoDBModel.Store.sp_upgraddiagrams" />
+          <EntitySetMapping Name="EMAIL_VERIFICATION">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.EMAIL_VERIFICATION">
+              <MappingFragment StoreEntitySet="EMAIL_VERIFICATION">
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="CONSUMEDUTC" ColumnName="CONSUMEDUTC" />
+                <ScalarProperty Name="EXPIRESUTC" ColumnName="EXPIRESUTC" />
+                <ScalarProperty Name="CODEHASH" ColumnName="CODEHASH" />
+                <ScalarProperty Name="ACCOUNTID" ColumnName="ACCOUNTID" />
+                <ScalarProperty Name="TOKENID" ColumnName="TOKENID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
         </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>

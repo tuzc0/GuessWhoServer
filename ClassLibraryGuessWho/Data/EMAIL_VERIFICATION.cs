@@ -12,18 +12,15 @@ namespace ClassLibraryGuessWho.Data
     using System;
     using System.Collections.Generic;
     
-    public partial class FRIENDSHIP
+    public partial class EMAIL_VERIFICATION
     {
-        public long FRIENDSHIPID { get; set; }
-        public long USER1ID { get; set; }
-        public long USER2ID { get; set; }
+        public System.Guid TOKENID { get; set; }
+        public long ACCOUNTID { get; set; }
+        public byte[] CODEHASH { get; set; }
+        public System.DateTime EXPIRESUTC { get; set; }
+        public Nullable<System.DateTime> CONSUMEDUTC { get; set; }
         public System.DateTime CREATEDATUTC { get; set; }
-        public long USERIDLOW { get; set; }
-        public long USERIDHIGH { get; set; }
     
-        public virtual USER_PROFILE USER_PROFILE { get; set; }
-        public virtual USER_PROFILE USER_PROFILE1 { get; set; }
-        public long USERID1 { get; internal set; }
-        public long USERID2 { get; internal set; }
+        public virtual ACCOUNT ACCOUNT { get; set; }
     }
 }

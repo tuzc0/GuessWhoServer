@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.ServiceModel;
 using GuessWho.Services.WCF.Services;
 using WcfServiceLibraryGuessWho.Services;
@@ -12,6 +13,7 @@ namespace ConsoleGuessWho
             using (var hostUser = new ServiceHost(typeof(UserService)))
             using (var hostLogin = new ServiceHost(typeof(LoginService)))
             using (var hostChat = new ServiceHost(typeof(ChatService))) // <-- Host para ChatService
+            using (var hostFriendRequest = new ServiceHost(typeof(FriendService)))
             {
                 try
                 {
@@ -19,6 +21,7 @@ namespace ConsoleGuessWho
                     hostUser.Open();
                     hostLogin.Open();
                     hostChat.Open();
+                    hostFriendRequest.Open();
 
                     // Mostrar información de UserService
                     Console.WriteLine("[UserService] Host abierto. Endpoints:");
@@ -35,11 +38,14 @@ namespace ConsoleGuessWho
                     foreach (var ep in hostChat.Description.Endpoints)
                         Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
 
-                    Console.WriteLine("\nPresiona ENTER para detener los servicios...");
+                    Console.WriteLine("[CFG] " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
+                    Console.WriteLine("[SMTP User] " + ConfigurationManager.AppSettings["Smtp.User"]);
+                    Console.WriteLine("Presiona ENTER para detener el servicio...");
                     Console.ReadLine();
 
                     // Cerrar hosts
                     hostChat.Close();
+                    hostFriendRequest.Close();
                     hostLogin.Close();
                     hostUser.Close();
                 }
@@ -53,12 +59,14 @@ namespace ConsoleGuessWho
                     hostUser.Abort();
                     hostLogin.Abort();
                     hostChat.Abort();
+                    hostFriendRequest.Abort();
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine("Error inesperado: " + ex.Message);
                     hostUser.Abort();
                     hostLogin.Abort();
+                    hostFriendRequest.Abort();
                     hostChat.Abort();
                 }
             }
