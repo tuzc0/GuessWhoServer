@@ -31,9 +31,10 @@ namespace GuessWho.Services.WCF.Security
             }
 
             var salt = new byte[SALT_SIZE_IN_BYTES];
-            using (var randomNumberGenerator = RandomNumberGenerator.Create())
+            byte[] hash;
+            using (var kdf = new Rfc2898DeriveBytes(password, salt, ITERATION_COUNT, HashAlgorithmName.SHA256))
             {
-                randomNumberGenerator.GetBytes(salt);
+                hash = kdf.GetBytes(HASH_SIZE_IN_BYTES);
             }
 
             byte[] hash;

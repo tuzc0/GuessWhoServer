@@ -89,6 +89,7 @@ namespace GuessWho.Services.WCF.Services
 
         public RegisterResponse RegisterUser(RegisterRequest request)
         {
+
             if (request == null)
             {
                 throw Faults.Create(

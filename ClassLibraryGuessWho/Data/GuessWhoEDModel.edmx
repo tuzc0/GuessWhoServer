@@ -48,18 +48,6 @@
           <Property Name="ISACTIVE" Type="bit" Nullable="false" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
         </EntityType>
-        <EntityType Name="EMAIL_VERIFICATION">
-          <Key>
-            <PropertyRef Name="TOKENID" />
-          </Key>
-          <Property Name="TOKENID" Type="uniqueidentifier" Nullable="false" StoreGeneratedPattern="Identity" />
-          <Property Name="ACCOUNTID" Type="bigint" Nullable="false" />
-          <Property Name="CODEHASH" Type="varbinary" MaxLength="32" Nullable="false" />
-          <Property Name="EXPIRESUTC" Type="datetime2" Precision="0" Nullable="false" />
-          <Property Name="CONSUMEDUTC" Type="datetime2" Precision="0" />
-          <Property Name="CREATEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
-          <Property Name="FAILEDATTEMPTS" Type="int" Nullable="false" />
-        </EntityType>
         <EntityType Name="FRIEND_REQUEST">
           <Key>
             <PropertyRef Name="FRIENDREQUESTID" />
@@ -1277,31 +1265,6 @@
           <Property Type="String" Name="Owner" Nullable="true" MaxLength="128" />
           <Property Type="Int32" Name="OwnerID" Nullable="false" />
         </ComplexType>
-        <EntityType Name="EMAIL_VERIFICATION">
-          <Key>
-            <PropertyRef Name="TOKENID" />
-          </Key>
-          <Property Name="TOKENID" Type="Guid" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="ACCOUNTID" Type="Int64" Nullable="false" />
-          <Property Name="CODEHASH" Type="Binary" Nullable="false" MaxLength="32" FixedLength="false" />
-          <Property Name="EXPIRESUTC" Type="DateTime" Nullable="false" Precision="0" />
-          <Property Name="CONSUMEDUTC" Type="DateTime" Precision="0" />
-          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
-          <NavigationProperty Name="ACCOUNT" Relationship="GuessWhoDBModel.FK_EMAIL_VERIF_ACCOUNT" FromRole="EMAIL_VERIFICATION" ToRole="ACCOUNT" />
-          <Property Name="FAILEDATTEMPTS" Type="Int32" Nullable="false" />
-        </EntityType>
-        <Association Name="FK_EMAIL_VERIF_ACCOUNT">
-          <End Type="GuessWhoDBModel.ACCOUNT" Role="ACCOUNT" Multiplicity="1" />
-          <End Type="GuessWhoDBModel.EMAIL_VERIFICATION" Role="EMAIL_VERIFICATION" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="ACCOUNT">
-              <PropertyRef Name="ACCOUNTID" />
-            </Principal>
-            <Dependent Role="EMAIL_VERIFICATION">
-              <PropertyRef Name="ACCOUNTID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -1528,19 +1491,6 @@
           </FunctionImportMapping>
           <FunctionImportMapping FunctionImportName="sp_renamediagram" FunctionName="GuessWhoDBModel.Store.sp_renamediagram" />
           <FunctionImportMapping FunctionImportName="sp_upgraddiagrams" FunctionName="GuessWhoDBModel.Store.sp_upgraddiagrams" />
-          <EntitySetMapping Name="EMAIL_VERIFICATION">
-            <EntityTypeMapping TypeName="GuessWhoDBModel.EMAIL_VERIFICATION">
-              <MappingFragment StoreEntitySet="EMAIL_VERIFICATION">
-                <ScalarProperty Name="FAILEDATTEMPTS" ColumnName="FAILEDATTEMPTS" />
-                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
-                <ScalarProperty Name="CONSUMEDUTC" ColumnName="CONSUMEDUTC" />
-                <ScalarProperty Name="EXPIRESUTC" ColumnName="EXPIRESUTC" />
-                <ScalarProperty Name="CODEHASH" ColumnName="CODEHASH" />
-                <ScalarProperty Name="ACCOUNTID" ColumnName="ACCOUNTID" />
-                <ScalarProperty Name="TOKENID" ColumnName="TOKENID" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
         </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
