@@ -4,7 +4,7 @@
   <edmx:Runtime>
     <!-- SSDL content -->
     <edmx:StorageModels>
-    <Schema Namespace="GuessWhoDBModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+      <Schema Namespace="GuessWhoDBModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
         <EntityType Name="ACCOUNT">
           <Key>
             <PropertyRef Name="ACCOUNTID" />
@@ -47,6 +47,18 @@
           <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="ISACTIVE" Type="bit" Nullable="false" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="EMAIL_VERIFICATION">
+          <Key>
+            <PropertyRef Name="TOKENID" />
+          </Key>
+          <Property Name="TOKENID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="ACCOUNTID" Type="bigint" Nullable="false" />
+          <Property Name="CODEHASH" Type="varbinary" MaxLength="32" Nullable="false" />
+          <Property Name="EXPIRESUTC" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="CONSUMEDUTC" Type="datetime2" Precision="0" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="FAILEDATTEMPTS" Type="int" Nullable="false" />
         </EntityType>
         <EntityType Name="FRIEND_REQUEST">
           <Key>
@@ -475,6 +487,7 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Function Name="fn_diagramobjects" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="true" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" ReturnType="int" />
         <Function Name="SP_ACCEPTFRIENDREQUEST" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
           <Parameter Name="FRIENDREQUESTID" Type="bigint" Mode="In" />
         </Function>
@@ -628,7 +641,8 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
           </AssociationSet>
         </EntityContainer>
-      </Schema></edmx:StorageModels>
+      </Schema>
+    </edmx:StorageModels>
     <!-- CSDL content -->
     <edmx:ConceptualModels>
       <Schema Namespace="GuessWhoDBModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
@@ -647,7 +661,7 @@
           <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
           <Property Name="UPDATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
           <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK_ACCOUNT_USER_PROFILE" FromRole="ACCOUNT" ToRole="USER_PROFILE" />
-          <NavigationProperty Name="EMAIL_VERIFICATION" Relationship="GuessWhoDBModel.FK_EMAIL_VERIF_ACCOUNT" FromRole="ACCOUNT" ToRole="EMAIL_VERIFICATION" />
+          <NavigationProperty Name="EMAIL_VERIFICATION" Relationship="Self.FK_EMAIL_VERIF_ACCOUNT" FromRole="ACCOUNT" ToRole="EMAIL_VERIFICATION" />
         </EntityType>
         <EntityType Name="AVATAR">
           <Key>
@@ -679,6 +693,19 @@
           <Property Name="ISACTIVE" Type="Boolean" Nullable="false" />
           <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
           <NavigationProperty Name="CHARACTER" Relationship="Self.FK_CHARACTER_SET" FromRole="CHARACTER_SET" ToRole="CHARACTER" />
+        </EntityType>
+        <EntityType Name="EMAIL_VERIFICATION">
+          <Key>
+            <PropertyRef Name="TOKENID" />
+          </Key>
+          <Property Name="TOKENID" Type="Guid" Nullable="false" />
+          <Property Name="ACCOUNTID" Type="Int64" Nullable="false" />
+          <Property Name="CODEHASH" Type="Binary" MaxLength="32" FixedLength="false" Nullable="false" />
+          <Property Name="EXPIRESUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="CONSUMEDUTC" Type="DateTime" Precision="0" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="FAILEDATTEMPTS" Type="Int32" Nullable="false" />
+          <NavigationProperty Name="ACCOUNT" Relationship="Self.FK_EMAIL_VERIF_ACCOUNT" FromRole="EMAIL_VERIFICATION" ToRole="ACCOUNT" />
         </EntityType>
         <EntityType Name="FRIEND_REQUEST">
           <Key>
@@ -734,6 +761,8 @@
           <NavigationProperty Name="MATCH_INVITATION" Relationship="Self.FK__MATCH_INV__MATCH__7E4D98E6" FromRole="MATCH" ToRole="MATCH_INVITATION" />
           <NavigationProperty Name="MATCH_PLAYER" Relationship="Self.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH" ToRole="MATCH_PLAYER" />
           <NavigationProperty Name="MODERATION_ACTION" Relationship="Self.FK__MODERATIO__MATCH__0AB36FCB" FromRole="MATCH" ToRole="MODERATION_ACTION" />
+          <NavigationProperty Name="MATCH_PLAYER1" Relationship="Self.FK_MATCH_PLAYER_MATCH" FromRole="MATCH" ToRole="MATCH_PLAYER" />
+          <NavigationProperty Name="MATCHSTATUS1" Relationship="Self.FK_MATCH_STATUS" FromRole="MATCH" ToRole="MATCHSTATUS" />
         </EntityType>
         <EntityType Name="MATCH_INVITATION">
           <Key>
@@ -763,10 +792,11 @@
           <Property Name="ISWINNER" Type="Boolean" Nullable="false" />
           <Property Name="JOINEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
           <Property Name="LEFTATUTC" Type="DateTime" Precision="7" />
-          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH_PLAYER" ToRole="MATCH" />
-          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK__MATCH_PLA__USERI__7894BF90" FromRole="MATCH_PLAYER" ToRole="USER_PROFILE" />
           <Property Name="ISHOST" Type="Boolean" Nullable="false" />
           <Property Name="ISREADY" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH_PLAYER" ToRole="MATCH" />
+          <NavigationProperty Name="MATCH1" Relationship="Self.FK_MATCH_PLAYER_MATCH" FromRole="MATCH_PLAYER" ToRole="MATCH" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="Self.FK__MATCH_PLA__USERI__7894BF90" FromRole="MATCH_PLAYER" ToRole="USER_PROFILE" />
         </EntityType>
         <EntityType Name="MATCHSTATUS">
           <Key>
@@ -775,6 +805,7 @@
           <Property Name="STATUSID" Type="Byte" Nullable="false" />
           <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
           <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH__STATUSID__71E7C201" FromRole="MATCHSTATUS" ToRole="MATCH" />
+          <NavigationProperty Name="MATCH1" Relationship="Self.FK_MATCH_STATUS" FromRole="MATCHSTATUS" ToRole="MATCH" />
         </EntityType>
         <EntityType Name="MATCHVISIBILITY">
           <Key>
@@ -862,6 +893,18 @@
             </Principal>
             <Dependent Role="ACCOUNT">
               <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_EMAIL_VERIF_ACCOUNT">
+          <End Role="ACCOUNT" Type="Self.ACCOUNT" Multiplicity="1" />
+          <End Role="EMAIL_VERIFICATION" Type="Self.EMAIL_VERIFICATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="ACCOUNT">
+              <PropertyRef Name="ACCOUNTID" />
+            </Principal>
+            <Dependent Role="EMAIL_VERIFICATION">
+              <PropertyRef Name="ACCOUNTID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -1025,6 +1068,30 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_MATCH_PLAYER_MATCH">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1" />
+          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_STATUS">
+          <End Role="MATCHSTATUS" Type="Self.MATCHSTATUS" Multiplicity="1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHSTATUS">
+              <PropertyRef Name="STATUSID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK__MATCH_INV__INVIT__7F41BD1F">
           <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
           <End Role="MATCH_INVITATION" Type="Self.MATCH_INVITATION" Multiplicity="*" />
@@ -1109,11 +1176,12 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <EntityContainer Name="GuessWhoDB" annotation:LazyLoadingEnabled="true">
+        <EntityContainer Name="GuessWhoDBEntities" annotation:LazyLoadingEnabled="true">
           <EntitySet Name="ACCOUNT" EntityType="Self.ACCOUNT" />
           <EntitySet Name="AVATAR" EntityType="Self.AVATAR" />
           <EntitySet Name="CHARACTER" EntityType="Self.CHARACTER" />
           <EntitySet Name="CHARACTER_SET" EntityType="Self.CHARACTER_SET" />
+          <EntitySet Name="EMAIL_VERIFICATION" EntityType="Self.EMAIL_VERIFICATION" />
           <EntitySet Name="FRIEND_REQUEST" EntityType="Self.FRIEND_REQUEST" />
           <EntitySet Name="FRIENDREQUESTSTATUS" EntityType="Self.FRIENDREQUESTSTATUS" />
           <EntitySet Name="FRIENDSHIP" EntityType="Self.FRIENDSHIP" />
@@ -1130,6 +1198,10 @@
           <AssociationSet Name="FK_ACCOUNT_USER_PROFILE" Association="Self.FK_ACCOUNT_USER_PROFILE">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="ACCOUNT" EntitySet="ACCOUNT" />
+          </AssociationSet>
+          <AssociationSet Name="FK_EMAIL_VERIF_ACCOUNT" Association="Self.FK_EMAIL_VERIF_ACCOUNT">
+            <End Role="ACCOUNT" EntitySet="ACCOUNT" />
+            <End Role="EMAIL_VERIFICATION" EntitySet="EMAIL_VERIFICATION" />
           </AssociationSet>
           <AssociationSet Name="FK_USER_PROFILE_AVATAR" Association="Self.FK_USER_PROFILE_AVATAR">
             <End Role="AVATAR" EntitySet="AVATAR" />
@@ -1183,6 +1255,14 @@
             <End Role="MATCH" EntitySet="MATCH" />
             <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
           </AssociationSet>
+          <AssociationSet Name="FK_MATCH_PLAYER_MATCH" Association="Self.FK_MATCH_PLAYER_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_STATUS" Association="Self.FK_MATCH_STATUS">
+            <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
           <AssociationSet Name="FK__MATCH_INV__INVIT__7F41BD1F" Association="Self.FK__MATCH_INV__INVIT__7F41BD1F">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
@@ -1212,7 +1292,7 @@
             <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
           </AssociationSet>
           <FunctionImport Name="SP_ACCEPTFRIENDREQUEST">
-          <Parameter Name="FRIENDREQUESTID" Mode="In" Type="Int64" />
+            <Parameter Name="FRIENDREQUESTID" Mode="In" Type="Int64" />
           </FunctionImport>
           <FunctionImport Name="sp_alterdiagram">
             <Parameter Name="diagramname" Mode="In" Type="String" />
@@ -1248,11 +1328,6 @@
             <Parameter Name="new_diagramname" Mode="In" Type="String" />
           </FunctionImport>
           <FunctionImport Name="sp_upgraddiagrams" />
-          <EntitySet Name="EMAIL_VERIFICATION" EntityType="GuessWhoDBModel.EMAIL_VERIFICATION" />
-          <AssociationSet Name="FK_EMAIL_VERIF_ACCOUNT" Association="GuessWhoDBModel.FK_EMAIL_VERIF_ACCOUNT">
-            <End Role="ACCOUNT" EntitySet="ACCOUNT" />
-            <End Role="EMAIL_VERIFICATION" EntitySet="EMAIL_VERIFICATION" />
-          </AssociationSet>
         </EntityContainer>
         <ComplexType Name="sp_helpdiagramdefinition_Result">
           <Property Type="Int32" Name="version" Nullable="true" />
@@ -1270,7 +1345,7 @@
     <!-- C-S mapping content -->
     <edmx:Mappings>
       <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
-        <EntityContainerMapping StorageEntityContainer="GuessWhoDBModelStoreContainer" CdmEntityContainer="GuessWhoDB">
+        <EntityContainerMapping StorageEntityContainer="GuessWhoDBModelStoreContainer" CdmEntityContainer="GuessWhoDBEntities">
           <EntitySetMapping Name="ACCOUNT">
             <EntityTypeMapping TypeName="GuessWhoDBModel.ACCOUNT">
               <MappingFragment StoreEntitySet="ACCOUNT">
@@ -1315,6 +1390,19 @@
                 <ScalarProperty Name="NAME" ColumnName="NAME" />
                 <ScalarProperty Name="ISACTIVE" ColumnName="ISACTIVE" />
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="EMAIL_VERIFICATION">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.EMAIL_VERIFICATION">
+              <MappingFragment StoreEntitySet="EMAIL_VERIFICATION">
+                <ScalarProperty Name="TOKENID" ColumnName="TOKENID" />
+                <ScalarProperty Name="ACCOUNTID" ColumnName="ACCOUNTID" />
+                <ScalarProperty Name="CODEHASH" ColumnName="CODEHASH" />
+                <ScalarProperty Name="EXPIRESUTC" ColumnName="EXPIRESUTC" />
+                <ScalarProperty Name="CONSUMEDUTC" ColumnName="CONSUMEDUTC" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="FAILEDATTEMPTS" ColumnName="FAILEDATTEMPTS" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
@@ -1383,14 +1471,14 @@
           <EntitySetMapping Name="MATCH_PLAYER">
             <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_PLAYER">
               <MappingFragment StoreEntitySet="MATCH_PLAYER">
-                <ScalarProperty Name="ISREADY" ColumnName="ISREADY" />
-                <ScalarProperty Name="ISHOST" ColumnName="ISHOST" />
                 <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
                 <ScalarProperty Name="USERID" ColumnName="USERID" />
                 <ScalarProperty Name="SLOTNUMBER" ColumnName="SLOTNUMBER" />
                 <ScalarProperty Name="ISWINNER" ColumnName="ISWINNER" />
                 <ScalarProperty Name="JOINEDATUTC" ColumnName="JOINEDATUTC" />
                 <ScalarProperty Name="LEFTATUTC" ColumnName="LEFTATUTC" />
+                <ScalarProperty Name="ISHOST" ColumnName="ISHOST" />
+                <ScalarProperty Name="ISREADY" ColumnName="ISREADY" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

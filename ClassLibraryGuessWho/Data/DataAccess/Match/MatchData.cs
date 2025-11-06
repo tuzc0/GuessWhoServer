@@ -1,5 +1,4 @@
-﻿using ClassLibraryGuessWho.Contracts.Dtos;
-using ClassLibraryGuessWho.Contracts.DTOs.DTO;
+﻿using GuessWhoContracts.Dtos.Dto;
 using System.Collections.Generic;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
@@ -12,7 +11,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
         public MatchDto CreateMatch(CreateMatchArgs args)
         {
 
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction())
             {
                 var match = new MATCH
@@ -61,7 +60,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
         public MATCH GetMatchByCode(JoinMatchArgs args)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction(System.Data.IsolationLevel.Serializable))
             {
                 var matchId = dataBaseContext.MATCH
@@ -123,7 +122,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
         public List<LobbyPlayerDto> GetMatchPlayers(long matchId)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 return dataBaseContext.MATCH_PLAYER
                     .AsNoTracking()

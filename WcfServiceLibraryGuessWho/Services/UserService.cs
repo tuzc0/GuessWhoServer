@@ -1,12 +1,11 @@
-﻿using ClassLibraryGuessWho.Contracts.Dtos;
-using ClassLibraryGuessWho.Contracts.Faults;
-using ClassLibraryGuessWho.Data.DataAccess.Accounts;
+﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts;
 using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
 using ClassLibraryGuessWho.Data.Helpers;
-using GuessWho.Contracts.Dtos;
-using GuessWho.Contracts.Services;
 using GuessWho.Services.Security;
 using GuessWho.Services.WCF.Security;
+using GuessWhoContracts.Dtos.RequestAndResponse;
+using GuessWhoContracts.Faults;
+using GuessWhoContracts.Services;
 using log4net;
 using System;
 using System.Data.Entity.Infrastructure;

@@ -1,12 +1,10 @@
-﻿using ClassLibraryGuessWho.Contracts.Dtos;
-using ClassLibraryGuessWho.Data;
-using GuessWho.Contracts.Dtos;
-using GuessWho.Contracts.Services;
+﻿using ClassLibraryGuessWho.Data;
+using GuessWhoContracts.Dtos.RequestAndResponse;
+using GuessWhoContracts.Services;
 using System;
 using System.Data.Entity;
 using System.Linq;
 using System.ServiceModel;
-using ClassLibraryGuessWho.Contracts.Services;
 namespace GuessWho.Services.WCF.Services
 {
     public class ProfileService : IProfileService
@@ -17,12 +15,12 @@ namespace GuessWho.Services.WCF.Services
             {
                 throw new FaultException("Invalid request.");
             }
-            string email = (request.email ?? string.Empty).Trim();
+            string email = (request.Email ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(email))
             {
                 throw new FaultException("Email is required.");
             }
-            using (var databaseContext = new GuessWhoDB())
+            using (var databaseContext = new GuessWhoDBEntities())
             {
                 try
                 {
@@ -36,9 +34,9 @@ namespace GuessWho.Services.WCF.Services
                     var profile = user.USER_PROFILE;
                     return new ProfileResponse
                     {
-                        username = profile.DISPLAYNAME,
-                        email = user.EMAIL,
-                        password = "(hidden)"
+                        Username = profile.DISPLAYNAME,
+                        Email = user.EMAIL,
+                        Password = "(hidden)"
                     };
                 }
                 catch (FaultException)

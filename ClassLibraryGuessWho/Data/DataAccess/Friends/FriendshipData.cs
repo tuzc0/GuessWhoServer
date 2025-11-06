@@ -1,5 +1,5 @@
-﻿using ClassLibraryGuessWho.Contracts;
-using ClassLibraryGuessWho.Contracts.Dtos;
+﻿using GuessWhoContracts.Dtos.RequestAndResponse;
+using GuessWhoContracts.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +14,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
             int maxResults = 10;
             IList<UserProfileSearchResult> profiles;
 
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
 
                 profiles = dataBaseContext.USER_PROFILE
@@ -36,7 +36,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public bool AreAlreadyFriends(long userId1, long userId2)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 return dataBaseContext.FRIENDSHIP.Any(f =>
                     (f.USER1ID == userId1 && f.USER2ID == userId2) ||
@@ -46,7 +46,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public SendFriendRequestResponse TryAcceptInversePending(long fromUserId, long toUserId, DateTime timestampUtc)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var inversePendingRequest = dataBaseContext.FRIEND_REQUEST.SingleOrDefault(fr =>
                     fr.REQUESTERUSERID == toUserId &&
@@ -99,7 +99,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public SendFriendRequestResponse TryReturnExistingPending(long fromUserId, long toUserId)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var existingRequest = dataBaseContext.FRIEND_REQUEST
                     .SingleOrDefault(fr => fr.REQUESTERUSERID == fromUserId &&
@@ -126,7 +126,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public SendFriendRequestResponse CreateNewRequest(long fromUserId, long toUserId,DateTime timestampUtc)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction())
             {
                 var newRequest = new FRIEND_REQUEST
@@ -152,7 +152,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public void AcceptFriendRequest(long accountId, long friendRequestId, DateTime timestampUtc)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction())
             {
                 var meUserId = ResolveUserIdFromAccountId(accountId);
@@ -196,7 +196,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public void RejectFriendRequest(long accountId, long friendRequestId, DateTime timestampUtc)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var meUserId = ResolveUserIdFromAccountId(accountId);
 
@@ -222,7 +222,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public void CancelFriendRequest(long accountId, long friendRequestId, DateTime timestampUtc)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var meUserId = ResolveUserIdFromAccountId(accountId);
 
@@ -248,7 +248,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public long ResolveUserIdFromAccountId(long accountId)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var userId = dataBaseContext.ACCOUNT
                     .Where(a => a.ACCOUNTID == accountId)
@@ -266,7 +266,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public void EnsureDestinationUserActive(long userId)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var isActive = dataBaseContext.USER_PROFILE
                     .Where(p => p.USERID == userId)

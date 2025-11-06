@@ -10,7 +10,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
         {
             bool emailExists = false;
 
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 emailExists = dataBaseContext.ACCOUNT.Any(ua => ua.EMAIL == email);
             }
@@ -20,7 +20,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
         public (ACCOUNT account, USER_PROFILE profile) CreateAccount(CreateAccountArgs args)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction()) 
             {
 
@@ -54,7 +54,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
         public ACCOUNT GetAccountById(long accountId)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 return dataBaseContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == accountId);
             }
@@ -62,7 +62,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
         public void MarkEmailVerified(long accountId, DateTime nowUtc)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var emailVerified = dataBaseContext.ACCOUNT.Single(a => a.ACCOUNTID == accountId);
                 emailVerified.ISEMAILVERIFIED = true;

@@ -20,6 +20,7 @@ namespace ClassLibraryGuessWho.Data
             this.MATCH_INVITATION = new HashSet<MATCH_INVITATION>();
             this.MATCH_PLAYER = new HashSet<MATCH_PLAYER>();
             this.MODERATION_ACTION = new HashSet<MODERATION_ACTION>();
+            this.MATCH_PLAYER1 = new HashSet<MATCH_PLAYER>();
         }
     
         public long MATCHID { get; set; }
@@ -41,5 +42,8 @@ namespace ClassLibraryGuessWho.Data
         public virtual ICollection<MATCH_PLAYER> MATCH_PLAYER { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MODERATION_ACTION> MODERATION_ACTION { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_PLAYER> MATCH_PLAYER1 { get; set; }
+        public virtual MATCHSTATUS MATCHSTATUS1 { get; set; }
     }
 }

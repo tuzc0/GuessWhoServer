@@ -8,7 +8,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
         public EMAIL_VERIFICATION AddVerificationToken(CreateEmailTokenArgs args)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var token = new EMAIL_VERIFICATION
                 {
@@ -28,7 +28,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
         public EMAIL_VERIFICATION GetLatestTokenByAccountId(long accountId, DateTime consumeDate)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 return dataBaseContext.EMAIL_VERIFICATION
                     .Where(t => t.ACCOUNTID == accountId && t.EXPIRESUTC >= consumeDate && t.CONSUMEDUTC == null)
@@ -39,7 +39,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
         public int IncrementFailedAttemptsAndMaybeExpire(Guid tokenId, DateTime nowUtc, int maxAttempts = 5)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 return dataBaseContext.Database.ExecuteSqlCommand(
                     @"UPDATE dbo.EMAIL_VERIFICATION
@@ -52,7 +52,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
         public int ConsumeToken(Guid tokenId)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 return dataBaseContext.Database.ExecuteSqlCommand(
                     @"UPDATE dbo.EMAIL_VERIFICATION
@@ -66,7 +66,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
             int TokensSentInLastHour) GetEmailVerificationResendLimits(long accountId, DateTime date)
         {
 
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var lastTokenCreatedAtUtc = dataBaseContext.EMAIL_VERIFICATION
                     .Where(t => t.ACCOUNTID == accountId)
@@ -91,7 +91,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
         public void ExpireActiveTokens(long accountId, DateTime date)
         {
-            using (var dataBaseContext = new GuessWhoDB())
+            using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 dataBaseContext.Database.ExecuteSqlCommand(
                     @"UPDATE dbo.EMAIL_VERIFICATION

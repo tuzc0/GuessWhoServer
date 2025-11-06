@@ -37,12 +37,6 @@ namespace GuessWho.Services.WCF.Security
                 hash = kdf.GetBytes(HASH_SIZE_IN_BYTES);
             }
 
-            byte[] hash;
-            using (var kdf = new Rfc2898DeriveBytes(password, salt, ITERATION_COUNT, HashAlgorithmName.SHA256))
-            {
-                hash = kdf.GetBytes(HASH_SIZE_IN_BYTES);
-            }
-
             var result = new byte[HEADER_SIZE_IN_BYTES + salt.Length + hash.Length];
             result[VERSION_INDEX] = CURRENT_VERSION;
             result[ALGORITHM_INDEX] = ALGORITHM_SHA256;

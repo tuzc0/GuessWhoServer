@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.ServiceModel;
-using ClassLibraryGuessWho.Contracts.Dtos;
-using ClassLibraryGuessWho.Contracts.Services;
 using ClassLibraryGuessWho.Data;
 using GuessWho.Services.WCF.Security;
+using GuessWhoContracts.Dtos.RequestAndResponse;
+using GuessWhoContracts.Services;
 
 namespace WcfServiceLibraryGuessWho.Services
 {
@@ -21,7 +21,7 @@ namespace WcfServiceLibraryGuessWho.Services
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
                 throw new FaultException("Email and password are required.");
 
-            using (var db = new GuessWhoDB())
+            using (var db = new GuessWhoDBEntities())
             {
                 try
                 {

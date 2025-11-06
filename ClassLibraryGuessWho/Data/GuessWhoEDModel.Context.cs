@@ -15,10 +15,10 @@ namespace ClassLibraryGuessWho.Data
     using System.Data.Entity.Core.Objects;
     using System.Linq;
     
-    public partial class GuessWhoDB : DbContext
+    public partial class GuessWhoDBEntities : DbContext
     {
-        public GuessWhoDB()
-            : base("name=GuessWhoDB")
+        public GuessWhoDBEntities()
+            : base("name=GuessWhoDBEntities")
         {
         }
     
@@ -31,6 +31,7 @@ namespace ClassLibraryGuessWho.Data
         public virtual DbSet<AVATAR> AVATAR { get; set; }
         public virtual DbSet<CHARACTER> CHARACTER { get; set; }
         public virtual DbSet<CHARACTER_SET> CHARACTER_SET { get; set; }
+        public virtual DbSet<EMAIL_VERIFICATION> EMAIL_VERIFICATION { get; set; }
         public virtual DbSet<FRIEND_REQUEST> FRIEND_REQUEST { get; set; }
         public virtual DbSet<FRIENDREQUESTSTATUS> FRIENDREQUESTSTATUS { get; set; }
         public virtual DbSet<FRIENDSHIP> FRIENDSHIP { get; set; }
@@ -44,7 +45,6 @@ namespace ClassLibraryGuessWho.Data
         public virtual DbSet<MODERATIONSCOPe> MODERATIONSCOPe { get; set; }
         public virtual DbSet<sysdiagrams> sysdiagrams { get; set; }
         public virtual DbSet<USER_PROFILE> USER_PROFILE { get; set; }
-        public virtual DbSet<EMAIL_VERIFICATION> EMAIL_VERIFICATION { get; set; }
     
         public virtual int SP_ACCEPTFRIENDREQUEST(Nullable<long> fRIENDREQUESTID)
         {
