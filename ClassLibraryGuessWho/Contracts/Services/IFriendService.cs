@@ -1,4 +1,5 @@
 ﻿using ClassLibraryGuessWho.Contracts.Dtos;
+using ClassLibraryGuessWho.Contracts.Faults;
 using System.ServiceModel;
 
 namespace ClassLibraryGuessWho.Contracts.Services

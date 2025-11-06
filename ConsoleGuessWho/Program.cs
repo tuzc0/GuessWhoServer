@@ -2,18 +2,34 @@
 using System.Configuration;
 using System.ServiceModel;
 using GuessWho.Services.WCF.Services;
+using log4net;
+using log4net.Config;
 using WcfServiceLibraryGuessWho.Services;
 
+[assembly: XmlConfigurator(Watch = true)]
 namespace ConsoleGuessWho
 {
     internal static class Program
     {
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
+        
+        private const string SERVICE_HOST_STARTING_MESSAGE = "Starting Console host.";
+        private const string SERVICE_HOST_STARTED_MESSAGE = "Console host started";
+        private const string SERVICE_HOST_STOPPING_MESSAGE = "Stopping Console host";
+        private const string SERVICE_HOST_STOPPED_MESSAGE = "Console host stopped";
+        private const string SERVICE_HOST_FATAL_ERROR_MESSAGE = "Fatal error in host";
+        private const string SERVICE_HOST_ERROR_ADDRESS_IN_USE = "The port is already in use";
+        private const string SERVICE_HOST_ERROR_FAILED_COMMUNICATION = "Failed to establish communication when openning the host";
+
         private static void Main()
         {
+            Logger.Info(SERVICE_HOST_STARTING_MESSAGE);
+
             using (var hostUser = new ServiceHost(typeof(UserService)))
             using (var hostLogin = new ServiceHost(typeof(LoginService)))
             using (var hostChat = new ServiceHost(typeof(ChatService)))
             using (var hostFriendRequest = new ServiceHost(typeof(FriendService)))
+            using (var hostMatch = new ServiceHost(typeof(MatchService)))
             {
                 try
                 {
@@ -21,55 +37,43 @@ namespace ConsoleGuessWho
                     hostLogin.Open();
                     hostChat.Open();
                     hostFriendRequest.Open();
+                    hostMatch.Open();
 
-                    // Mostrar información de UserService
-                    Console.WriteLine("[UserService] Host abierto. Endpoints:");
-                    foreach (var ep in hostUser.Description.Endpoints)
-                        Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
-
-                    // Mostrar información de LoginService
-                    Console.WriteLine("\n[LoginService] Host abierto. Endpoints:");
-                    foreach (var ep in hostLogin.Description.Endpoints)
-                        Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
-
-                    // Mostrar información de ChatService
-                    Console.WriteLine("\n[ChatService] Host abierto. Endpoints:");
-                    foreach (var ep in hostChat.Description.Endpoints)
-                        Console.WriteLine($"  {ep.Address.Uri} [{ep.Binding.Name}] -> {ep.Contract.ContractType.FullName}");
-
-                    Console.WriteLine("[CFG] " + AppDomain.CurrentDomain.SetupInformation.ConfigurationFile);
-
-                    var cs = ConfigurationManager.ConnectionStrings["GuessWhoDB"];
-                    Console.WriteLine(cs != null ? "Conn OK" : "Conn MISSING");
-
-                    Console.WriteLine("[SMTP User] " + ConfigurationManager.AppSettings["Smtp.User"]);
-                    Console.WriteLine("Presiona ENTER para detener el servicio...");
+                    Logger.Info(SERVICE_HOST_STARTED_MESSAGE);
+                    
                     Console.ReadLine();
 
+                    Logger.Info(SERVICE_HOST_STOPPING_MESSAGE);
+                    
                     hostChat.Close();
                     hostFriendRequest.Close();
                     hostLogin.Close();
                     hostUser.Close();
+                    hostMatch.Close();
+                    
+                    Logger.Info(SERVICE_HOST_STOPPED_MESSAGE);
                 }
                 catch (AddressAlreadyInUseException ex)
                 {
-                    Console.Error.WriteLine("El puerto ya está en uso. Cierra el proceso que lo ocupa o cambia el puerto en App.config.\n" + ex.Message);
+                    Logger.Error(SERVICE_HOST_ERROR_ADDRESS_IN_USE, ex);
                 }
                 catch (CommunicationException ex)
                 {
-                    Console.Error.WriteLine("Fallo de comunicación al abrir el host: " + ex.Message);
+                    Logger.Error(SERVICE_HOST_ERROR_FAILED_COMMUNICATION, ex);
                     hostUser.Abort();
                     hostLogin.Abort();
                     hostChat.Abort();
                     hostFriendRequest.Abort();
+                    hostMatch.Abort();
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine("Error inesperado: " + ex.Message);
+                    Logger.Fatal(SERVICE_HOST_FATAL_ERROR_MESSAGE, ex);
                     hostUser.Abort();
                     hostLogin.Abort();
                     hostFriendRequest.Abort();
                     hostChat.Abort();
+                    hostMatch.Abort();
                 }
             }
         }

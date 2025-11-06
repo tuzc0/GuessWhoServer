@@ -1,9 +1,8 @@
 ﻿using ClassLibraryGuessWho.Contracts.Dtos;
+using ClassLibraryGuessWho.Contracts.Faults;
 using ClassLibraryGuessWho.Contracts.Services;
-using ClassLibraryGuessWho.Data;
 using ClassLibraryGuessWho.Data.DataAccess.Friends;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
 

@@ -1,14 +1,15 @@
 ﻿using ClassLibraryGuessWho.Contracts.Dtos;
+using ClassLibraryGuessWho.Contracts.Faults;
 using ClassLibraryGuessWho.Data.DataAccess.Accounts;
 using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
-using ClassLibraryGuessWho.Data.Helpers; 
+using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Contracts.Dtos;
 using GuessWho.Contracts.Services;
 using GuessWho.Services.Security;
 using GuessWho.Services.WCF.Security;
+using log4net;
 using System;
 using System.Data.Entity.Infrastructure;
-using System.Linq;
 using System.Net.Mail;
 using System.Security.Authentication;
 using System.Security.Cryptography;
@@ -21,33 +22,96 @@ namespace GuessWho.Services.WCF.Services
     [ServiceBehavior(IncludeExceptionDetailInFaults = false)]
     public class UserService : IUserService
     {
-        private readonly TimeSpan VerificationCodeLifeTime = TimeSpan.FromMinutes(10);
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(UserService));
+        private static readonly TimeSpan VerificationCodeLifeTime = TimeSpan.FromMinutes(10);
+
+        private const string FAULT_CODE_REGISTER_REQUEST_NULL = "USER_REGISTER_REQUEST_NULL";
+        private const string FAULT_CODE_REGISTER_EMAIL_ALREADY_EXISTS = "USER_REGISTER_EMAIL_ALREADY_EXISTS";
+        private const string FAULT_CODE_REGISTER_DATA_INTEGRITY_VIOLATION = "USER_REGISTER_DATA_INTEGRITY_VIOLATION";
+        private const string FAULT_CODE_DATABASE_COMMAND_TIMEOUT = "DATABASE_COMMAND_TIMEOUT";
+        private const string FAULT_CODE_DATABASE_CONNECTION_FAILURE = "DATABASE_CONNECTION_FAILURE";
+        private const string FAULT_CODE_REGISTER_UNEXPECTED_ERROR = "USER_REGISTER_UNEXPECTED_ERROR";
+        private const string FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED = "EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED";
+        private const string FAULT_CODE_ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND";
+        private const string FAULT_CODE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT = "EMAIL_VERIFICATION_RESEND_TOO_FREQUENT";
+        private const string FAULT_CODE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED = "EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED";
+        private const string FAULT_CODE_EMAIL_RECIPIENT_INVALID = "EMAIL_RECIPIENT_INVALID";
+        private const string FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT = "EMAIL_VERIFICATION_CODE_INVALID_FORMAT";
+        private const string FAULT_CODE_EMAIL_SMTP_CONFIGURATION_MISSING = "EMAIL_SMTP_CONFIGURATION_MISSING";
+        private const string FAULT_CODE_EMAIL_SMTP_AUTHENTICATION_FAILED = "EMAIL_SMTP_AUTHENTICATION_FAILED";
+        private const string FAULT_CODE_EMAIL_SMTP_CONFIGURATION_ERROR = "EMAIL_SMTP_CONFIGURATION_ERROR";
+        private const string FAULT_CODE_EMAIL_SMTP_UNAVAILABLE = "EMAIL_SMTP_UNAVAILABLE";
+        private const string FAULT_CODE_EMAIL_SEND_FAILED = "EMAIL_SEND_FAILED";
+        private const string FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE = "CRYPTO_RANDOM_GENERATOR_UNAVAILABLE";
+        private const string FAULT_CODE_VERIFICATION_CODE_GENERATION_FAILED = "VERIFICATION_CODE_GENERATION_FAILED";
+
+        private const string FAULT_MESSAGE_REGISTER_REQUEST_NULL =
+            "Registration data is missing. Please fill in the form and try again.";
+        private const string FAULT_MESSAGE_REGISTER_EMAIL_ALREADY_EXISTS =
+            "This email address is already registered. Try signing in or use a different email.";
+        private const string FAULT_MESSAGE_REGISTER_DATA_INTEGRITY_VIOLATION =
+            "Your account could not be created due to a data consistency issue. Please try again.";
+        private const string FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT =
+            "The server took too long to respond. Please try again.";
+        private const string FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE =
+            "The server could not connect to the database. Please try again later.";
+        private const string FAULT_MESSAGE_REGISTER_UNEXPECTED_ERROR =
+            "An unexpected error occurred while creating your account. Please try again later.";
+        private const string FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED =
+            "The verification code is invalid or has expired. Please request a new code.";
+        private const string FAULT_MESSAGE_ACCOUNT_NOT_FOUND =
+            "We could not find an account with the provided information.";
+        private const string FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT =
+            "You requested a code recently. Please wait a moment and try again.";
+        private const string FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED =
+            "You have reached the hourly limit for resending verification codes. Please try again later.";
+        private const string FAULT_MESSAGE_EMAIL_RECIPIENT_INVALID =
+            "The destination email address is not valid. Check it and try again.";
+        private const string FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT =
+            "The verification code must contain exactly 6 digits.";
+        private const string FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_MISSING =
+            "The email service is not correctly configured. Please try again later.";
+        private const string FAULT_MESSAGE_EMAIL_SMTP_AUTHENTICATION_FAILED =
+            "The email service could not authenticate with the server. Please try again later.";
+        private const string FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_ERROR =
+            "The email service is not available due to a configuration problem. Please try again later.";
+        private const string FAULT_MESSAGE_EMAIL_SMTP_UNAVAILABLE =
+            "The email service is temporarily unavailable. Please try again later.";
+        private const string FAULT_MESSAGE_EMAIL_SEND_FAILED =
+            "We could not send the verification email. Please try again later.";
+        private const string FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE =
+            "The system could not generate a secure verification code. Please try again later.";
+        private const string FAULT_MESSAGE_VERIFICATION_CODE_GENERATION_FAILED =
+            "We could not generate a verification code. Please try again.";
+
         private readonly UserAccountData userAccountData = new UserAccountData();
         private readonly EmailVerificationData emailVerificationData = new EmailVerificationData();
 
         public RegisterResponse RegisterUser(RegisterRequest request)
         {
-
             if (request == null)
             {
-                throw Faults.Create("InvalidRequest", "Registration request cannot be null.");
+                throw Faults.Create(
+                    FAULT_CODE_REGISTER_REQUEST_NULL,
+                    FAULT_MESSAGE_REGISTER_REQUEST_NULL);
             }
 
-            var email = (request.Email ?? "").Trim().ToLowerInvariant();
-            var displayName = (request.DisplayName ?? string.Empty).Trim();
-            var password = request.Password ?? string.Empty;
-            var dateNowUtc = DateTime.UtcNow;
+            string email = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
+            string displayName = (request.DisplayName ?? string.Empty).Trim();
+            string password = request.Password ?? string.Empty;
+            DateTime dateNowUtc = DateTime.UtcNow;
 
             try
             {
-
                 if (userAccountData.EmailExists(email))
                 {
-                    throw Faults.Create("DuplicateEmail", "Email already registered.");
+                    throw Faults.Create(
+                        FAULT_CODE_REGISTER_EMAIL_ALREADY_EXISTS,
+                        FAULT_MESSAGE_REGISTER_EMAIL_ALREADY_EXISTS);
                 }
 
                 var passwordHash = PasswordHasher.HashPassword(password);
-                var (Plain, Hash) = CreateVerificationCodeOrFault();
+                var verificationCodeResult = CreateVerificationCodeOrFault();
 
                 var createAccountArgs = new CreateAccountArgs
                 {
@@ -62,14 +126,14 @@ namespace GuessWho.Services.WCF.Services
                 var createTokenArgs = new CreateEmailTokenArgs
                 {
                     AccountId = account.ACCOUNTID,
-                    CodeHash = Hash,
+                    CodeHash = verificationCodeResult.HashCode,
                     NowUtc = dateNowUtc,
                     LifeSpan = VerificationCodeLifeTime
                 };
 
                 emailVerificationData.AddVerificationToken(createTokenArgs);
 
-                TrySendVerificationEmailOrThrow(account.EMAIL, Plain);
+                TrySendVerificationEmailOrThrow(account.EMAIL, verificationCodeResult.PlainCode);
 
                 return new RegisterResponse
                 {
@@ -86,41 +150,57 @@ namespace GuessWho.Services.WCF.Services
             }
             catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueViolation(ex, "UQ_ACCOUNT_EMAIL"))
             {
-                throw Faults.Create("DuplicateEmail", "Email already registered.");
+                Logger.Fatal("Email already registered during account creation.", ex);
+                throw Faults.Create(
+                    FAULT_CODE_REGISTER_EMAIL_ALREADY_EXISTS,
+                    FAULT_MESSAGE_REGISTER_EMAIL_ALREADY_EXISTS);
             }
             catch (DbUpdateException ex) when (SqlExceptionInspector.IsForeignKeyViolation(ex))
             {
-                throw Faults.Create("ForeignKey", "Operation violates an existing relation.");
+                Logger.Fatal("Data integrity violation while creating account.", ex);
+                throw Faults.Create(
+                    FAULT_CODE_REGISTER_DATA_INTEGRITY_VIOLATION,
+                    FAULT_MESSAGE_REGISTER_DATA_INTEGRITY_VIOLATION);
             }
             catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
             {
-                throw Faults.Create("DatabaseTimeout", "The database did not respond in time.");
+                Logger.Fatal("Database command timeout during registration.", ex);
+                throw Faults.Create(
+                    FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
+                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT);
             }
             catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
             {
-                throw Faults.Create("DatabaseConnection", "Unable to connect to the database.");
+                Logger.Fatal("Database connection failure during registration.", ex);
+                throw Faults.Create(
+                    FAULT_CODE_DATABASE_CONNECTION_FAILURE,
+                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE);
             }
             catch (Exception ex)
             {
-                Console.Write(ex);
-                System.Diagnostics.Trace.TraceError($"[UserService.RegisterUser] {ex}");
-                throw Faults.Create("Unexpected", "Unexpected server error.");
+                Logger.Fatal("Unexpected error during registration.", ex);
+                throw Faults.Create(
+                    FAULT_CODE_REGISTER_UNEXPECTED_ERROR,
+                    FAULT_MESSAGE_REGISTER_UNEXPECTED_ERROR);
             }
         }
 
         public VerifyEmailResponse ConfirmEmailAddressWithVerificationCode(VerifyEmailRequest request)
         {
-
-            var currentUtcTimestamp = DateTime.UtcNow;
-            var code = (request.Code ?? string.Empty).Trim();
+            DateTime currentUtcTimestamp = DateTime.UtcNow;
+            string code = (request.Code ?? string.Empty).Trim();
 
             if (!Regex.IsMatch(code, @"^\d{6}$"))
             {
-                throw Faults.Create("InvalidOrExpiredCode", "Invalid code.");
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
             }
 
             var account = userAccountData.GetAccountById(request.AccountId)
-                ?? throw Faults.Create("NotFound", "Account not found.");
+                ?? throw Faults.Create(
+                    FAULT_CODE_ACCOUNT_NOT_FOUND,
+                    FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
 
             if (account.ISEMAILVERIFIED)
             {
@@ -128,64 +208,169 @@ namespace GuessWho.Services.WCF.Services
             }
 
             var token = emailVerificationData.GetLatestTokenByAccountId(request.AccountId, currentUtcTimestamp)
-                ?? throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
+                ?? throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
 
-            var codeHash = CodeGenerator.ComputeSha256Hash(code);
+            byte[] codeHash = CodeGenerator.ComputeSha256Hash(code);
 
             if (!AreByteSequencesEqualInConstantTime(codeHash, token.CODEHASH))
             {
                 emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(token.TOKENID, currentUtcTimestamp);
-                throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
+
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
             }
 
-            var consumedRows = emailVerificationData.ConsumeToken(token.TOKENID);
+            int consumedRows = emailVerificationData.ConsumeToken(token.TOKENID);
 
             if (consumedRows == 0)
             {
-                throw Faults.Create("InvalidOrExpiredCode", "Invalid or expired code.");
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
             }
 
             userAccountData.MarkEmailVerified(request.AccountId, currentUtcTimestamp);
+
             return new VerifyEmailResponse { Success = true };
         }
 
-
         public void ResendEmailVerificationCode(ResendVerificationRequest request)
         {
-            var currentUtcTimestamp = DateTime.UtcNow;
+            DateTime currentUtcTimestamp = DateTime.UtcNow;
 
             var account = userAccountData.GetAccountById(request.AccountId)
-                ?? throw Faults.Create("NotFound", "Account not found.");
+                ?? throw Faults.Create(
+                    FAULT_CODE_ACCOUNT_NOT_FOUND,
+                    FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
 
             if (account.ISEMAILVERIFIED)
             {
-                return; 
+                return;
             }
 
-            var (perMinute, withingHourcap, _, _) = emailVerificationData.GetEmailVerificationResendLimits(
-                request.AccountId, currentUtcTimestamp);
+            var (perMinute, withinHourCap, _, _) = emailVerificationData.GetEmailVerificationResendLimits(
+                request.AccountId,
+                currentUtcTimestamp);
 
             if (perMinute)
             {
-                throw Faults.Create("RateLimited", "Try again in one minute.");
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT);
             }
 
-            if (!withingHourcap)
+            if (!withinHourCap)
             {
-                throw Faults.Create("HourlyLimitExceeded", "Hourly resend limit exceeded.");
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED);
             }
 
-            var (Plain, Hash) = CreateVerificationCodeOrFault();
+            var verificationCodeResult = CreateVerificationCodeOrFault();
+
             var createTokenArgs = new CreateEmailTokenArgs
             {
                 AccountId = request.AccountId,
-                CodeHash = Hash,
+                CodeHash = verificationCodeResult.HashCode,
                 NowUtc = currentUtcTimestamp,
                 LifeSpan = VerificationCodeLifeTime
             };
 
             emailVerificationData.AddVerificationToken(createTokenArgs);
-            TrySendVerificationEmailOrThrow(account.EMAIL,Plain);
+            TrySendVerificationEmailOrThrow(account.EMAIL, verificationCodeResult.PlainCode);
+        }
+
+        private static void TrySendVerificationEmailOrThrow(string email, string code)
+        {
+            try
+            {
+                new VerificationEmailSender().SendVerificationCode(email, code);
+            }
+            catch (EmailSendException ex)
+            {
+                throw Faults.Create(ex.Code, ex.Message);
+            }
+            catch (ArgumentException ex) when (ex.ParamName == "recipientEmailAddress")
+            {
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_RECIPIENT_INVALID,
+                    FAULT_MESSAGE_EMAIL_RECIPIENT_INVALID);
+            }
+            catch (ArgumentException ex) when (ex.ParamName == "verificationCode")
+            {
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT);
+            }
+            catch (InvalidOperationException)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_SMTP_CONFIGURATION_MISSING,
+                    FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_MISSING);
+            }
+            catch (AuthenticationException)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_SMTP_AUTHENTICATION_FAILED,
+                    FAULT_MESSAGE_EMAIL_SMTP_AUTHENTICATION_FAILED);
+            }
+            catch (SmtpException ex) when (
+                ex.StatusCode == SmtpStatusCode.MustIssueStartTlsFirst ||
+                ex.StatusCode == SmtpStatusCode.ClientNotPermitted ||
+                ex.StatusCode == SmtpStatusCode.CommandNotImplemented)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_SMTP_CONFIGURATION_ERROR,
+                    FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_ERROR);
+            }
+            catch (SmtpException ex) when (
+                ex.StatusCode == SmtpStatusCode.GeneralFailure ||
+                ex.StatusCode == SmtpStatusCode.TransactionFailed ||
+                ex.StatusCode == SmtpStatusCode.MailboxBusy ||
+                ex.StatusCode == SmtpStatusCode.InsufficientStorage)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_SMTP_UNAVAILABLE,
+                    FAULT_MESSAGE_EMAIL_SMTP_UNAVAILABLE);
+            }
+            catch (Exception)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_SEND_FAILED,
+                    FAULT_MESSAGE_EMAIL_SEND_FAILED);
+            }
+        }
+
+        private static VerificationCodeResult CreateVerificationCodeOrFault()
+        {
+            try
+            {
+                string code = CodeGenerator.GenerateNumericCode();
+                byte[] hashCode = CodeGenerator.ComputeSha256Hash(code);
+
+                return new VerificationCodeResult(code, hashCode);
+            }
+            catch (ArgumentNullException)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_VERIFICATION_CODE_GENERATION_FAILED,
+                    FAULT_MESSAGE_VERIFICATION_CODE_GENERATION_FAILED);
+            }
+            catch (CryptographicException)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE);
+            }
         }
 
         private static bool AreByteSequencesEqualInConstantTime(byte[] firstByteSequence, byte[] secondByteSequence)
@@ -207,79 +392,6 @@ namespace GuessWho.Services.WCF.Services
             }
 
             return accumulatedDifference == 0;
-        }
-
-        private static void TrySendVerificationEmailOrThrow(string email, string code)
-        {
-
-            try
-            {
-                new VerificationEmailSender().SendVerificationCode(email, code);
-            }
-            catch (EmailSendException ex)
-            {
-                throw Faults.Create(ex.Code, ex.Message);
-            }
-            catch (ArgumentException ex) when (ex.ParamName == "recipientEmailAddress")
-            {
-                throw Faults.Create("EmailInvalid", "Invalid recipient email.");
-            }
-            catch (ArgumentException ex) when (ex.ParamName == "verificationCode")
-            {
-                throw Faults.Create("VerificationCodeInvalid", "Verification code must be 6 digits.");
-            }
-            catch (InvalidOperationException)
-            {
-                throw Faults.Create("SMTPNotConfigured", "SMTP settings are missing.");
-            }
-            catch (AuthenticationException)
-            {
-                throw Faults.Create("SMTPAuthenticationFailed", "SMTP authentication failed.");
-            }
-            catch (SmtpException ex) when (
-                   ex.StatusCode == SmtpStatusCode.MustIssueStartTlsFirst ||
-                   ex.StatusCode == SmtpStatusCode.ClientNotPermitted ||
-                   ex.StatusCode == SmtpStatusCode.CommandNotImplemented)
-            {
-                throw Faults.Create("SMTPConfigurationError", "SMTP configuration error.");
-            }
-            catch (SmtpException ex) when (
-                   ex.StatusCode == SmtpStatusCode.GeneralFailure ||
-                   ex.StatusCode == SmtpStatusCode.TransactionFailed ||
-                   ex.StatusCode == SmtpStatusCode.MailboxBusy ||
-                   ex.StatusCode == SmtpStatusCode.InsufficientStorage)
-            {
-                throw Faults.Create("SMTPUnavailable", "Email service unavailable.");
-            }
-            catch (Exception ex)
-            {
-                Console.Write(ex);
-                System.Diagnostics.Trace.TraceError($"[UserService.RegisterUser] {ex}");
-                throw Faults.Create("EmailSendFailed", "Unable to send verification email.");
-            }
-        }
-
-        private static (string Plain, byte[] Hash) CreateVerificationCodeOrFault()
-        {
-
-            try
-            {
-                var code = CodeGenerator.GenerateNumericCode();
-                var hashCode = CodeGenerator.ComputeSha256Hash(code);
-                return (code, hashCode);
-            }
-            catch (ArgumentNullException)
-            {
-                throw Faults.Create("CryptoUnavailable", "Secure random generator is unavailable.");
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-                throw Faults.Create("VerificationCodeGenerationFailed", "Unable to generate verification code.");
-            }
-            catch (CryptographicException)
-            {
-                throw Faults.Create("CryptoUnavailable", "Secure random generator is unavailable.");
-            }
         }
     }
 }

@@ -5,9 +5,9 @@ using System.Runtime.Serialization;
 namespace ClassLibraryGuessWho.Contracts.Dtos
 {
     [DataContract]
-    public class CreateMatchResponse
+    public class JoinMatchResponse
     {
-        [DataMember] public int MatchId { get; set; }
+        [DataMember] public long MatchId { get; set; }
         [DataMember] public string Code { get; set; }
         [DataMember] public byte StatusId { get; set; }
         [DataMember] public string Mode { get; set; }

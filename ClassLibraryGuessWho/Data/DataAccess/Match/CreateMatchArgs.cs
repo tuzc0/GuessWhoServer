@@ -2,9 +2,10 @@
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Match
 {
-    public class CreateMatchArgs
+    public sealed class CreateMatchArgs
     {
         public long UserProfileId { get; set; }
+        public byte MatchStatus { get; set; }
         public byte Visibility { get; set; }
         public string Mode { get; set; }
         public DateTime CreateDate { get; set; }

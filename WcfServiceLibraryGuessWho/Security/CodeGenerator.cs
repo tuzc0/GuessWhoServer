@@ -53,4 +53,17 @@ namespace GuessWho.Services.Security
             return (int)(minInclusive + (value % range));
         }
     }
+
+    public sealed class VerificationCodeResult
+    {
+        public string PlainCode { get; }
+        public byte[] HashCode { get; }
+
+        public VerificationCodeResult(string plainCode, byte[] hashCode)
+        {
+            PlainCode = plainCode ?? throw new ArgumentNullException(nameof(plainCode));
+            HashCode = hashCode ?? throw new ArgumentNullException(nameof(hashCode));
+        }
+    }
+
 }
