@@ -7,7 +7,7 @@ using System;
 using System.Linq;
 using System.ServiceModel;
 
-namespace WcfServiceLibraryGuessWho.Services
+namespace GuessWho.Services.WCF.Services
 {
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall)]
     public class FriendService : IFriendService

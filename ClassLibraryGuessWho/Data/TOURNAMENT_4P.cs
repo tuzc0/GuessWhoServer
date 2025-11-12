@@ -12,23 +12,27 @@ namespace ClassLibraryGuessWho.Data
     using System;
     using System.Collections.Generic;
     
-    public partial class CHARACTER_SET
+    public partial class TOURNAMENT_4P
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public CHARACTER_SET()
+        public TOURNAMENT_4P()
         {
-            this.CHARACTER = new HashSet<CHARACTER>();
-            this.TOURNAMENT_4P = new HashSet<TOURNAMENT_4P>();
+            this.TOURNAMENT_4P_MATCH = new HashSet<TOURNAMENT_4P_MATCH>();
+            this.TOURNAMENT_4P_PLAYER = new HashSet<TOURNAMENT_4P_PLAYER>();
         }
     
-        public long CHARACTERSETID { get; set; }
-        public string NAME { get; set; }
-        public bool ISACTIVE { get; set; }
+        public int TOURNAMENTID { get; set; }
+        public long HOSTUSERID { get; set; }
+        public Nullable<long> CHARACTERSETID { get; set; }
+        public int TURNSECONDS { get; set; }
+        public byte STATUSID { get; set; }
         public System.DateTime CREATEDATUTC { get; set; }
     
+        public virtual CHARACTER_SET CHARACTER_SET { get; set; }
+        public virtual USER_PROFILE USER_PROFILE { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<CHARACTER> CHARACTER { get; set; }
+        public virtual ICollection<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
+        public virtual ICollection<TOURNAMENT_4P_PLAYER> TOURNAMENT_4P_PLAYER { get; set; }
     }
 }

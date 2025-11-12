@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Configuration;
 using System.ServiceModel;
 using GuessWho.Services.WCF.Services;
 using log4net;
 using log4net.Config;
-using WcfServiceLibraryGuessWho.Services;
 
 [assembly: XmlConfigurator(Watch = true)]
 namespace ConsoleGuessWho
@@ -30,6 +28,7 @@ namespace ConsoleGuessWho
             using (var hostChat = new ServiceHost(typeof(ChatService)))
             using (var hostFriendRequest = new ServiceHost(typeof(FriendService)))
             using (var hostMatch = new ServiceHost(typeof(MatchService)))
+            using (var hostUpdateProfile = new ServiceHost(typeof(UpdateProfileService)))
             {
                 try
                 {
@@ -38,6 +37,7 @@ namespace ConsoleGuessWho
                     hostChat.Open();
                     hostFriendRequest.Open();
                     hostMatch.Open();
+                    hostUpdateProfile.Open();
 
                     Logger.Info(SERVICE_HOST_STARTED_MESSAGE);
                     
@@ -50,6 +50,7 @@ namespace ConsoleGuessWho
                     hostLogin.Close();
                     hostUser.Close();
                     hostMatch.Close();
+                    hostUpdateProfile.Close();
                     
                     Logger.Info(SERVICE_HOST_STOPPED_MESSAGE);
                 }
@@ -65,6 +66,7 @@ namespace ConsoleGuessWho
                     hostChat.Abort();
                     hostFriendRequest.Abort();
                     hostMatch.Abort();
+                    hostUpdateProfile.Abort();
                 }
                 catch (Exception ex)
                 {
@@ -74,6 +76,7 @@ namespace ConsoleGuessWho
                     hostFriendRequest.Abort();
                     hostChat.Abort();
                     hostMatch.Abort();
+                    hostUpdateProfile.Abort();
                 }
             }
         }

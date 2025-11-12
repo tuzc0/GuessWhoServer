@@ -43,8 +43,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Dtos\Dto\AccountDto.cs" />
     <Compile Include="Dtos\Dto\LobbyPlayerDto.cs" />
     <Compile Include="Dtos\Dto\MatchDto.cs" />
+    <Compile Include="Dtos\Dto\UserProfileDto.cs" />
     <Compile Include="Dtos\RequestAndResponse\AcceptFriendRequestRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\BasicResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\CreateMatchRequest.cs" />
@@ -54,8 +56,8 @@
     <Compile Include="Dtos\RequestAndResponse\LeaveMatchRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\LoginRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\LoginResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\ProfileRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\ProfileResponse.cs" />
+    <Compile Include="Dtos\RequestAndResponse\GetProfileRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\GetProfileResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\RegisterRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\RegisterResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\ResendVerificationRequest.cs" />
@@ -65,6 +67,8 @@
     <Compile Include="Dtos\RequestAndResponse\SendFriendRequestResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\SetPlayerReadyStatusRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\StartMatchRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\UpdateProfileRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\UpdateProfileResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\UserProfileSearchResult.cs" />
     <Compile Include="Dtos\RequestAndResponse\VerifyEmailRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\VerifyEmailResponse.cs" />
@@ -80,7 +84,7 @@
     <Compile Include="Services\ILoginService.cs" />
     <Compile Include="Services\IMatchCallback.cs" />
     <Compile Include="Services\IMatchService.cs" />
-    <Compile Include="Services\IProfileService.cs" />
+    <Compile Include="Services\IUpdateProfileService.cs" />
     <Compile Include="Services\IUserService.cs" />
   </ItemGroup>
   <ItemGroup />

@@ -1,5 +1,4 @@
-﻿using ClassLibraryGuessWho.Data;
-using ClassLibraryGuessWho.Data.DataAccess.Match;
+﻿using ClassLibraryGuessWho.Data.DataAccess.Match;
 using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Services.Security;
 using GuessWhoContracts.Dtos.Dto;
@@ -7,42 +6,54 @@ using GuessWhoContracts.Dtos.RequestAndResponse;
 using GuessWhoContracts.Enums;
 using GuessWhoContracts.Faults;
 using GuessWhoContracts.Services;
+using log4net;
 using System;
 using System.Collections.Concurrent;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.ServiceModel;
 
-namespace WcfServiceLibraryGuessWho.Services
+namespace GuessWho.Services.WCF.Services
 {
-    [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple, IncludeExceptionDetailInFaults = false)]
+    [ServiceBehavior(
+        InstanceContextMode = InstanceContextMode.Single,
+        ConcurrencyMode = ConcurrencyMode.Multiple,
+        IncludeExceptionDetailInFaults = false)]
     public class MatchService : IMatchService
     {
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(MatchService));
+
         private readonly MatchData matchData = new MatchData();
-        private readonly ConcurrentDictionary<long, ConcurrentDictionary<IMatchCallback, byte>> subcribersByMatch = new ConcurrentDictionary<long, ConcurrentDictionary<IMatchCallback, byte>>();
+        private readonly ConcurrentDictionary<long, ConcurrentDictionary<IMatchCallback, byte>> subcribersByMatch =
+            new ConcurrentDictionary<long, ConcurrentDictionary<IMatchCallback, byte>>();
 
         public void SusbcribeLobby(long matchId)
         {
             var callbackChannel = OperationContext.Current.GetCallbackChannel<IMatchCallback>();
-            var callbackForMatch = subcribersByMatch.GetOrAdd(matchId, _ => new ConcurrentDictionary<IMatchCallback, byte>());
+            var callbackForMatch = subcribersByMatch.GetOrAdd(
+                matchId,
+                _ => new ConcurrentDictionary<IMatchCallback, byte>());
+
             callbackForMatch.TryAdd(callbackChannel, 0);
+
             var channelObject = (ICommunicationObject)callbackChannel;
 
-            channelObject.Closed += (_, __) =>
+            channelObject.Closed += (sender, args) =>
             {
-                callbackForMatch.TryRemove(callbackChannel, out byte removed);
+                byte removed;
+                callbackForMatch.TryRemove(callbackChannel, out removed);
             };
 
-            channelObject.Faulted += (_, __) =>
+            channelObject.Faulted += (sender, args) =>
             {
-                callbackForMatch.TryRemove(callbackChannel, out byte removed);
+                byte removed;
+                callbackForMatch.TryRemove(callbackChannel, out removed);
             };
-
         }
+
 
         public void UnsusbcribeLobby(long matchId)
         {
-
             if (subcribersByMatch.TryGetValue(matchId, out var callbackForMatch))
             {
                 var callbackChannel = OperationContext.Current.GetCallbackChannel<IMatchCallback>();
@@ -57,38 +68,38 @@ namespace WcfServiceLibraryGuessWho.Services
                 throw Faults.Create("InvalidRequest", "Registration request cannot be null.");
             }
 
-            var dateNow = DateTime.UtcNow;
-            var visibilityDefaut = MatchVisibility.Public;
+            var dateNowUtc = DateTime.UtcNow;
+            var visibilityDefault = MatchVisibility.Public;
             var statusDefault = MatchStatus.Lobby;
-            var modeDefault = "Classic";
+            const string MODE_DEFAULT = "Classic";
             long hostUserId = request.ProfileId;
 
             try
             {
-                var code = CodeGenerator.GenerateNumericCode();
+                string code = CodeGenerator.GenerateNumericCode();
 
                 var createMatchArgs = new CreateMatchArgs
                 {
                     UserProfileId = hostUserId,
-                    Visibility = (byte)visibilityDefaut,
+                    Visibility = (byte)visibilityDefault,
                     MatchStatus = (byte)statusDefault,
-                    Mode = modeDefault,
-                    CreateDate = dateNow,
+                    Mode = MODE_DEFAULT,
+                    CreateDate = dateNowUtc,
                     MatchCode = code
                 };
 
                 MatchDto match = matchData.CreateMatch(createMatchArgs);
-                var hostPlayer = matchData.GetMatchPlayers(match.MatchId);
+                var players = matchData.GetMatchPlayers(match.MatchId);
 
                 return new CreateMatchResponse
                 {
                     MatchId = match.MatchId,
-                    Code = code,
+                    Code = match.Code,
                     StatusId = match.StatusId,
-                    Mode = modeDefault,
-                    Visibility = (byte)visibilityDefaut,
-                    CreateAtUtc = dateNow,
-                    Players = hostPlayer
+                    Mode = match.Mode,
+                    Visibility = match.VisibilityId,
+                    CreateAtUtc = match.CreateAtUtc,
+                    Players = players
                 };
             }
             catch (FaultException<ServiceFault>)
@@ -97,19 +108,22 @@ namespace WcfServiceLibraryGuessWho.Services
             }
             catch (DbUpdateException ex) when (SqlExceptionInspector.IsForeignKeyViolation(ex))
             {
+                Logger.Error("Foreign key violation in MatchService.CreateMatch.", ex);
                 throw Faults.Create("ForeignKey", "Operation violates an existing relation.");
             }
             catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
             {
+                Logger.Fatal("Database timeout in MatchService.CreateMatch.", ex);
                 throw Faults.Create("DatabaseTimeout", "The database did not respond in time.");
             }
             catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
             {
+                Logger.Fatal("Database connection failure in MatchService.CreateMatch.", ex);
                 throw Faults.Create("DatabaseConnection", "Unable to connect to the database.");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Trace.TraceError($"[UserService.RegisterUser] {ex}");
+                Logger.Fatal("Unexpected error in MatchService.CreateMatch.", ex);
                 throw Faults.Create("Unexpected", "Unexpected server error.");
             }
         }
@@ -121,38 +135,44 @@ namespace WcfServiceLibraryGuessWho.Services
                 throw Faults.Create("InvalidRequest", "JoinMatch request cannot be null.");
             }
 
-            var matchCode = request.MatchCode.Trim();
-            var userId = request.UserId;
-            var user = new JoinMatchArgs
+            string matchCode = (request.MatchCode ?? string.Empty).Trim();
+            long userId = request.UserId;
+
+            var joinArgs = new JoinMatchArgs
             {
                 UserProfileId = userId,
                 MatchCode = matchCode,
-                JoinedDate = DateTime.Now,
+                JoinedDate = DateTime.UtcNow
             };
 
             try
             {
-                MATCH match = matchData.GetMatchByCode(user) ?? throw Faults.Create("ErrorJoining", "Match code not found");
+                MatchDto match = matchData.GetMatchByCode(joinArgs);
 
-                var players = matchData.GetMatchPlayers(match.MATCHID);
-                var justJoined = players.FirstOrDefault(p => p.UserId == request.UserId);
+                if (!match.IsValid)
+                {
+                    throw Faults.Create("ErrorJoining", "Match code not found.");
+                }
+
+                var players = matchData.GetMatchPlayers(match.MatchId);
+                var justJoined = players.FirstOrDefault(p => p.UserId == userId);
 
                 if (justJoined != null)
                 {
-                    NotifyLobbyJoined(match.MATCHID, justJoined);
+                    NotifyLobbyJoined(match.MatchId, justJoined);
                 }
 
-                var hostUserId = players.First(p => p.IsHost);
+                var hostPlayer = players.First(p => p.IsHost);
 
                 return new JoinMatchResponse
                 {
-                    MatchId = match.MATCHID,
-                    Code = match.MATCHCODE,
-                    StatusId = match.STATUSID,
-                    Mode = match.MODE,
-                    Visibility = match.VISIBILITYID,
-                    CreateAtUtc = match.CREATEDATUTC,
-                    HostUserId = userId,
+                    MatchId = match.MatchId,
+                    Code = match.Code,
+                    StatusId = match.StatusId,
+                    Mode = match.Mode,
+                    Visibility = match.VisibilityId,
+                    CreateAtUtc = match.CreateAtUtc,
+                    HostUserId = hostPlayer.UserId,
                     Players = players
                 };
             }
@@ -162,15 +182,27 @@ namespace WcfServiceLibraryGuessWho.Services
             }
             catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueViolation(ex))
             {
+                Logger.Warn("Unique constraint violation in MatchService.JoinMatch, likely match is full or already joined.", ex);
                 throw Faults.Create("JoinConflict", "The match is full or you are already joined.");
             }
             catch (DbUpdateException ex) when (SqlExceptionInspector.IsForeignKeyViolation(ex))
             {
+                Logger.Error("Foreign key violation in MatchService.JoinMatch.", ex);
                 throw Faults.Create("ForeignKey", "Operation violates an existing relation.");
+            }
+            catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
+            {
+                Logger.Fatal("Database timeout in MatchService.JoinMatch.", ex);
+                throw Faults.Create("DatabaseTimeout", "The database did not respond in time.");
+            }
+            catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
+            {
+                Logger.Fatal("Database connection failure in MatchService.JoinMatch.", ex);
+                throw Faults.Create("DatabaseConnection", "Unable to connect to the database.");
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Trace.TraceError($"[MatchService.JoinMatch] {ex}");
+                Logger.Fatal("Unexpected error in MatchService.JoinMatch.", ex);
                 throw Faults.Create("Unexpected", "Unexpected server error.");
             }
         }
@@ -179,6 +211,7 @@ namespace WcfServiceLibraryGuessWho.Services
         {
             throw new NotImplementedException();
         }
+
         public BasicResponse SetPlayerReadyStatus(SetPlayerReadyStatusRequest request)
         {
             throw new NotImplementedException();

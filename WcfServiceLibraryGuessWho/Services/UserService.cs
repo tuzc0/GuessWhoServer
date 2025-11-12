@@ -3,6 +3,7 @@ using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
 using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Services.Security;
 using GuessWho.Services.WCF.Security;
+using GuessWhoContracts.Dtos.Dto;
 using GuessWhoContracts.Dtos.RequestAndResponse;
 using GuessWhoContracts.Faults;
 using GuessWhoContracts.Services;
@@ -22,7 +23,6 @@ namespace GuessWho.Services.WCF.Services
     public class UserService : IUserService
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(UserService));
-        private static readonly TimeSpan VerificationCodeLifeTime = TimeSpan.FromMinutes(10);
 
         private const string FAULT_CODE_REGISTER_REQUEST_NULL = "USER_REGISTER_REQUEST_NULL";
         private const string FAULT_CODE_REGISTER_EMAIL_ALREADY_EXISTS = "USER_REGISTER_EMAIL_ALREADY_EXISTS";
@@ -85,6 +85,7 @@ namespace GuessWho.Services.WCF.Services
 
         private readonly UserAccountData userAccountData = new UserAccountData();
         private readonly EmailVerificationData emailVerificationData = new EmailVerificationData();
+        private static readonly TimeSpan VerificationCodeLifeTime = TimeSpan.FromMinutes(10);
 
         public RegisterResponse RegisterUser(RegisterRequest request)
         {
@@ -125,7 +126,7 @@ namespace GuessWho.Services.WCF.Services
 
                 var createTokenArgs = new CreateEmailTokenArgs
                 {
-                    AccountId = account.ACCOUNTID,
+                    AccountId = account.AccountId,
                     CodeHash = verificationCodeResult.HashCode,
                     NowUtc = dateNowUtc,
                     LifeSpan = VerificationCodeLifeTime
@@ -133,12 +134,12 @@ namespace GuessWho.Services.WCF.Services
 
                 emailVerificationData.AddVerificationToken(createTokenArgs);
 
-                TrySendVerificationEmailOrThrow(account.EMAIL, verificationCodeResult.PlainCode);
+                TrySendVerificationEmailOrThrow(account.Email, verificationCodeResult.PlainCode);
 
                 return new RegisterResponse
                 {
-                    AccountId = account.ACCOUNTID,
-                    UserId = profile.USERID,
+                    AccountId = account.AccountId,
+                    UserId = profile.UserId,
                     Email = email,
                     DisplayName = displayName,
                     EmailVerificationRequired = true
@@ -197,12 +198,16 @@ namespace GuessWho.Services.WCF.Services
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
             }
 
-            var account = userAccountData.GetAccountById(request.AccountId)
-                ?? throw Faults.Create(
+            bool found = userAccountData.GetAccountByIdAccount(request.AccountId, out AccountDto accountDto);
+
+            if (!found)
+            {
+                throw Faults.Create(
                     FAULT_CODE_ACCOUNT_NOT_FOUND,
                     FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
+            }
 
-            if (account.ISEMAILVERIFIED)
+            if (accountDto.IsEmailVerified)
             {
                 return new VerifyEmailResponse { Success = true };
             }
@@ -241,12 +246,16 @@ namespace GuessWho.Services.WCF.Services
         {
             DateTime currentUtcTimestamp = DateTime.UtcNow;
 
-            var account = userAccountData.GetAccountById(request.AccountId)
-                ?? throw Faults.Create(
+            bool found = userAccountData.GetAccountByIdAccount(request.AccountId, out AccountDto accountDto);
+
+            if (!found)
+            {
+                throw Faults.Create(
                     FAULT_CODE_ACCOUNT_NOT_FOUND,
                     FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
+            }
 
-            if (account.ISEMAILVERIFIED)
+            if (accountDto.IsEmailVerified)
             {
                 return;
             }
@@ -280,7 +289,7 @@ namespace GuessWho.Services.WCF.Services
             };
 
             emailVerificationData.AddVerificationToken(createTokenArgs);
-            TrySendVerificationEmailOrThrow(account.EMAIL, verificationCodeResult.PlainCode);
+            TrySendVerificationEmailOrThrow(accountDto.Email, verificationCodeResult.PlainCode);
         }
 
         private static void TrySendVerificationEmailOrThrow(string email, string code)

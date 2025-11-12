@@ -82,6 +82,10 @@
       <Project>{728d9edc-629d-4716-926d-c4493da16c7f}</Project>
       <Name>GuessWhoDataAccess</Name>
     </ProjectReference>
+    <ProjectReference Include="..\GuessWhoContracts\GuessWhoContracts.csproj">
+      <Project>{e883c093-7c48-425c-b0e6-6dbcbd7f5fb0}</Project>
+      <Name>GuessWhoContracts</Name>
+    </ProjectReference>
     <ProjectReference Include="..\WcfServiceLibraryGuessWho\GuessWhoServices.csproj">
       <Project>{be89004b-a0af-4a7b-a4c9-a712eab8b994}</Project>
       <Name>GuessWhoServices</Name>

@@ -45,6 +45,9 @@ namespace ClassLibraryGuessWho.Data
         public virtual DbSet<MODERATIONSCOPe> MODERATIONSCOPe { get; set; }
         public virtual DbSet<sysdiagrams> sysdiagrams { get; set; }
         public virtual DbSet<USER_PROFILE> USER_PROFILE { get; set; }
+        public virtual DbSet<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
+        public virtual DbSet<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
+        public virtual DbSet<TOURNAMENT_4P_PLAYER> TOURNAMENT_4P_PLAYER { get; set; }
     
         public virtual int SP_ACCEPTFRIENDREQUEST(Nullable<long> fRIENDREQUESTID)
         {
