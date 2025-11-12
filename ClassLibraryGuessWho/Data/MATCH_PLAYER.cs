@@ -20,8 +20,11 @@ namespace ClassLibraryGuessWho.Data
         public bool ISWINNER { get; set; }
         public System.DateTime JOINEDATUTC { get; set; }
         public Nullable<System.DateTime> LEFTATUTC { get; set; }
+        public bool ISHOST { get; set; }
+        public bool ISREADY { get; set; }
     
         public virtual MATCH MATCH { get; set; }
+        public virtual MATCH MATCH1 { get; set; }
         public virtual USER_PROFILE USER_PROFILE { get; set; }
     }
 }
