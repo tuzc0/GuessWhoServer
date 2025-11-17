@@ -5,6 +5,6 @@ namespace GuessWhoContracts.Dtos.RequestAndResponse
     [DataContract]
     public class GetProfileRequest
     {
-        [DataMember(IsRequired = true)] public long IdAccount { get; set; }
+        [DataMember(IsRequired = true)] public long UserId { get; set; }
     }
 }

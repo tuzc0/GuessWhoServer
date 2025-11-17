@@ -52,7 +52,7 @@
           <Key>
             <PropertyRef Name="TOKENID" />
           </Key>
-          <Property Name="TOKENID" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="TOKENID" Type="uniqueidentifier" Nullable="false" StoreGeneratedPattern="Identity" />
           <Property Name="ACCOUNTID" Type="bigint" Nullable="false" />
           <Property Name="CODEHASH" Type="varbinary" MaxLength="32" Nullable="false" />
           <Property Name="EXPIRESUTC" Type="datetime2" Precision="0" Nullable="false" />
@@ -827,7 +827,7 @@
           <Key>
             <PropertyRef Name="TOKENID" />
           </Key>
-          <Property Name="TOKENID" Type="Guid" Nullable="false" />
+          <Property Name="TOKENID" Type="Guid" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
           <Property Name="ACCOUNTID" Type="Int64" Nullable="false" />
           <Property Name="CODEHASH" Type="Binary" MaxLength="32" FixedLength="false" Nullable="false" />
           <Property Name="EXPIRESUTC" Type="DateTime" Nullable="false" Precision="0" />

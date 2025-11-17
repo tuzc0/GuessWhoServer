@@ -24,12 +24,12 @@ namespace GuessWho.Services.WCF.Services
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(UserService));
 
-        private const string FAULT_CODE_REGISTER_REQUEST_NULL = "USER_REGISTER_REQUEST_NULL";
+        private const string FAULT_CODE_REQUEST_NULL = "USER_REQUEST_NULL";
         private const string FAULT_CODE_REGISTER_EMAIL_ALREADY_EXISTS = "USER_REGISTER_EMAIL_ALREADY_EXISTS";
         private const string FAULT_CODE_REGISTER_DATA_INTEGRITY_VIOLATION = "USER_REGISTER_DATA_INTEGRITY_VIOLATION";
         private const string FAULT_CODE_DATABASE_COMMAND_TIMEOUT = "DATABASE_COMMAND_TIMEOUT";
         private const string FAULT_CODE_DATABASE_CONNECTION_FAILURE = "DATABASE_CONNECTION_FAILURE";
-        private const string FAULT_CODE_REGISTER_UNEXPECTED_ERROR = "USER_REGISTER_UNEXPECTED_ERROR";
+        private const string FAULT_CODE_UNEXPECTED_ERROR = "USER_REGISTER_UNEXPECTED_ERROR";
         private const string FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED = "EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED";
         private const string FAULT_CODE_ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND";
         private const string FAULT_CODE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT = "EMAIL_VERIFICATION_RESEND_TOO_FREQUENT";
@@ -89,11 +89,11 @@ namespace GuessWho.Services.WCF.Services
 
         public RegisterResponse RegisterUser(RegisterRequest request)
         {
-
             if (request == null)
             {
+                Logger.Warn("RegisterUser request is null.");
                 throw Faults.Create(
-                    FAULT_CODE_REGISTER_REQUEST_NULL,
+                    FAULT_CODE_REQUEST_NULL,
                     FAULT_MESSAGE_REGISTER_REQUEST_NULL);
             }
 
@@ -102,10 +102,14 @@ namespace GuessWho.Services.WCF.Services
             string password = request.Password ?? string.Empty;
             DateTime dateNowUtc = DateTime.UtcNow;
 
+            Logger.InfoFormat("RegisterUser attempt for email '{0}'.", email);
+
             try
             {
                 if (userAccountData.EmailExists(email))
                 {
+                    Logger.WarnFormat("RegisterUser failed: email '{0}' is already registered.", email);
+
                     throw Faults.Create(
                         FAULT_CODE_REGISTER_EMAIL_ALREADY_EXISTS,
                         FAULT_MESSAGE_REGISTER_EMAIL_ALREADY_EXISTS);
@@ -136,6 +140,9 @@ namespace GuessWho.Services.WCF.Services
 
                 TrySendVerificationEmailOrThrow(account.Email, verificationCodeResult.PlainCode);
 
+                Logger.InfoFormat("RegisterUser succeeded for email '{0}', accountId '{1}', userId '{2}'.",
+                    email, account.AccountId, profile.UserId);
+
                 return new RegisterResponse
                 {
                     AccountId = account.AccountId,
@@ -151,38 +158,43 @@ namespace GuessWho.Services.WCF.Services
             }
             catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueViolation(ex, "UQ_ACCOUNT_EMAIL"))
             {
-                Logger.Fatal("Email already registered during account creation.", ex);
+                Logger.Fatal("Email already registered during account creation (unique index violation).", ex);
                 throw Faults.Create(
                     FAULT_CODE_REGISTER_EMAIL_ALREADY_EXISTS,
-                    FAULT_MESSAGE_REGISTER_EMAIL_ALREADY_EXISTS);
+                    FAULT_MESSAGE_REGISTER_EMAIL_ALREADY_EXISTS,
+                    ex);
             }
             catch (DbUpdateException ex) when (SqlExceptionInspector.IsForeignKeyViolation(ex))
             {
-                Logger.Fatal("Data integrity violation while creating account.", ex);
+                Logger.Fatal("Data integrity violation while creating account (foreign key).", ex);
                 throw Faults.Create(
                     FAULT_CODE_REGISTER_DATA_INTEGRITY_VIOLATION,
-                    FAULT_MESSAGE_REGISTER_DATA_INTEGRITY_VIOLATION);
+                    FAULT_MESSAGE_REGISTER_DATA_INTEGRITY_VIOLATION,
+                    ex);
             }
             catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
             {
                 Logger.Fatal("Database command timeout during registration.", ex);
                 throw Faults.Create(
                     FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
-                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT);
+                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
+                    ex);
             }
             catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
             {
                 Logger.Fatal("Database connection failure during registration.", ex);
                 throw Faults.Create(
                     FAULT_CODE_DATABASE_CONNECTION_FAILURE,
-                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE);
+                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                    ex);
             }
             catch (Exception ex)
             {
                 Logger.Fatal("Unexpected error during registration.", ex);
                 throw Faults.Create(
-                    FAULT_CODE_REGISTER_UNEXPECTED_ERROR,
-                    FAULT_MESSAGE_REGISTER_UNEXPECTED_ERROR);
+                    FAULT_CODE_UNEXPECTED_ERROR,
+                    FAULT_MESSAGE_REGISTER_UNEXPECTED_ERROR,
+                    ex);
             }
         }
 
@@ -191,8 +203,12 @@ namespace GuessWho.Services.WCF.Services
             DateTime currentUtcTimestamp = DateTime.UtcNow;
             string code = (request.Code ?? string.Empty).Trim();
 
+            Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode attempt for accountId '{0}'.", request.AccountId);
+
             if (!Regex.IsMatch(code, @"^\d{6}$"))
             {
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: invalid code format for accountId '{0}'.", 
+                    request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
@@ -202,6 +218,8 @@ namespace GuessWho.Services.WCF.Services
 
             if (!found)
             {
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: account not found for accountId '{0}'.", 
+                    request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_ACCOUNT_NOT_FOUND,
                     FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
@@ -209,6 +227,8 @@ namespace GuessWho.Services.WCF.Services
 
             if (accountDto.IsEmailVerified)
             {
+                Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode skipped: email already verified for accountId '{0}'.", 
+                    request.AccountId);
                 return new VerifyEmailResponse { Success = true };
             }
 
@@ -221,6 +241,9 @@ namespace GuessWho.Services.WCF.Services
 
             if (!AreByteSequencesEqualInConstantTime(codeHash, token.CODEHASH))
             {
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: invalid code for accountId '{0}'.", 
+                    request.AccountId);
+
                 emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(token.TOKENID, currentUtcTimestamp);
 
                 throw Faults.Create(
@@ -232,12 +255,17 @@ namespace GuessWho.Services.WCF.Services
 
             if (consumedRows == 0)
             {
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: token already consumed or not found for tokenId '{0}'.", 
+                    token.TOKENID);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
             }
 
             userAccountData.MarkEmailVerified(request.AccountId, currentUtcTimestamp);
+
+            Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode succeeded for accountId '{0}'.", 
+                request.AccountId);
 
             return new VerifyEmailResponse { Success = true };
         }
@@ -246,10 +274,14 @@ namespace GuessWho.Services.WCF.Services
         {
             DateTime currentUtcTimestamp = DateTime.UtcNow;
 
+            Logger.InfoFormat("ResendEmailVerificationCode attempt for accountId '{0}'.", request.AccountId);
+
             bool found = userAccountData.GetAccountByIdAccount(request.AccountId, out AccountDto accountDto);
 
             if (!found)
             {
+                Logger.WarnFormat("ResendEmailVerificationCode failed: account not found for accountId '{0}'.", 
+                    request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_ACCOUNT_NOT_FOUND,
                     FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
@@ -257,6 +289,8 @@ namespace GuessWho.Services.WCF.Services
 
             if (accountDto.IsEmailVerified)
             {
+                Logger.InfoFormat("ResendEmailVerificationCode skipped: email already verified for accountId '{0}'.", 
+                    request.AccountId);
                 return;
             }
 
@@ -266,6 +300,8 @@ namespace GuessWho.Services.WCF.Services
 
             if (perMinute)
             {
+                Logger.WarnFormat("ResendEmailVerificationCode blocked by per-minute limit for accountId '{0}'.", 
+                    request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT);
@@ -273,6 +309,8 @@ namespace GuessWho.Services.WCF.Services
 
             if (!withinHourCap)
             {
+                Logger.WarnFormat("ResendEmailVerificationCode blocked by hourly limit for accountId '{0}'.", 
+                    request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED);
@@ -289,51 +327,67 @@ namespace GuessWho.Services.WCF.Services
             };
 
             emailVerificationData.AddVerificationToken(createTokenArgs);
+
             TrySendVerificationEmailOrThrow(accountDto.Email, verificationCodeResult.PlainCode);
+
+            Logger.InfoFormat("ResendEmailVerificationCode succeeded for accountId '{0}'.", request.AccountId);
         }
 
         private static void TrySendVerificationEmailOrThrow(string email, string code)
         {
             try
             {
+                Logger.InfoFormat("Sending verification email to '{0}'.", email);
                 new VerificationEmailSender().SendVerificationCode(email, code);
+                Logger.InfoFormat("Verification email sent successfully to '{0}'.", email);
             }
             catch (EmailSendException ex)
             {
-                throw Faults.Create(ex.Code, ex.Message);
+                Logger.Error("EmailSendException while sending verification email.", ex);
+                throw Faults.Create(ex.Code, ex.Message, ex);
             }
             catch (ArgumentException ex) when (ex.ParamName == "recipientEmailAddress")
             {
+                Logger.Warn("Invalid recipient email address while sending verification email.", ex);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_RECIPIENT_INVALID,
-                    FAULT_MESSAGE_EMAIL_RECIPIENT_INVALID);
+                    FAULT_MESSAGE_EMAIL_RECIPIENT_INVALID,
+                    ex);
             }
             catch (ArgumentException ex) when (ex.ParamName == "verificationCode")
             {
+                Logger.Warn("Invalid verification code format while sending verification email.", ex);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT,
-                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT);
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT,
+                    ex);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException ex)
             {
+                Logger.Fatal("SMTP configuration missing or invalid while sending verification email.", ex);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_SMTP_CONFIGURATION_MISSING,
-                    FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_MISSING);
+                    FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_MISSING,
+                    ex);
             }
-            catch (AuthenticationException)
+            catch (AuthenticationException ex)
             {
+                Logger.Fatal("SMTP authentication failed while sending verification email.", ex);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_SMTP_AUTHENTICATION_FAILED,
-                    FAULT_MESSAGE_EMAIL_SMTP_AUTHENTICATION_FAILED);
+                    FAULT_MESSAGE_EMAIL_SMTP_AUTHENTICATION_FAILED,
+                    ex);
             }
             catch (SmtpException ex) when (
                 ex.StatusCode == SmtpStatusCode.MustIssueStartTlsFirst ||
                 ex.StatusCode == SmtpStatusCode.ClientNotPermitted ||
                 ex.StatusCode == SmtpStatusCode.CommandNotImplemented)
             {
+                Logger.Fatal("SMTP configuration error while sending verification email.", ex);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_SMTP_CONFIGURATION_ERROR,
-                    FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_ERROR);
+                    FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_ERROR,
+                    ex);
             }
             catch (SmtpException ex) when (
                 ex.StatusCode == SmtpStatusCode.GeneralFailure ||
@@ -341,15 +395,19 @@ namespace GuessWho.Services.WCF.Services
                 ex.StatusCode == SmtpStatusCode.MailboxBusy ||
                 ex.StatusCode == SmtpStatusCode.InsufficientStorage)
             {
+                Logger.Error("SMTP unavailable while sending verification email.", ex);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_SMTP_UNAVAILABLE,
-                    FAULT_MESSAGE_EMAIL_SMTP_UNAVAILABLE);
+                    FAULT_MESSAGE_EMAIL_SMTP_UNAVAILABLE,
+                    ex);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Logger.Error("Unexpected error while sending verification email.", ex);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_SEND_FAILED,
-                    FAULT_MESSAGE_EMAIL_SEND_FAILED);
+                    FAULT_MESSAGE_EMAIL_SEND_FAILED,
+                    ex);
             }
         }
 
@@ -362,29 +420,34 @@ namespace GuessWho.Services.WCF.Services
 
                 return new VerificationCodeResult(code, hashCode);
             }
-            catch (ArgumentNullException)
+            catch (ArgumentNullException ex)
             {
+                Logger.Error("Crypto random generator unavailable (ArgumentNullException) while generating verification code.", ex);
                 throw Faults.Create(
                     FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
-                    FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE);
+                    FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    ex);
             }
-            catch (ArgumentOutOfRangeException)
+            catch (ArgumentOutOfRangeException ex)
             {
+                Logger.Error("Verification code generation failed (ArgumentOutOfRangeException).", ex);
                 throw Faults.Create(
                     FAULT_CODE_VERIFICATION_CODE_GENERATION_FAILED,
-                    FAULT_MESSAGE_VERIFICATION_CODE_GENERATION_FAILED);
+                    FAULT_MESSAGE_VERIFICATION_CODE_GENERATION_FAILED,
+                    ex);
             }
-            catch (CryptographicException)
+            catch (CryptographicException ex)
             {
+                Logger.Error("Crypto random generator unavailable (CryptographicException) while generating verification code.", ex);
                 throw Faults.Create(
                     FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
-                    FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE);
+                    FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    ex);
             }
         }
 
         private static bool AreByteSequencesEqualInConstantTime(byte[] firstByteSequence, byte[] secondByteSequence)
         {
-
             if (firstByteSequence == null || secondByteSequence == null)
             {
                 return firstByteSequence == secondByteSequence;

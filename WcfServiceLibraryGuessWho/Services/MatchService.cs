@@ -15,8 +15,7 @@ using System.ServiceModel;
 
 namespace GuessWho.Services.WCF.Services
 {
-    [ServiceBehavior(
-        InstanceContextMode = InstanceContextMode.Single,
+    [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single,
         ConcurrencyMode = ConcurrencyMode.Multiple,
         IncludeExceptionDetailInFaults = false)]
     public class MatchService : IMatchService
@@ -50,7 +49,6 @@ namespace GuessWho.Services.WCF.Services
                 callbackForMatch.TryRemove(callbackChannel, out removed);
             };
         }
-
 
         public void UnsusbcribeLobby(long matchId)
         {
@@ -128,6 +126,8 @@ namespace GuessWho.Services.WCF.Services
             }
         }
 
+        private const long INVALID_MATCH_ID = -1;
+
         public JoinMatchResponse JoinMatch(JoinMatchRequest request)
         {
             if (request == null)
@@ -147,11 +147,22 @@ namespace GuessWho.Services.WCF.Services
 
             try
             {
-                MatchDto match = matchData.GetMatchByCode(joinArgs);
+                MatchDto match = matchData.GetOpenMatchByCode(matchCode);
 
-                if (!match.IsValid)
+                if (match.MatchId == INVALID_MATCH_ID)
                 {
                     throw Faults.Create("ErrorJoining", "Match code not found.");
+                }
+
+                joinArgs.MatchId = match.MatchId;
+
+                EnsurePlayerCanJoinMatch(joinArgs);
+
+                bool isJoinMatch = matchData.AddPlayerToMatchByCode(joinArgs);
+
+                if (!isJoinMatch)
+                {
+                    throw Faults.Create("ErrorJoining", "Unable to join the match.");
                 }
 
                 var players = matchData.GetMatchPlayers(match.MatchId);
@@ -162,7 +173,12 @@ namespace GuessWho.Services.WCF.Services
                     NotifyLobbyJoined(match.MatchId, justJoined);
                 }
 
-                var hostPlayer = players.First(p => p.IsHost);
+                var hostPlayer = players.FirstOrDefault(p => p.IsHost);
+
+                if (hostPlayer == null)
+                {
+                    throw Faults.Create("NoHost", "Match has no host player.");
+                }
 
                 return new JoinMatchResponse
                 {
@@ -204,6 +220,24 @@ namespace GuessWho.Services.WCF.Services
             {
                 Logger.Fatal("Unexpected error in MatchService.JoinMatch.", ex);
                 throw Faults.Create("Unexpected", "Unexpected server error.");
+            }
+        }
+
+        private void EnsurePlayerCanJoinMatch(JoinMatchArgs args)
+        {
+            if (matchData.IsUserInMatch(args.UserProfileId, args.MatchId))
+            {
+                throw Faults.Create("AlreadyJoined", "User is already in the match.");
+            }
+
+            if (matchData.IsUserInActiveMatch(args.UserProfileId, args.MatchId))
+            {
+                throw Faults.Create("InActiveMatch", "User is already in an active match.");
+            }
+
+            if (!matchData.HasAvailableSlotInMatch(args.MatchId))
+            {
+                throw Faults.Create("MatchFull", "The match has no available slots.");
             }
         }
 

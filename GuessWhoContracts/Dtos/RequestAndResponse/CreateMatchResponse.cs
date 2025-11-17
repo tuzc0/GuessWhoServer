@@ -14,6 +14,6 @@ namespace GuessWhoContracts.Dtos.RequestAndResponse
         [DataMember] public string Mode { get; set; }
         [DataMember] public byte Visibility { get; set; }
         [DataMember] public DateTime CreateAtUtc { get; set; }
-        public List<LobbyPlayerDto> Players { get; set; }
+        [DataMember] public List<LobbyPlayerDto> Players { get; set; }
     }
 }

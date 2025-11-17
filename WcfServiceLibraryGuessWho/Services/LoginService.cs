@@ -16,14 +16,15 @@ namespace GuessWho.Services.WCF.Services
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(LoginService));
 
-        private const string FAULT_CODE_LOGIN_REQUEST_NULL = "LOGIN_REQUEST_NULL";
-        private const string FAULT_CODE_LOGIN_CREDENTIALS_REQUIRED = "LOGIN_CREDENTIALS_REQUIRED";
-        private const string FAULT_CODE_LOGIN_INVALID_PASSWORD = "LOGIN_INVALID_PASSWORD";
+        private const string FAULT_CODE_REQUEST_NULL = "REQUEST_NULL";
         private const string FAULT_CODE_DATABASE_COMMAND_TIMEOUT = "DATABASE_COMMAND_TIMEOUT";
         private const string FAULT_CODE_DATABASE_CONNECTION_FAILURE = "DATABASE_CONNECTION_FAILURE";
+
+        private const string FAULT_CODE_LOGIN_CREDENTIALS_REQUIRED = "LOGIN_CREDENTIALS_REQUIRED";
+        private const string FAULT_CODE_LOGIN_INVALID_PASSWORD = "LOGIN_INVALID_PASSWORD";
         private const string FAULT_CODE_LOGIN_UNEXPECTED_ERROR = "LOGIN_UNEXPECTED_ERROR";
 
-        private const string FAULT_MESSAGE_LOGIN_REQUEST_NULL =
+        private const string FAULT_MESSAGE_REQUEST_NULL =
             "Login data is missing. Please try again.";
         private const string FAULT_MESSAGE_LOGIN_CREDENTIALS_REQUIRED =
             "Email and password are required to sign in.";
@@ -44,8 +45,8 @@ namespace GuessWho.Services.WCF.Services
             {
                 Logger.Warn("Login request is null.");
                 throw Faults.Create(
-                    FAULT_CODE_LOGIN_REQUEST_NULL,
-                    FAULT_MESSAGE_LOGIN_REQUEST_NULL);
+                    FAULT_CODE_REQUEST_NULL,
+                    FAULT_MESSAGE_REQUEST_NULL);
             }
 
             string email = (request.User ?? string.Empty).Trim().ToLowerInvariant();
@@ -63,7 +64,7 @@ namespace GuessWho.Services.WCF.Services
 
             try
             {
-                Logger.Info("Login attempt for email '{email}'.");
+                Logger.Info("Login attempt for email.");
 
                 var loginAccountArgs = new LoginAccountArgs
                 {
@@ -82,9 +83,10 @@ namespace GuessWho.Services.WCF.Services
 
                     return new LoginResponse
                     {
-                        User = "Invalid",
-                        Password = string.Empty,
-                        ValidUser = "False"
+                        UserId = -1,
+                        DisplayName = "Invalid user",
+                        Email = string.Empty,
+                        ValidUser = false
                     };
                 }
 
@@ -103,9 +105,10 @@ namespace GuessWho.Services.WCF.Services
 
                 return new LoginResponse
                 {
-                    User = profileDto.DisplayName,
-                    Password = accountDto.Email,
-                    ValidUser = "True"
+                    UserId = profileDto.UserId,
+                    DisplayName = profileDto.DisplayName,
+                    Email = accountDto.Email,
+                    ValidUser = true
                 };
             }
             catch (FaultException<ServiceFault>)
@@ -117,21 +120,24 @@ namespace GuessWho.Services.WCF.Services
                 Logger.Fatal("Database command timeout during login.", ex);
                 throw Faults.Create(
                     FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
-                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT);
+                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT, 
+                    ex);
             }
             catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
             {
                 Logger.Fatal("Database connection failure during login.", ex);
                 throw Faults.Create(
                     FAULT_CODE_DATABASE_CONNECTION_FAILURE,
-                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE);
+                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                    ex);
             }
             catch (Exception ex)
             {
                 Logger.Fatal("Unexpected error during login.", ex);
                 throw Faults.Create(
                     FAULT_CODE_LOGIN_UNEXPECTED_ERROR,
-                    FAULT_MESSAGE_LOGIN_UNEXPECTED_ERROR);
+                    FAULT_MESSAGE_LOGIN_UNEXPECTED_ERROR,
+                    ex);
             }
         }
     }

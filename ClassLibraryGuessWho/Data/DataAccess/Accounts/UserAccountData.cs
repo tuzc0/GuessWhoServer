@@ -1,7 +1,6 @@
 ﻿using GuessWhoContracts.Dtos.Dto;
 using System;
 using System.Linq;
-using System.Xml.Schema;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 {
@@ -180,14 +179,14 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             using (var transaction = dataBaseContext.Database.BeginTransaction())
             {
                 var accountEntity = dataBaseContext.ACCOUNT
-                    .SingleOrDefault(a => a.ACCOUNTID == args.AccountId) ?? throw new InvalidOperationException("Account not found.");
+                    .SingleOrDefault(a => a.USERID == args.UserId) ?? throw new InvalidOperationException("Account not found.");
 
                 var userProfileEntity = dataBaseContext.USER_PROFILE
                     .SingleOrDefault(p => p.USERID == accountEntity.USERID) ?? throw new InvalidOperationException("User profile not found.");
 
-                userProfileEntity.DISPLAYNAME = args.NewDisplayName;     
-                accountEntity.PASSWORD = args.NewPassword;        
-                accountEntity.UPDATEDATUTC = args.UpdatedAtUtc;    
+                userProfileEntity.DISPLAYNAME = args.NewDisplayName;
+                accountEntity.PASSWORD = args.NewPassword;
+                accountEntity.UPDATEDATUTC = args.UpdatedAtUtc;
 
                 dataBaseContext.SaveChanges();
                 transaction.Commit();
@@ -216,7 +215,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             }
         }
 
-        public bool GetAccountWithProfileByIdAccount(long accountId, out AccountDto account, out UserProfileDto profile)
+        public bool GetAccountWithProfileByIdAccount(long userId, out AccountDto account, out UserProfileDto profile)
         {
             account = null;
             profile = null;
@@ -224,7 +223,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var accountEntity = dataBaseContext.ACCOUNT
-                    .SingleOrDefault(a => a.ACCOUNTID == accountId);
+                    .SingleOrDefault(a => a.USERID == userId);
 
                 if (accountEntity == null)
                 {
@@ -232,7 +231,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                 }
 
                 var profileEntity = dataBaseContext.USER_PROFILE
-                    .SingleOrDefault (a => a.USERID == accountEntity.USERID);
+                    .SingleOrDefault(a => a.USERID == accountEntity.USERID);
 
                 if (profileEntity == null)
                 {
@@ -251,7 +250,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                     LastLoginUtc = accountEntity.LASTLOGINUTC
                 };
 
-                var profileDto = new UserProfileDto
+                profile = new UserProfileDto
                 {
                     UserId = profileEntity.USERID,
                     DisplayName = profileEntity.DISPLAYNAME,
