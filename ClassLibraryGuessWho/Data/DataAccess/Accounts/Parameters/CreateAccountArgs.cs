@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
+namespace ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters
 {
     public sealed class CreateAccountArgs
     {
@@ -8,5 +8,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
         public byte[] Password { get; set; }
         public string DisplayName { get; set; }
         public DateTime CreationDate { get; set; }
+        public string AvatarId { get; set; }
     }
 }

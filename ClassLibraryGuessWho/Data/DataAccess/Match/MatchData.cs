@@ -1,4 +1,5 @@
-﻿using GuessWhoContracts.Dtos.Dto;
+﻿using ClassLibraryGuessWho.Data.DataAccess.Match.Parameters;
+using GuessWhoContracts.Dtos.Dto;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -11,7 +12,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
         private const byte GUEST_SLOT_NUMBER = 2;
         private const byte MAX_ACTIVE_PLAYERS_PER_MATCH = 2;
 
-        public MatchDto CreateMatch(CreateMatchArgs args)
+        public MatchDto CreateMatchClassic(CreateMatchArgs args)
         {
             using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction())

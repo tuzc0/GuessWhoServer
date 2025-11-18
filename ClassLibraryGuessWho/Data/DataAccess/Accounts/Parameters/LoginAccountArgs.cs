@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
+namespace ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters
 {
     public sealed class LoginAccountArgs
     {

@@ -13,6 +13,6 @@ namespace GuessWhoContracts.Dtos.RequestAndResponse
         public string Username { get; set; }
         public DateTime UpdatedAtUtc { get; set; }
 
-        public string AvatarURL { get; set; }
+        public string AvatarId { get; set; }
     }
 }

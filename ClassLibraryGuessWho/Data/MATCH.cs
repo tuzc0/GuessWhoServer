@@ -36,7 +36,6 @@ namespace ClassLibraryGuessWho.Data
     
         public virtual MATCHSTATUS MATCHSTATUS { get; set; }
         public virtual MATCHVISIBILITY MATCHVISIBILITY { get; set; }
-        public virtual USER_PROFILE USER_PROFILE { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH_INVITATION> MATCH_INVITATION { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
@@ -48,5 +47,6 @@ namespace ClassLibraryGuessWho.Data
         public virtual MATCHSTATUS MATCHSTATUS1 { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
+        public virtual USER_PROFILE USER_PROFILE { get; set; }
     }
 }

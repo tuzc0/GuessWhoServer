@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ServiceModel;
 using ClassLibraryGuessWho.Data.DataAccess.Accounts;
+using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
 using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Services.WCF.Security;
 using GuessWhoContracts.Dtos.Dto;

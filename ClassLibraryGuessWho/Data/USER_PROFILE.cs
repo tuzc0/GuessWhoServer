@@ -36,7 +36,7 @@ namespace ClassLibraryGuessWho.Data
         public string DISPLAYNAME { get; set; }
         public bool ISACTIVE { get; set; }
         public System.DateTime CREATEDATUTC { get; set; }
-        public Nullable<long> AVATARID { get; set; }
+        public string AVATARID { get; set; }
         public byte[] ROWVERSION { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]

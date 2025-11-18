@@ -31,10 +31,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="log4net, Version=3.2.0.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.3.2.0\lib\net462\log4net.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -44,13 +49,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dtos\Dto\AccountDto.cs" />
+    <Compile Include="Dtos\Dto\AvatarDto.cs" />
     <Compile Include="Dtos\Dto\LobbyPlayerDto.cs" />
     <Compile Include="Dtos\Dto\MatchDto.cs" />
+    <Compile Include="Dtos\Dto\TournamentDto.cs" />
+    <Compile Include="Dtos\Dto\TournamentPlayerDto.cs" />
     <Compile Include="Dtos\Dto\UserProfileDto.cs" />
     <Compile Include="Dtos\RequestAndResponse\AcceptFriendRequestRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\BasicResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\CreateMatchRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\CreateMatchResponse.cs" />
+    <Compile Include="Dtos\RequestAndResponse\CreateTournamentRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\CreateTournamentResponse.cs" />
+    <Compile Include="Dtos\RequestAndResponse\DeleteProfileRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\JoinMatchRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\JoinMatchResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\LeaveMatchRequest.cs" />
@@ -84,9 +95,12 @@
     <Compile Include="Services\ILoginService.cs" />
     <Compile Include="Services\IMatchCallback.cs" />
     <Compile Include="Services\IMatchService.cs" />
+    <Compile Include="Services\ITournamentService.cs" />
     <Compile Include="Services\IUpdateProfileService.cs" />
     <Compile Include="Services\IUserService.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

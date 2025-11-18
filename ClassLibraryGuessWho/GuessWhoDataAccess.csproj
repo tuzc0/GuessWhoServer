@@ -71,15 +71,17 @@
     <Compile Include="Data\CHARACTER_SET.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
-    <Compile Include="Data\DataAccess\Accounts\CreateAccountArgs.cs" />
-    <Compile Include="Data\DataAccess\Accounts\LoginAccountArgs.cs" />
-    <Compile Include="Data\DataAccess\Accounts\UpdateAccountArgs.cs" />
+    <Compile Include="Data\DataAccess\Accounts\Parameters\CreateAccountArgs.cs" />
+    <Compile Include="Data\DataAccess\Accounts\Parameters\LoginAccountArgs.cs" />
+    <Compile Include="Data\DataAccess\Accounts\Parameters\UpdateAccountArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\UserAccountData.cs" />
-    <Compile Include="Data\DataAccess\EmailVerification\CreateEmailTokenArgs.cs" />
+    <Compile Include="Data\DataAccess\Avatars\AvatarData.cs" />
+    <Compile Include="Data\DataAccess\EmailVerification\Parameters\CreateEmailTokenArgs.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationData.cs" />
     <Compile Include="Data\DataAccess\Friends\FriendshipData.cs" />
-    <Compile Include="Data\DataAccess\Match\CreateMatchArgs.cs" />
-    <Compile Include="Data\DataAccess\Match\JoinMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Match\Parameters\CreateMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Match\Parameters\CreateTournamentMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Match\Parameters\JoinMatchArgs.cs" />
     <Compile Include="Data\DataAccess\Match\MatchData.cs" />
     <Compile Include="Data\EMAIL_VERIFICATION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
@@ -193,6 +195,7 @@
       <Name>GuessWhoContracts</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

@@ -1,5 +1,8 @@
 ﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts;
+using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
+using ClassLibraryGuessWho.Data.DataAccess.Avatars;
 using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
+using ClassLibraryGuessWho.Data.DataAccess.EmailVerification.Parameters;
 using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Services.Security;
 using GuessWho.Services.WCF.Security;
@@ -85,6 +88,7 @@ namespace GuessWho.Services.WCF.Services
 
         private readonly UserAccountData userAccountData = new UserAccountData();
         private readonly EmailVerificationData emailVerificationData = new EmailVerificationData();
+        private readonly AvatarData avatarData = new AvatarData();
         private static readonly TimeSpan VerificationCodeLifeTime = TimeSpan.FromMinutes(10);
 
         public RegisterResponse RegisterUser(RegisterRequest request)
@@ -102,8 +106,6 @@ namespace GuessWho.Services.WCF.Services
             string password = request.Password ?? string.Empty;
             DateTime dateNowUtc = DateTime.UtcNow;
 
-            Logger.InfoFormat("RegisterUser attempt for email '{0}'.", email);
-
             try
             {
                 if (userAccountData.EmailExists(email))
@@ -117,13 +119,15 @@ namespace GuessWho.Services.WCF.Services
 
                 var passwordHash = PasswordHasher.HashPassword(password);
                 var verificationCodeResult = CreateVerificationCodeOrFault();
+                var avatarDefaultId = avatarData.GetDefaultAvatarId();
 
                 var createAccountArgs = new CreateAccountArgs
                 {
                     Email = email,
                     Password = passwordHash,
                     DisplayName = displayName,
-                    CreationDate = dateNowUtc
+                    CreationDate = dateNowUtc,
+                    AvatarId = avatarDefaultId
                 };
 
                 var (account, profile) = userAccountData.CreateAccount(createAccountArgs);

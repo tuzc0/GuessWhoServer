@@ -8,6 +8,6 @@ namespace GuessWhoContracts.Dtos.RequestAndResponse
         [DataMember(IsRequired = true)] public string Username { get; set; }
         [DataMember(IsRequired = true)] public string Email { get; set; }
         [DataMember(IsRequired = true)] public DateTime CreateAtUtc { get; set; }
-        [DataMember(IsRequired = true)] public string AvatarURL { get; set; }
+        [DataMember(IsRequired = true)] public string AvatarId { get; set; }
     }
 }

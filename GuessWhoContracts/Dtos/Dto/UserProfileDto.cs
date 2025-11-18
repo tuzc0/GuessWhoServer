@@ -11,5 +11,7 @@ namespace GuessWhoContracts.Dtos.Dto
         public bool IsActive { get; set; }
 
         public DateTime CreatedAtUtc { get; set; }
+
+        public string AvatarId { get; set; }
     }
 }

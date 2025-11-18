@@ -27,8 +27,8 @@ namespace ClassLibraryGuessWho.Data
     
         public virtual MATCH MATCH { get; set; }
         public virtual MODERATIONACTIONTYPE MODERATIONACTIONTYPE { get; set; }
-        public virtual USER_PROFILE USER_PROFILE { get; set; }
         public virtual MODERATIONSCOPe MODERATIONSCOPe { get; set; }
+        public virtual USER_PROFILE USER_PROFILE { get; set; }
         public virtual USER_PROFILE USER_PROFILE1 { get; set; }
     }
 }

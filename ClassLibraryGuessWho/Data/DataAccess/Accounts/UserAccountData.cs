@@ -1,6 +1,8 @@
-﻿using GuessWhoContracts.Dtos.Dto;
+﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
+using GuessWhoContracts.Dtos.Dto;
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 {
@@ -65,7 +67,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                     UserId = profileEntity.USERID,
                     DisplayName = profileEntity.DISPLAYNAME,
                     IsActive = profileEntity.ISACTIVE,
-                    CreatedAtUtc = profileEntity.CREATEDATUTC
+                    CreatedAtUtc = profileEntity.CREATEDATUTC,
+                    AvatarId = profileEntity.AVATARID
                 };
 
                 return (accountDto, profileDto);
@@ -118,11 +121,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
         {
             account = null;
             profile = null;
+            bool IsDelete = true;
 
             using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 var accountEntity = dataBaseContext.ACCOUNT
-                    .SingleOrDefault(a => a.EMAIL == args.Email);
+                    .SingleOrDefault(a => a.EMAIL == args.Email && a.ISDELETED != IsDelete);
 
                 if (accountEntity == null)
                 {
@@ -173,6 +177,28 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             }
         }
 
+        public bool DeleteAccount(long userId)
+        {
+            using (var databaseContext = new GuessWhoDBEntities())
+            {
+                var accountEntity = databaseContext.ACCOUNT
+                    .SingleOrDefault(a => a.USERID == userId && !a.ISDELETED);
+
+                if (accountEntity == null)
+                {
+                    return false;
+                }
+
+                accountEntity.ISDELETED = true;
+                accountEntity.DELETEDATUTC = DateTime.UtcNow;
+                accountEntity.UPDATEDATUTC = DateTime.UtcNow;
+
+                databaseContext.SaveChanges();
+                return true;
+            }
+        }
+
+
         public (AccountDto account, UserProfileDto profile) UpdateDisplayNameAndPassword(UpdateAccountArgs args)
         {
             using (var dataBaseContext = new GuessWhoDBEntities())
@@ -185,6 +211,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                     .SingleOrDefault(p => p.USERID == accountEntity.USERID) ?? throw new InvalidOperationException("User profile not found.");
 
                 userProfileEntity.DISPLAYNAME = args.NewDisplayName;
+                userProfileEntity.AVATARID = args.NewAvatarId;
                 accountEntity.PASSWORD = args.NewPassword;
                 accountEntity.UPDATEDATUTC = args.UpdatedAtUtc;
 
@@ -255,7 +282,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                     UserId = profileEntity.USERID,
                     DisplayName = profileEntity.DISPLAYNAME,
                     IsActive = profileEntity.ISACTIVE,
-                    CreatedAtUtc = profileEntity.CREATEDATUTC
+                    CreatedAtUtc = profileEntity.CREATEDATUTC,
+                    AvatarId = profileEntity.AVATARID
                 };
 
                 return true;

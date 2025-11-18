@@ -9,6 +9,6 @@ namespace GuessWhoContracts.Dtos.RequestAndResponse
         public string NewPasswordPlain { get; set; }      
         public string CurrentPasswordPlain { get; set; }  
         public DateTime? IfUnmodifiedSinceUtc { get; set; } 
-        public string AvatarURL { get; set; }
+        public string NewAvatarId { get; set; }
     }
 }

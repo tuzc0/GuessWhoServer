@@ -1,4 +1,5 @@
 ﻿using ClassLibraryGuessWho.Data.DataAccess.Match;
+using ClassLibraryGuessWho.Data.DataAccess.Match.Parameters;
 using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Services.Security;
 using GuessWhoContracts.Dtos.Dto;
@@ -86,7 +87,7 @@ namespace GuessWho.Services.WCF.Services
                     MatchCode = code
                 };
 
-                MatchDto match = matchData.CreateMatch(createMatchArgs);
+                MatchDto match = matchData.CreateMatchClassic(createMatchArgs);
                 var players = matchData.GetMatchPlayers(match.MatchId);
 
                 return new CreateMatchResponse

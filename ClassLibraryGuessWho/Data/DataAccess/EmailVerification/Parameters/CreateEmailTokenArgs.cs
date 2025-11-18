@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
+namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification.Parameters
 {
     public sealed class CreateEmailTokenArgs
     {

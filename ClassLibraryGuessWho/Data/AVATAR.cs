@@ -20,10 +20,10 @@ namespace ClassLibraryGuessWho.Data
             this.USER_PROFILE = new HashSet<USER_PROFILE>();
         }
     
-        public long AVATARID { get; set; }
-        public string STORAGEURL { get; set; }
+        public string AVATARID { get; set; }
+        public string NAME { get; set; }
         public bool ISDEFAULT { get; set; }
-        public System.DateTime CREATEDATUTC { get; set; }
+        public bool ISACTIVE { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<USER_PROFILE> USER_PROFILE { get; set; }

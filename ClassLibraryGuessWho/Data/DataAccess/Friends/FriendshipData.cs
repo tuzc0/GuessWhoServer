@@ -26,7 +26,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
                     {
                         UserId = p.USERID,
                         DisplayName = p.DISPLAYNAME,
-                        AvatarUrl = p.AVATAR.STORAGEURL
+                        AvatarUrl = p.AVATAR.AVATARID
                     })
                     .ToList();
             }

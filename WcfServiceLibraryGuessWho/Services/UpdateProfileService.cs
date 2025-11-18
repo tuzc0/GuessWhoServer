@@ -1,4 +1,5 @@
 ﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts;
+using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
 using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Services.WCF.Security;
 using GuessWhoContracts.Dtos.Dto;
@@ -11,6 +12,7 @@ using System.ServiceModel;
 
 namespace GuessWho.Services.WCF.Services
 {
+    [ServiceBehavior(IncludeExceptionDetailInFaults = false)]
     public class UpdateProfileService : IUpdateProfileService
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(UpdateProfileService));
@@ -26,6 +28,7 @@ namespace GuessWho.Services.WCF.Services
         private const string FAULT_CODE_UNEXPECTED_ERROR = "PROFILE_UPDATE_UNEXPECTED_ERROR";
         private const string FAULT_CODE_DATABASE_COMMAND_TIMEOUT = "DATABASE_COMMAND_TIMEOUT";
         private const string FAULT_CODE_DATABASE_CONNECTION_FAILURE = "DATABASE_CONNECTION_FAILURE";
+        private const string FAULT_CODE_PROFILE_DELETE_FAILED = "PROFILE_DELETE_FAILED";
 
         private const string FAULT_MESSAGE_REQUEST_NULL =
             "Profile request data is missing. Please try again.";
@@ -47,9 +50,10 @@ namespace GuessWho.Services.WCF.Services
             "The server took too long to respond. Please try again.";
         private const string FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE =
             "The server could not connect to the database. Please try again later.";
+        private const string FAULT_MESSAGE_PROFILE_DELETE_FAILED =
+            "We could not delete your profile. Please try again later.";
 
         private const long INVALID_USER_ID = 0;
-        private const string DEFAULT_AVATAR_URL = "";
 
         public GetProfileResponse GetProfile(GetProfileRequest request)
         {
@@ -80,7 +84,7 @@ namespace GuessWho.Services.WCF.Services
                     Username = profile.DisplayName,
                     Email = account.Email,
                     CreateAtUtc = account.CreatedAtUtc,
-                    AvatarURL = DEFAULT_AVATAR_URL
+                    AvatarId = profile.AvatarId
                 };
             }
             catch (FaultException<ServiceFault>)
@@ -117,7 +121,7 @@ namespace GuessWho.Services.WCF.Services
         {
             ValidateUpdateRequestOrThrow(request);
 
-            GetChangeIntents(request, out bool wantsNameChange, out bool wantsPasswordChange);
+            GetChangeIntents(request, out bool wantsNameChange, out bool wantsPasswordChange, out bool wantsAvatarChange);
 
             try
             {
@@ -139,19 +143,20 @@ namespace GuessWho.Services.WCF.Services
                     NewPassword = wantsPasswordChange
                     ? newPasswordHash
                     : account.PasswordHash,
-                    UpdatedAtUtc = DateTime.UtcNow
+                    UpdatedAtUtc = DateTime.UtcNow,
+                    NewAvatarId = wantsAvatarChange 
+                    ? request.NewAvatarId.Trim() : profile.AvatarId
                 };
 
                 var (updatedAccount, updatedProfile) = userAccountData.UpdateDisplayNameAndPassword(updateAccountArgs);
-
-                Logger.InfoFormat("UpdateUserProfile succeeded for userId '{0}'.", request.UserId);
 
                 return new UpdateProfileResponse
                 {
                     Updated = true,
                     Email = updatedAccount.Email,
                     Username = updatedProfile.DisplayName,
-                    UpdatedAtUtc = updatedAccount.UpdatedAtUtc
+                    UpdatedAtUtc = updatedAccount.UpdatedAtUtc,
+                    AvatarId = updatedProfile.AvatarId
                 };
             }
             catch (FaultException<ServiceFault>)
@@ -184,14 +189,80 @@ namespace GuessWho.Services.WCF.Services
             }
         }
 
+        public BasicResponse DeleteUserProfile(DeleteProfileRequest request)
+        {
+            if (request == null)
+            {
+                Logger.Warn("DeleteUserProfile request is null.");
+                throw Faults.Create(
+                    FAULT_CODE_REQUEST_NULL,
+                    FAULT_MESSAGE_REQUEST_NULL);
+            }
+
+            if (request.UserId <= INVALID_USER_ID)
+            {
+                Logger.Warn("DeleteUserProfile called with invalid UserId.");
+                throw Faults.Create(
+                    FAULT_CODE_USER_ID_INVALID,
+                    FAULT_MESSAGE_USER_ID_INVALID);
+            }
+
+            try
+            {
+                bool success = userAccountData.DeleteAccount(request.UserId);
+
+                if (!success)
+                {
+                    Logger.WarnFormat("DeleteUserProfile failed: profile not found for userId '{0}'.", request.UserId);
+                    throw Faults.Create(
+                        FAULT_CODE_PROFILE_DELETE_FAILED,
+                        FAULT_MESSAGE_PROFILE_DELETE_FAILED);
+                }
+
+                return new BasicResponse
+                {
+                    Success = success
+                };
+            }
+            catch (FaultException<ServiceFault>)
+            {
+                throw;
+            }
+            catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
+            {
+                Logger.Fatal("Database command timeout while deleting profile.", ex);
+                throw Faults.Create(
+                    FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
+                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
+                    ex);
+            }
+            catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
+            {
+                Logger.Fatal("Database connection failure while deleting profile.", ex);
+                throw Faults.Create(
+                    FAULT_CODE_DATABASE_CONNECTION_FAILURE,
+                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                    ex);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Unexpected error in DeleteUserProfile.", ex);
+                throw Faults.Create(
+                    FAULT_CODE_UNEXPECTED_ERROR,
+                    FAULT_MESSAGE_UNEXPECTED_UPDATE_PROFILE_ERROR,
+                    ex);
+            }
+        }
+
         private static void GetChangeIntents(UpdateProfileRequest request, out bool wantsNameChange,
-            out bool wantsPasswordChange)
+            out bool wantsPasswordChange, out bool wantsAvatarChange)
         {
             wantsNameChange = !string.IsNullOrWhiteSpace(request.NewDisplayName);
             wantsPasswordChange = !string.IsNullOrWhiteSpace(request.NewPasswordPlain);
+            wantsAvatarChange = !string.IsNullOrWhiteSpace(request.NewAvatarId);
         }
 
-        private void ValidateUpdateRequestOrThrow(UpdateProfileRequest request)
+        private static void ValidateUpdateRequestOrThrow(UpdateProfileRequest request)
         {
             if (request == null)
             {
@@ -209,10 +280,9 @@ namespace GuessWho.Services.WCF.Services
                     FAULT_MESSAGE_USER_ID_INVALID);
             }
 
-            bool wantsNameChange = !string.IsNullOrWhiteSpace(request.NewDisplayName);
-            bool wantsPasswordChange = !string.IsNullOrWhiteSpace(request.NewPasswordPlain);
+            GetChangeIntents(request, out bool wantsNameChange, out bool wantsPasswordChange, out bool wantsAvatarChange);
 
-            if (!wantsNameChange && !wantsPasswordChange)
+            if (!wantsNameChange && !wantsPasswordChange && !wantsAvatarChange)
             {
                 Logger.Warn("UpdateUserProfile called with no changes provided.");
                 throw Faults.Create(
@@ -237,7 +307,7 @@ namespace GuessWho.Services.WCF.Services
             return (account, profile);
         }
 
-        private byte[] ValidateAndComputeNewPasswordOrThrow(UpdateProfileRequest request,byte[] accountPassword)
+        private static byte[] ValidateAndComputeNewPasswordOrThrow(UpdateProfileRequest request,byte[] accountPassword)
         {
             if (string.IsNullOrWhiteSpace(request.CurrentPasswordPlain))
             {

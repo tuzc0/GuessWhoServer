@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Match
+namespace ClassLibraryGuessWho.Data.DataAccess.Match.Parameters
 {
     public class JoinMatchArgs
     {
