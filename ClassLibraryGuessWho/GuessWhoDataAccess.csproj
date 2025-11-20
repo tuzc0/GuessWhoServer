@@ -72,7 +72,7 @@
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\DataAccess\Accounts\Parameters\CreateAccountArgs.cs" />
-    <Compile Include="Data\DataAccess\Accounts\Parameters\LoginAccountArgs.cs" />
+    <Compile Include="Data\DataAccess\Accounts\Parameters\AccountSearchParameters.cs" />
     <Compile Include="Data\DataAccess\Accounts\Parameters\UpdateAccountArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\UserAccountData.cs" />
     <Compile Include="Data\DataAccess\Avatars\AvatarData.cs" />
@@ -83,6 +83,7 @@
     <Compile Include="Data\DataAccess\Match\Parameters\CreateTournamentMatchArgs.cs" />
     <Compile Include="Data\DataAccess\Match\Parameters\JoinMatchArgs.cs" />
     <Compile Include="Data\DataAccess\Match\MatchData.cs" />
+    <Compile Include="Data\DataAccess\Match\Parameters\LeaveMatchArgs.cs" />
     <Compile Include="Data\EMAIL_VERIFICATION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>

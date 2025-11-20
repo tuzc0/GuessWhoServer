@@ -50,6 +50,8 @@
   <ItemGroup>
     <Compile Include="Dtos\Dto\AccountDto.cs" />
     <Compile Include="Dtos\Dto\AvatarDto.cs" />
+    <Compile Include="Dtos\Dto\EmailVerificationResendLimitsDto.cs" />
+    <Compile Include="Dtos\Dto\EmailVerificationTokenDto.cs" />
     <Compile Include="Dtos\Dto\LobbyPlayerDto.cs" />
     <Compile Include="Dtos\Dto\MatchDto.cs" />
     <Compile Include="Dtos\Dto\TournamentDto.cs" />
@@ -84,6 +86,7 @@
     <Compile Include="Dtos\RequestAndResponse\VerifyEmailRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\VerifyEmailResponse.cs" />
     <Compile Include="Enums\FriendRequestStatus.cs" />
+    <Compile Include="Enums\LeaveMatchResult.cs" />
     <Compile Include="Enums\MatchStatus.cs" />
     <Compile Include="Enums\MatchVisibility.cs" />
     <Compile Include="Faults\Faults.cs" />

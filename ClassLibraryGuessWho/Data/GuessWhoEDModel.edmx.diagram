@@ -4,7 +4,7 @@
   <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
     <!-- Diagram content (shape and connector positions) -->
     <edmx:Diagrams>
-      <Diagram DiagramId="5aba200ae27b481c916af8f4eef4ae54" Name="Diagram1" ZoomLevel="52">
+      <Diagram DiagramId="5aba200ae27b481c916af8f4eef4ae54" Name="Diagram1" ZoomLevel="101">
         <EntityTypeShape EntityType="GuessWhoDBModel.ACCOUNT" Width="1.5" PointX="5.25" PointY="10" IsExpanded="true" />
         <EntityTypeShape EntityType="GuessWhoDBModel.CHARACTER" Width="1.5" PointX="8.75" PointY="0.875" IsExpanded="true" />
         <EntityTypeShape EntityType="GuessWhoDBModel.CHARACTER_SET" Width="1.5" PointX="5.375" PointY="0.875" IsExpanded="true" />

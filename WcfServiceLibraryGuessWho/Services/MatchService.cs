@@ -9,7 +9,6 @@ using GuessWhoContracts.Faults;
 using GuessWhoContracts.Services;
 using log4net;
 using System;
-using System.Collections.Concurrent;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.ServiceModel;
@@ -24,40 +23,36 @@ namespace GuessWho.Services.WCF.Services
         private static readonly ILog Logger = LogManager.GetLogger(typeof(MatchService));
 
         private readonly MatchData matchData = new MatchData();
-        private readonly ConcurrentDictionary<long, ConcurrentDictionary<IMatchCallback, byte>> subcribersByMatch =
-            new ConcurrentDictionary<long, ConcurrentDictionary<IMatchCallback, byte>>();
+        private readonly LobbyNotifier lobbyNotifier;
+
+        public MatchService()
+        {
+            lobbyNotifier = new LobbyNotifier(Logger);
+        }
 
         public void SusbcribeLobby(long matchId)
         {
-            var callbackChannel = OperationContext.Current.GetCallbackChannel<IMatchCallback>();
-            var callbackForMatch = subcribersByMatch.GetOrAdd(
-                matchId,
-                _ => new ConcurrentDictionary<IMatchCallback, byte>());
-
-            callbackForMatch.TryAdd(callbackChannel, 0);
-
-            var channelObject = (ICommunicationObject)callbackChannel;
-
-            channelObject.Closed += (sender, args) =>
-            {
-                byte removed;
-                callbackForMatch.TryRemove(callbackChannel, out removed);
-            };
-
-            channelObject.Faulted += (sender, args) =>
-            {
-                byte removed;
-                callbackForMatch.TryRemove(callbackChannel, out removed);
-            };
+            lobbyNotifier.SubscribeLobby(matchId);
         }
 
         public void UnsusbcribeLobby(long matchId)
         {
-            if (subcribersByMatch.TryGetValue(matchId, out var callbackForMatch))
-            {
-                var callbackChannel = OperationContext.Current.GetCallbackChannel<IMatchCallback>();
-                callbackForMatch.TryRemove(callbackChannel, out _);
-            }
+            lobbyNotifier.UnsubscribeLobby(matchId);
+        }
+
+        protected void NotifyLobbyJoined(long matchId, LobbyPlayerDto player)
+        {
+            lobbyNotifier.NotifyLobbyJoined(matchId, player);
+        }
+
+        protected void NotifyPlayerLeft(long matchId, LobbyPlayerDto player)
+        {
+            lobbyNotifier.NotifyPlayerLeft(matchId, player);
+        }
+
+        protected void NotifyPlayerReadyStatusChanged(long matchId, LobbyPlayerDto player)
+        {
+            lobbyNotifier.NotifyPlayerReadyStatusChanged(matchId, player);
         }
 
         public CreateMatchResponse CreateMatch(CreateMatchRequest request)
@@ -176,12 +171,9 @@ namespace GuessWho.Services.WCF.Services
 
                 var hostPlayer = players.FirstOrDefault(p => p.IsHost);
 
-                if (hostPlayer == null)
-                {
-                    throw Faults.Create("NoHost", "Match has no host player.");
-                }
-
-                return new JoinMatchResponse
+                return hostPlayer == null
+                    ? throw Faults.Create("NoHost", "Match has no host player.")
+                    : new JoinMatchResponse
                 {
                     MatchId = match.MatchId,
                     Code = match.Code,
@@ -244,7 +236,82 @@ namespace GuessWho.Services.WCF.Services
 
         public BasicResponse LeaveMatch(LeaveMatchRequest request)
         {
-            throw new NotImplementedException();
+            if (request == null)
+            {
+                throw Faults.Create("InvalidRequest", "LeaveMatch request cannot be null.");
+            }
+
+            var leaveArgs = new LeaveMatchArgs
+            {
+                UserProfileId = request.UserId,
+                MatchId = request.MatchId,
+                LeftDate = DateTime.UtcNow
+            };
+
+            try
+            {
+                LeaveMatchResult result = matchData.LeaveMatch(leaveArgs);
+
+                switch (result)
+                {
+                    case LeaveMatchResult.Success:
+
+                        NotifyPlayerLeftSafe(request.MatchId, request.UserId);
+                        return new BasicResponse
+                        {
+                            Success = true
+                        };
+
+                    case LeaveMatchResult.MatchNotFound:
+
+                        Logger.Warn($"LeaveMatch: match no encontrado. MatchId={request.MatchId}, UserId={request.UserId}");
+                        throw Faults.Create("MatchNotFound", "La partida no existe.");
+
+                    case LeaveMatchResult.PlayerNotInMatch:
+
+                        Logger.Warn($"LeaveMatch: usuario no pertenece al match. MatchId={request.MatchId}, UserId={request.UserId}");
+                        throw Faults.Create("PlayerNotInMatch", "El usuario no pertenece a esta partida.");
+
+                    case LeaveMatchResult.PlayerAlreadyLeft:
+
+                        Logger.Info($"LeaveMatch: usuario ya había salido. MatchId={request.MatchId}, UserId={request.UserId}");
+                        throw Faults.Create("PlayerAlreadyLeft", "El usuario ya había salido del match.");
+
+                    default:
+
+                        Logger.Error($"LeaveMatch: resultado desconocido. MatchId={request.MatchId}, UserId={request.UserId}, Result={result}");
+                        throw Faults.Create("UnknownError", "No se pudo salir de la partida por un error desconocido.");
+                }
+            }
+            catch (FaultException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"LeaveMatch: error técnico al intentar salir del match. MatchId={request?.MatchId}, UserId={request?.UserId}",
+                    ex);
+                throw Faults.Create("TechnicalError", "Ocurrió un error inesperado al salir de la partida.");
+            }
+        }
+
+        private void NotifyPlayerLeftSafe(long matchId, long userId)
+        {
+            try
+            {
+                var player = new LobbyPlayerDto
+                {
+                    UserId = userId
+                };
+
+                NotifyPlayerLeft(matchId, player);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(
+                    $"LeaveMatch: error al notificar salida en lobby. MatchId={matchId}, UserId={userId}",
+                    ex);
+            }
         }
 
         public BasicResponse SetPlayerReadyStatus(SetPlayerReadyStatusRequest request)
@@ -255,72 +322,6 @@ namespace GuessWho.Services.WCF.Services
         public BasicResponse StartMatch(StartMatchRequest request)
         {
             throw new NotImplementedException();
-        }
-
-        protected void NotifyLobbyJoined(long matchId, LobbyPlayerDto player)
-        {
-            if (!subcribersByMatch.TryGetValue(matchId, out var callbackForMatch))
-            {
-                return;
-            }
-
-            var snapshot = callbackForMatch.Keys.ToArray();
-
-            foreach (var callback in snapshot)
-            {
-                try
-                {
-                    callback.OnPlayerJoined(player);
-                }
-                catch (Exception)
-                {
-                    callbackForMatch.TryRemove(callback, out _);
-                }
-            }
-        }
-
-        protected void NotifyPlayerLeft(long matchId, LobbyPlayerDto player)
-        {
-            if (!subcribersByMatch.TryGetValue(matchId, out var callbackForMatch))
-            {
-                return;
-            }
-
-            var snapshot = callbackForMatch.Keys.ToArray();
-
-            foreach (var callback in snapshot)
-            {
-                try
-                {
-                    callback.OnPlayerLeft(player);
-                }
-                catch (Exception)
-                {
-                    callbackForMatch.TryRemove(callback, out _);
-                }
-            }
-        }
-
-        protected void NotifyPlayerReadyStatusChanged(long matchId, LobbyPlayerDto player)
-        {
-            if (!subcribersByMatch.TryGetValue(matchId, out var callbackForMatch))
-            {
-                return;
-            }
-
-            var snapshot = callbackForMatch.Keys.ToArray();
-
-            foreach (var callback in snapshot)
-            {
-                try
-                {
-                    callback.OnReadyChanged(player);
-                }
-                catch (Exception)
-                {
-                    callbackForMatch.TryRemove(callback, out _);
-                }
-            }
         }
     }
 }

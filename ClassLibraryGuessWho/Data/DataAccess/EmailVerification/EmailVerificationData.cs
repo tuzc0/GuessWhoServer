@@ -1,4 +1,5 @@
 ﻿using ClassLibraryGuessWho.Data.DataAccess.EmailVerification.Parameters;
+using GuessWhoContracts.Dtos.Dto;
 using System;
 using System.Linq;
 
@@ -6,12 +7,17 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 {
     public sealed class EmailVerificationData
     {
+        private const int MIN_AFFECTED_ROWS = 1;
+        private const int RESEND_COOLDOWN_SECONDS = 60;
+        private const int RESEND_HOURLY_MAX_TOKENS = 5;
 
-        public EMAIL_VERIFICATION AddVerificationToken(CreateEmailTokenArgs args)
-        {
+        public bool AddVerificationToken(CreateEmailTokenArgs args)
+        { 
+            bool isCreated = false;
+
             using (var dataBaseContext = new GuessWhoDBEntities())
             {
-                var token = new EMAIL_VERIFICATION
+                var tokenEntity = new EMAIL_VERIFICATION
                 {
                     ACCOUNTID = args.AccountId,
                     CODEHASH = args.CodeHash,
@@ -20,21 +26,47 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
                     CONSUMEDUTC = null
                 };
 
-                dataBaseContext.EMAIL_VERIFICATION.Add(token);
-                dataBaseContext.SaveChanges();
+                dataBaseContext.EMAIL_VERIFICATION.Add(tokenEntity);
 
-                return token;
+                int affectedRows = dataBaseContext.SaveChanges();
+                isCreated = affectedRows >= MIN_AFFECTED_ROWS;
             }
+
+            return isCreated;
         }
 
-        public EMAIL_VERIFICATION GetLatestTokenByAccountId(long accountId, DateTime consumeDate)
+
+        public EmailVerificationTokenDto GetLatestTokenByAccountId(long accountId, DateTime consumeDate)
         {
+            EmailVerificationTokenDto emailVerificationToken;
+
             using (var dataBaseContext = new GuessWhoDBEntities())
             {
-                return dataBaseContext.EMAIL_VERIFICATION
-                    .Where(t => t.ACCOUNTID == accountId && t.EXPIRESUTC >= consumeDate && t.CONSUMEDUTC == null)
+                var tokenEntity = dataBaseContext.EMAIL_VERIFICATION
+                    .Where(t => t.ACCOUNTID == accountId &&
+                                t.EXPIRESUTC >= consumeDate &&
+                                t.CONSUMEDUTC == null)
                     .OrderByDescending(t => t.CREATEDATUTC)
                     .FirstOrDefault();
+
+                if (tokenEntity == null)
+                {
+                    emailVerificationToken = EmailVerificationTokenDto.CreateInvalid();
+                }
+                else
+                {
+                    emailVerificationToken = new EmailVerificationTokenDto
+                    {
+                        TokenId = tokenEntity.TOKENID,
+                        AccountId = tokenEntity.ACCOUNTID,
+                        CodeHash = tokenEntity.CODEHASH,
+                        CreatedAtUtc = tokenEntity.CREATEDATUTC,
+                        ExpiresUtc = tokenEntity.EXPIRESUTC,
+                        ConsumedUtc = tokenEntity.CONSUMEDUTC
+                    };
+                }
+
+                return emailVerificationToken;
             }
         }
 
@@ -63,30 +95,34 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
             }
         }
 
-        public (bool IsPerMinuteCooldownActive, bool IsWithinHourlyLimit, DateTime? LastTokenCreatedAtUtc,
-            int TokensSentInLastHour) GetEmailVerificationResendLimits(long accountId, DateTime date)
+        public EmailVerificationResendLimitsDto GetEmailVerificationResendLimits(long accountId, DateTime dateUtc)
         {
-
             using (var dataBaseContext = new GuessWhoDBEntities())
             {
-                var lastTokenCreatedAtUtc = dataBaseContext.EMAIL_VERIFICATION
+                DateTime? lastTokenCreatedAtUtc = dataBaseContext.EMAIL_VERIFICATION
                     .Where(t => t.ACCOUNTID == accountId)
                     .OrderByDescending(t => t.CREATEDATUTC)
                     .Select(t => (DateTime?)t.CREATEDATUTC)
                     .FirstOrDefault();
 
-                var oneHourAgoUtc = date.AddHours(-1);
+                DateTime oneHourAgoUtc = dateUtc.AddHours(-1);
 
-                var tokensSentInLastHour = dataBaseContext.EMAIL_VERIFICATION
+                int tokensSentInLastHour = dataBaseContext.EMAIL_VERIFICATION
                     .Count(t => t.ACCOUNTID == accountId && t.CREATEDATUTC >= oneHourAgoUtc);
 
-                var isPerMinuteCooldownActive =lastTokenCreatedAtUtc.HasValue &&
-                    (date - lastTokenCreatedAtUtc.Value).TotalSeconds < 60;
+                bool isPerMinuteCooldownActive =
+                    lastTokenCreatedAtUtc.HasValue &&
+                    (dateUtc - lastTokenCreatedAtUtc.Value).TotalSeconds < RESEND_COOLDOWN_SECONDS;
 
-                var isWithinHourlyLimit = tokensSentInLastHour < 5;
+                bool isWithinHourlyLimit = tokensSentInLastHour < RESEND_HOURLY_MAX_TOKENS;
 
-                return (isPerMinuteCooldownActive, isWithinHourlyLimit,
-                    lastTokenCreatedAtUtc, tokensSentInLastHour);
+                return new EmailVerificationResendLimitsDto
+                {
+                    IsPerMinuteCooldownActive = isPerMinuteCooldownActive,
+                    IsWithinHourlyLimit = isWithinHourlyLimit,
+                    LastTokenCreatedAtUtc = lastTokenCreatedAtUtc,
+                    TokensSentInLastHour = tokensSentInLastHour
+                };
             }
         }
 

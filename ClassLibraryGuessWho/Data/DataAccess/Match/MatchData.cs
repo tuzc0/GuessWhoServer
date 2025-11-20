@@ -1,5 +1,7 @@
 ﻿using ClassLibraryGuessWho.Data.DataAccess.Match.Parameters;
 using GuessWhoContracts.Dtos.Dto;
+using GuessWhoContracts.Enums;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -11,6 +13,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
         private const byte HOST_SLOT_NUMBER = 1;
         private const byte GUEST_SLOT_NUMBER = 2;
         private const byte MAX_ACTIVE_PLAYERS_PER_MATCH = 2;
+        private const byte MATCH_STATUS_COMPLETED = 3;
 
         public MatchDto CreateMatchClassic(CreateMatchArgs args)
         {
@@ -97,7 +100,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
                 if (match == null)
                 {
-                    return MatchDto.CreateInvalid(matchCode);
+                    return MatchDto.CreateInvalid();
                 }
 
                 return MapToDto(match);
@@ -117,9 +120,37 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
         public bool AddPlayerToMatchByCode(JoinMatchArgs args)
         {
+            if (args == null)
+            {
+                throw new ArgumentNullException(nameof(args));
+            }
+
             using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction(IsolationLevel.Serializable))
             {
+                var existingPlayer = dataBaseContext.MATCH_PLAYER
+                    .SingleOrDefault(mp =>
+                        mp.MATCHID == args.MatchId &&
+                        mp.USERID == args.UserProfileId);
+
+                if (existingPlayer != null && existingPlayer.LEFTATUTC == null)
+                {
+                    return false;
+                }
+
+                if (existingPlayer != null && existingPlayer.LEFTATUTC != null)
+                {
+                    existingPlayer.JOINEDATUTC = args.JoinedDate;
+                    existingPlayer.LEFTATUTC = null;
+                    existingPlayer.ISREADY = false;
+                    existingPlayer.ISWINNER = false;
+                    existingPlayer.SLOTNUMBER = GUEST_SLOT_NUMBER;
+
+                    dataBaseContext.SaveChanges();
+                    transaction.Commit();
+                    return true;
+                }
+
                 var guestPlayer = new MATCH_PLAYER
                 {
                     MATCHID = args.MatchId,
@@ -139,6 +170,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
                 return true;
             }
         }
+
 
         public List<LobbyPlayerDto> GetMatchPlayers(long matchId)
         {
@@ -161,6 +193,57 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
                         IsHost = p.ISHOST
                     })
                     .ToList();
+            }
+        }
+
+        public LeaveMatchResult LeaveMatch(LeaveMatchArgs args)
+        {
+            using (var dataBaseContext = new GuessWhoDBEntities())
+            using (var transaction = dataBaseContext.Database.BeginTransaction())
+            {
+                var match = dataBaseContext.MATCH.SingleOrDefault(m => m.MATCHID == args.MatchId);
+
+                if (match == null)
+                {
+                    return LeaveMatchResult.MatchNotFound;
+                }
+
+                var player = dataBaseContext.MATCH_PLAYER
+                    .SingleOrDefault(mp =>
+                        mp.MATCHID == args.MatchId &&
+                        mp.USERID == args.UserProfileId);
+
+                if (player == null)
+                {
+                    return LeaveMatchResult.PlayerNotInMatch;
+                }
+
+                if (player.LEFTATUTC != null)
+                {
+                    return LeaveMatchResult.PlayerAlreadyLeft;
+                }
+
+                var leftDate = args.LeftDate;
+
+                player.LEFTATUTC = leftDate;
+
+                if (player.ISHOST)
+                {
+                    match.STATUSID = MATCH_STATUS_COMPLETED;
+
+                    var remainingPlayers = dataBaseContext.MATCH_PLAYER
+                        .Where(mp => mp.MATCHID == args.MatchId && mp.LEFTATUTC == null)
+                        .ToList();
+
+                    foreach (var other in remainingPlayers)
+                    {
+                        other.LEFTATUTC = leftDate;
+                    }
+                }
+
+                dataBaseContext.SaveChanges();
+                transaction.Commit();
+                return LeaveMatchResult.Success;
             }
         }
 

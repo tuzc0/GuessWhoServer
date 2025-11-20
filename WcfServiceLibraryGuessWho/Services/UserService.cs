@@ -46,6 +46,8 @@ namespace GuessWho.Services.WCF.Services
         private const string FAULT_CODE_EMAIL_SEND_FAILED = "EMAIL_SEND_FAILED";
         private const string FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE = "CRYPTO_RANDOM_GENERATOR_UNAVAILABLE";
         private const string FAULT_CODE_VERIFICATION_CODE_GENERATION_FAILED = "VERIFICATION_CODE_GENERATION_FAILED";
+        private const string FAULT_CODE_EMAIL_VERIFICATION_FAILED = "EMAIL_VERIFICATION_FAILED";
+        private const string FAULT_CODE_EMAIL_VERIFICATION_TOKEN_CREATION_FAILED = "EMAIL_VERIFICATION_TOKEN_CREATION_FAILED";
 
         private const string FAULT_MESSAGE_REGISTER_REQUEST_NULL =
             "Registration data is missing. Please fill in the form and try again.";
@@ -85,6 +87,13 @@ namespace GuessWho.Services.WCF.Services
             "The system could not generate a secure verification code. Please try again later.";
         private const string FAULT_MESSAGE_VERIFICATION_CODE_GENERATION_FAILED =
             "We could not generate a verification code. Please try again.";
+        private const string FAULT_MESSAGE_EMAIL_VERIFICATION_FAILED =
+            "No fue posible confirmar el correo electrónico. La cuenta no existe o ya no está disponible.";
+        private const string FAULT_MESSAGE_EMAIL_VERIFICATION_TOKEN_CREATION_FAILED =
+            "We could not create the verification code entry. Please try again.";
+
+        private const string VERIFICATION_CODE_PATTERN = @"^\d{6}$";
+        private static readonly TimeSpan REGEX_TIMEOUT = TimeSpan.FromMilliseconds(100);
 
         private readonly UserAccountData userAccountData = new UserAccountData();
         private readonly EmailVerificationData emailVerificationData = new EmailVerificationData();
@@ -132,16 +141,7 @@ namespace GuessWho.Services.WCF.Services
 
                 var (account, profile) = userAccountData.CreateAccount(createAccountArgs);
 
-                var createTokenArgs = new CreateEmailTokenArgs
-                {
-                    AccountId = account.AccountId,
-                    CodeHash = verificationCodeResult.HashCode,
-                    NowUtc = dateNowUtc,
-                    LifeSpan = VerificationCodeLifeTime
-                };
-
-                emailVerificationData.AddVerificationToken(createTokenArgs);
-
+                AddVerificationTokenOrFault(account.AccountId,verificationCodeResult.HashCode,dateNowUtc);
                 TrySendVerificationEmailOrThrow(account.Email, verificationCodeResult.PlainCode);
 
                 Logger.InfoFormat("RegisterUser succeeded for email '{0}', accountId '{1}', userId '{2}'.",
@@ -204,12 +204,12 @@ namespace GuessWho.Services.WCF.Services
 
         public VerifyEmailResponse ConfirmEmailAddressWithVerificationCode(VerifyEmailRequest request)
         {
-            DateTime currentUtcTimestamp = DateTime.UtcNow;
+            DateTime timestamp = DateTime.UtcNow;
             string code = (request.Code ?? string.Empty).Trim();
 
             Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode attempt for accountId '{0}'.", request.AccountId);
 
-            if (!Regex.IsMatch(code, @"^\d{6}$"))
+            if (!Regex.IsMatch(code, VERIFICATION_CODE_PATTERN, RegexOptions.None, REGEX_TIMEOUT))
             {
                 Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: invalid code format for accountId '{0}'.", 
                     request.AccountId);
@@ -218,55 +218,56 @@ namespace GuessWho.Services.WCF.Services
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
             }
 
-            bool found = userAccountData.GetAccountByIdAccount(request.AccountId, out AccountDto accountDto);
+            AccountDto account = LoadUnverifiedAccountOrSkip(request.AccountId);
 
-            if (!found)
+            if (account == null)
             {
-                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: account not found for accountId '{0}'.", 
-                    request.AccountId);
-                throw Faults.Create(
-                    FAULT_CODE_ACCOUNT_NOT_FOUND,
-                    FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
+                return new VerifyEmailResponse
+                {
+                    Success = true
+                };
             }
 
-            if (accountDto.IsEmailVerified)
-            {
-                Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode skipped: email already verified for accountId '{0}'.", 
-                    request.AccountId);
-                return new VerifyEmailResponse { Success = true };
-            }
-
-            var token = emailVerificationData.GetLatestTokenByAccountId(request.AccountId, currentUtcTimestamp)
+            var token = emailVerificationData.GetLatestTokenByAccountId(request.AccountId, timestamp)
                 ?? throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
 
             byte[] codeHash = CodeGenerator.ComputeSha256Hash(code);
 
-            if (!AreByteSequencesEqualInConstantTime(codeHash, token.CODEHASH))
+            if (!AreByteSequencesEqualInConstantTime(codeHash, token.CodeHash))
             {
                 Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: invalid code for accountId '{0}'.", 
                     request.AccountId);
 
-                emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(token.TOKENID, currentUtcTimestamp);
+                emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(token.TokenId, timestamp);
 
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
             }
 
-            int consumedRows = emailVerificationData.ConsumeToken(token.TOKENID);
+            int consumedRows = emailVerificationData.ConsumeToken(token.TokenId);
 
             if (consumedRows == 0)
             {
                 Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: token already consumed or not found for tokenId '{0}'.", 
-                    token.TOKENID);
+                    token.TokenId);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
             }
 
-            userAccountData.MarkEmailVerified(request.AccountId, currentUtcTimestamp);
+            bool markVerified = userAccountData.MarkEmailVerified(request.AccountId, timestamp);
+
+            if (!markVerified)
+            {
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: could not mark email as verified for accountId '{0}'.", 
+                    request.AccountId);
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_FAILED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_FAILED);
+            }
 
             Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode succeeded for accountId '{0}'.", 
                 request.AccountId);
@@ -278,31 +279,16 @@ namespace GuessWho.Services.WCF.Services
         {
             DateTime currentUtcTimestamp = DateTime.UtcNow;
 
-            Logger.InfoFormat("ResendEmailVerificationCode attempt for accountId '{0}'.", request.AccountId);
+            AccountDto account = LoadUnverifiedAccountOrSkip(request.AccountId);
 
-            bool found = userAccountData.GetAccountByIdAccount(request.AccountId, out AccountDto accountDto);
-
-            if (!found)
+            if (account == null)
             {
-                Logger.WarnFormat("ResendEmailVerificationCode failed: account not found for accountId '{0}'.", 
-                    request.AccountId);
-                throw Faults.Create(
-                    FAULT_CODE_ACCOUNT_NOT_FOUND,
-                    FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
-            }
-
-            if (accountDto.IsEmailVerified)
-            {
-                Logger.InfoFormat("ResendEmailVerificationCode skipped: email already verified for accountId '{0}'.", 
-                    request.AccountId);
                 return;
             }
 
-            var (perMinute, withinHourCap, _, _) = emailVerificationData.GetEmailVerificationResendLimits(
-                request.AccountId,
-                currentUtcTimestamp);
+            var limits = emailVerificationData.GetEmailVerificationResendLimits(request.AccountId,currentUtcTimestamp);
 
-            if (perMinute)
+            if (limits.IsPerMinuteCooldownActive)
             {
                 Logger.WarnFormat("ResendEmailVerificationCode blocked by per-minute limit for accountId '{0}'.", 
                     request.AccountId);
@@ -311,7 +297,7 @@ namespace GuessWho.Services.WCF.Services
                     FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT);
             }
 
-            if (!withinHourCap)
+            if (!limits.IsWithinHourlyLimit)
             {
                 Logger.WarnFormat("ResendEmailVerificationCode blocked by hourly limit for accountId '{0}'.", 
                     request.AccountId);
@@ -322,17 +308,8 @@ namespace GuessWho.Services.WCF.Services
 
             var verificationCodeResult = CreateVerificationCodeOrFault();
 
-            var createTokenArgs = new CreateEmailTokenArgs
-            {
-                AccountId = request.AccountId,
-                CodeHash = verificationCodeResult.HashCode,
-                NowUtc = currentUtcTimestamp,
-                LifeSpan = VerificationCodeLifeTime
-            };
-
-            emailVerificationData.AddVerificationToken(createTokenArgs);
-
-            TrySendVerificationEmailOrThrow(accountDto.Email, verificationCodeResult.PlainCode);
+            AddVerificationTokenOrFault(request.AccountId,verificationCodeResult.HashCode,currentUtcTimestamp);
+            TrySendVerificationEmailOrThrow(account.Email, verificationCodeResult.PlainCode);
 
             Logger.InfoFormat("ResendEmailVerificationCode succeeded for accountId '{0}'.", request.AccountId);
         }
@@ -341,7 +318,6 @@ namespace GuessWho.Services.WCF.Services
         {
             try
             {
-                Logger.InfoFormat("Sending verification email to '{0}'.", email);
                 new VerificationEmailSender().SendVerificationCode(email, code);
                 Logger.InfoFormat("Verification email sent successfully to '{0}'.", email);
             }
@@ -412,6 +388,57 @@ namespace GuessWho.Services.WCF.Services
                     FAULT_CODE_EMAIL_SEND_FAILED,
                     FAULT_MESSAGE_EMAIL_SEND_FAILED,
                     ex);
+            }
+        }
+
+        private AccountDto LoadUnverifiedAccountOrSkip(long accountId)
+        {
+            AccountDto account = userAccountData.GetAccountByIdAccount(accountId);
+
+            if (!account.IsValid)
+            {
+                Logger.WarnFormat(
+                    "ResendEmailVerificationCode failed: account not found for accountId '{0}'.",
+                    accountId);
+
+                throw Faults.Create(
+                    FAULT_CODE_ACCOUNT_NOT_FOUND,
+                    FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
+            }
+
+            if (account.IsEmailVerified)
+            {
+                Logger.InfoFormat(
+                    "ResendEmailVerificationCode skipped: email already verified for accountId '{0}'.",
+                    accountId);
+
+                return null;
+            }
+
+            return account;
+        }
+
+        private void AddVerificationTokenOrFault(long accountId, byte[] codeHash, DateTime nowUtc)
+        {
+            var createTokenArgs = new CreateEmailTokenArgs
+            {
+                AccountId = accountId,
+                CodeHash = codeHash,
+                NowUtc = nowUtc,
+                LifeSpan = VerificationCodeLifeTime
+            };
+
+            bool isTokenCreated = emailVerificationData.AddVerificationToken(createTokenArgs);
+
+            if (!isTokenCreated)
+            {
+                Logger.ErrorFormat(
+                    "AddVerificationTokenOrFault failed: could not create email verification token for accountId '{0}'.",
+                    accountId);
+
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_TOKEN_CREATION_FAILED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_TOKEN_CREATION_FAILED);
             }
         }
 
