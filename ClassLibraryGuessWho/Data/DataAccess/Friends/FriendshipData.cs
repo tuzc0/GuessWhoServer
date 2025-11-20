@@ -3,6 +3,8 @@ using GuessWhoContracts.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Data.Entity;
+using System.Data.Entity.Core;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 {
@@ -122,7 +124,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
             }
         }
 
-        public SendFriendRequestResponse CreateNewRequest(long fromUserId, long toUserId,DateTime timestampUtc)
+        public SendFriendRequestResponse CreateNewRequest(long fromUserId, long toUserId, DateTime timestampUtc)
         {
             using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction())
@@ -156,7 +158,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
                 var meUserId = ResolveUserIdFromAccountId(accountId);
 
                 var request = dataBaseContext.FRIEND_REQUEST.SingleOrDefault(fr => fr.FRIENDREQUESTID == friendRequestId)
-                          ?? throw new InvalidOperationException("Friend request not found.");
+                             ?? throw new InvalidOperationException("Friend request not found.");
 
                 if (request.STATUSID != (byte)FriendRequestStatus.Pending)
                 {
@@ -199,7 +201,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
                 var meUserId = ResolveUserIdFromAccountId(accountId);
 
                 var request = dataBaseContext.FRIEND_REQUEST.SingleOrDefault(fr => fr.FRIENDREQUESTID == friendRequestId)
-                          ?? throw new InvalidOperationException("Friend request not found.");
+                              ?? throw new InvalidOperationException("Friend request not found.");
 
                 if (request.STATUSID != (byte)FriendRequestStatus.Pending)
                 {
@@ -225,7 +227,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
                 var meUserId = ResolveUserIdFromAccountId(accountId);
 
                 var request = dataBaseContext.FRIEND_REQUEST.SingleOrDefault(fr => fr.FRIENDREQUESTID == friendRequestId)
-                          ?? throw new InvalidOperationException("Friend request not found.");
+                              ?? throw new InvalidOperationException("Friend request not found.");
 
                 if (request.STATUSID != (byte)FriendRequestStatus.Pending)
                 {
@@ -275,6 +277,89 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
                 {
                     throw new InvalidOperationException("Destination user is not active.");
                 }
+            }
+        }
+
+        public IList<UserProfileSearchResult> GetFriends(long userId)
+        {
+            using (var dataBaseContext = new GuessWhoDBEntities())
+            {
+                var friendsWhereIAmFirst = dataBaseContext.FRIENDSHIP
+                    .Where(f => f.USER1ID == userId)
+                    .Select(f => f.USER_PROFILE1);
+
+                var friendsWhereIAmSecond = dataBaseContext.FRIENDSHIP
+                    .Where(f => f.USER2ID == userId)
+                    .Select(f => f.USER_PROFILE);
+
+                var allFriends = friendsWhereIAmFirst
+                    .Union(friendsWhereIAmSecond)
+                    .Select(p => new UserProfileSearchResult
+                    {
+                        UserId = p.USERID,
+                        DisplayName = p.DISPLAYNAME,
+                        AvatarUrl = p.AVATAR.AVATARID
+                    })
+                    .ToList();
+
+                return allFriends;
+            }
+        }
+
+        public IList<FriendRequest> GetPendingRequests(long userId)
+        {
+            using (var dataBaseContext = new GuessWhoDBEntities())
+            {
+                var query = dataBaseContext.FRIEND_REQUEST
+                    .Where(fr => fr.ADDRESSEEUSERID == userId && fr.STATUSID == (byte)FriendRequestStatus.Pending);
+
+                var pendingRequests = query.ToList();
+
+                var requests = pendingRequests.Select(fr => new FriendRequest
+                {
+                    FriendRequestId = fr.FRIENDREQUESTID,
+                    RequesterUserId = fr.REQUESTERUSERID,
+                    AddresseeUserId = fr.ADDRESSEEUSERID,
+
+                    RequesterDisplayName = dataBaseContext.USER_PROFILE
+                                                            .Where(p => p.USERID == fr.REQUESTERUSERID)
+                                                            .Select(p => p.DISPLAYNAME)
+                                                            .SingleOrDefault(),
+
+                    Status = "Pending",
+                    CreatedAt = fr.CREATEDATUTC
+                })
+                .ToList();
+
+                return requests;
+            }
+        }
+
+        public IList<FriendRequest> GetSentRequests(long userId)
+        {
+            using (var dataBaseContext = new GuessWhoDBEntities())
+            {
+                var query = dataBaseContext.FRIEND_REQUEST
+                    .Where(fr => fr.REQUESTERUSERID == userId && fr.STATUSID == (byte)FriendRequestStatus.Pending);
+
+                var sentRequests = query.ToList();
+
+                var requests = sentRequests.Select(fr => new FriendRequest
+                {
+                    FriendRequestId = fr.FRIENDREQUESTID,
+                    RequesterUserId = fr.REQUESTERUSERID,
+                    AddresseeUserId = fr.ADDRESSEEUSERID,
+                    RequesterDisplayName = dataBaseContext.USER_PROFILE
+                                                            .Where(p => p.USERID == fr.ADDRESSEEUSERID)
+                                                            .Select(p => p.DISPLAYNAME)
+                                                            .SingleOrDefault(),
+
+                    Status = "Pending",
+                    CreatedAt = fr.CREATEDATUTC
+                })
+                .ToList();
+
+                return requests;
             }
         }
     }

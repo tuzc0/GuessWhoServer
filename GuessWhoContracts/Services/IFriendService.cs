@@ -26,5 +26,14 @@ namespace GuessWhoContracts.Services
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
         BasicResponse CancelFriendRequest(AcceptFriendRequestRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        GetFriendsResponse GetFriends(GetFriendsRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        GetPendingRequestsResponse GetPendingRequests(GetPendingFriendRequestsRequest request);
+
     }
 }

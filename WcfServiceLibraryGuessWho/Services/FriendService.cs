@@ -13,6 +13,53 @@ namespace GuessWho.Services.WCF.Services
     public class FriendService : IFriendService
     {
         private readonly FriendshipData friendshipData = new FriendshipData();
+
+        public GetFriendsResponse GetFriends(GetFriendsRequest request)
+        {
+            EnsureRequestNotNull(request);
+
+            if (!long.TryParse(request.AccountId, out long accountId) || accountId <= 0)
+                throw Faults.Create("InvalidAccountId", "Account ID is invalid.");
+
+            try
+            {
+                var userId = friendshipData.ResolveUserIdFromAccountId(accountId);
+
+                var friends = friendshipData.GetFriends(userId);
+
+                return new GetFriendsResponse
+                {
+                    Friends = friends.ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                throw Faults.Create("GetFriendsError", "Error fetching friends: " + ex.Message);
+            }
+        }
+
+        public GetPendingRequestsResponse GetPendingRequests(GetPendingFriendRequestsRequest request)
+        {
+            EnsureRequestNotNull(request);
+
+            if (!long.TryParse(request.AccountId, out long accountId) || accountId <= 0)
+                throw Faults.Create("InvalidAccountId", "Account ID is invalid.");
+
+            try
+            {
+                var userId = friendshipData.ResolveUserIdFromAccountId(accountId);
+                var requests = friendshipData.GetPendingRequests(userId);
+
+                return new GetPendingRequestsResponse
+                {
+                    Requests = requests.ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                throw Faults.Create("GetRequestsError", "Error fetching pending requests: " + ex.Message);
+            }
+        }
         public SearchProfilesResponse SearchProfiles(SearchProfileRequest request)
         {
 

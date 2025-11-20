@@ -62,6 +62,11 @@
     <Compile Include="Dtos\RequestAndResponse\CreateTournamentRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\CreateTournamentResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\DeleteProfileRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\FriendRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\GetFriendsRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\GetFriendsResponse.cs" />
+    <Compile Include="Dtos\RequestAndResponse\GetPendingFriendRequestsRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\GetPendingFriendRequestsResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\JoinMatchRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\JoinMatchResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\LeaveMatchRequest.cs" />
