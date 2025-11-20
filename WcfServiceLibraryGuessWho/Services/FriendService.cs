@@ -1,13 +1,13 @@
-﻿using ClassLibraryGuessWho.Contracts.Dtos;
-using ClassLibraryGuessWho.Contracts.Services;
-using ClassLibraryGuessWho.Data;
+﻿using ClassLibraryGuessWho.Data;
 using ClassLibraryGuessWho.Data.DataAccess.Friends;
+using GuessWhoContracts.Dtos.RequestAndResponse;
+using GuessWhoContracts.Faults;
+using GuessWhoContracts.Services;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
 
-namespace WcfServiceLibraryGuessWho.Services
+namespace GuessWho.Services.WCF.Services
 {
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall)]
     public class FriendService : IFriendService

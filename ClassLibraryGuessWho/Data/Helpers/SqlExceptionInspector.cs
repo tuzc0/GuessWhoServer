@@ -61,17 +61,16 @@ namespace ClassLibraryGuessWho.Data.Helpers
                     return true;
                 }
 
-                if (currentException is DbUpdateException dbUpdateException)
+                if (currentException is DbUpdateException dbUpdateException &&
+                    dbUpdateException.InnerException?.InnerException is SqlException nestedSqlException)
                 {
-                    if (dbUpdateException.InnerException?.InnerException is SqlException nestedSqlException)
-                    {
-                        extractedSqlException = nestedSqlException;
-                        return true;
-                    }
+                    extractedSqlException = nestedSqlException;
+                    return true;
                 }
             }
 
             return false;
         }
+
     }
 }

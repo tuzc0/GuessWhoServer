@@ -18,6 +18,7 @@ namespace ClassLibraryGuessWho.Data
         public CHARACTER_SET()
         {
             this.CHARACTER = new HashSet<CHARACTER>();
+            this.TOURNAMENT_4P = new HashSet<TOURNAMENT_4P>();
         }
     
         public long CHARACTERSETID { get; set; }
@@ -27,5 +28,7 @@ namespace ClassLibraryGuessWho.Data
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<CHARACTER> CHARACTER { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
     }
 }
