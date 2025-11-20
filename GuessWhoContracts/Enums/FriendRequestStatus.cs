@@ -2,9 +2,9 @@
 {
     public enum FriendRequestStatus : byte
     {
-        Pending = 0,
-        Accepted = 1,
-        Rejected = 2,
-        Canceled = 3
+        Pending = 1,
+        Accepted = 2,
+        Rejected = 3,
+        Canceled = 4
     }
 }

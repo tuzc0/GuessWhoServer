@@ -55,36 +55,38 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
                 if (inversePendingRequest == null)
                 {
-                    return new SendFriendRequestResponse
-                    {
-                        Success = false,
-                        AutoAccepted = false,
-                        FriendRequestId = null,
-                    };
+                    return null;
                 }
 
                 checked
                 {
-
                     long userIdLow = Math.Min(fromUserId, toUserId);
                     long userIdHigh = Math.Max(fromUserId, toUserId);
 
                     using (var transaction = dataBaseContext.Database.BeginTransaction())
                     {
-                        inversePendingRequest.STATUSID = (byte)FriendRequestStatus.Accepted;
-                        inversePendingRequest.RESPONDEDATUTC = timestampUtc;
-
-                        dataBaseContext.FRIENDSHIP.Add(new FRIENDSHIP
+                        try
                         {
-                            USER1ID = inversePendingRequest.REQUESTERUSERID,
-                            USER2ID = inversePendingRequest.ADDRESSEEUSERID,
-                            USERIDLOW = userIdLow,
-                            USERIDHIGH = userIdHigh,
-                            CREATEDATUTC = timestampUtc
-                        });
+                            inversePendingRequest.STATUSID = (byte)FriendRequestStatus.Accepted;
+                            inversePendingRequest.RESPONDEDATUTC = timestampUtc;
 
-                        dataBaseContext.SaveChanges(); 
-                        transaction.Commit();
+                            dataBaseContext.FRIENDSHIP.Add(new FRIENDSHIP
+                            {
+                                USER1ID = inversePendingRequest.REQUESTERUSERID,
+                                USER2ID = inversePendingRequest.ADDRESSEEUSERID,
+                                USERIDLOW = userIdLow,
+                                USERIDHIGH = userIdHigh,
+                                CREATEDATUTC = timestampUtc
+                            });
+
+                            dataBaseContext.SaveChanges();
+                            transaction.Commit();
+                        }
+                        catch
+                        {
+                            transaction.Rollback();
+                            throw;
+                        }
                     }
                 }
 
@@ -107,12 +109,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
                 if (existingRequest == null)
                 {
-                    return new SendFriendRequestResponse
-                    {
-                        Success = false,
-                        AutoAccepted = false,
-                        FriendRequestId = null
-                    };
+
+                    return null;
                 }
 
                 return new SendFriendRequestResponse
