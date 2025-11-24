@@ -73,6 +73,7 @@
     </Compile>
     <Compile Include="Data\DataAccess\Accounts\Parameters\CreateAccountArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\Parameters\LoginAccountArgs.cs" />
+    <Compile Include="Data\DataAccess\Accounts\Parameters\RecorveryCodeArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\Parameters\UpdateAccountArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\UserAccountData.cs" />
     <Compile Include="Data\DataAccess\Avatars\AvatarData.cs" />

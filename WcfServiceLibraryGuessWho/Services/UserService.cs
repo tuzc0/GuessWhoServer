@@ -469,5 +469,126 @@ namespace GuessWho.Services.WCF.Services
 
             return accumulatedDifference == 0;
         }
+
+        public PasswordRecoveryResponse SendPasswordRecoveryCode(PasswordRecoveryRequest request)
+        {
+            if (request == null)
+            {
+                Logger.Warn("SendPasswordRecoveryCode request is null.");
+                throw Faults.Create(FAULT_CODE_REQUEST_NULL, FAULT_MESSAGE_REGISTER_REQUEST_NULL);
+            }
+
+            string email = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
+            DateTime currentUtcTimestamp = DateTime.UtcNow;
+
+            Logger.InfoFormat("Password recovery requested for email '{0}'.", email);
+
+            long accountId = userAccountData.GetAccountIdByEmail(email);
+
+            if (accountId <= 0)
+            {
+                Logger.WarnFormat("Password recovery: Account not found for email '{0}'. Returning ambiguous success.", email);
+                return new PasswordRecoveryResponse
+                {
+                    Success = true,
+                    Message = "If the email is registered, a recovery code has been sent."
+                };
+            }
+
+            var (perMinute, withinHourCap, _, _) = emailVerificationData.GetEmailVerificationResendLimits(
+                accountId,
+                currentUtcTimestamp);
+
+            if (perMinute)
+            {
+                Logger.WarnFormat("Password recovery blocked by per-minute limit for email '{0}'.", email);
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT);
+            }
+
+            if (!withinHourCap)
+            {
+                Logger.WarnFormat("Password recovery blocked by hourly limit for email '{0}'.", email);
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED);
+            }
+
+            var verificationCodeResult = CreateVerificationCodeOrFault();
+
+            var createTokenArgs = new CreateEmailTokenArgs
+            {
+                AccountId = accountId,
+                CodeHash = verificationCodeResult.HashCode,
+                NowUtc = currentUtcTimestamp,
+                LifeSpan = VerificationCodeLifeTime
+            };
+
+            emailVerificationData.AddVerificationToken(createTokenArgs);
+
+            TrySendVerificationEmailOrThrow(email, verificationCodeResult.PlainCode);
+
+            Logger.InfoFormat("Password recovery code sent successfully to '{0}'.", email);
+
+            return new PasswordRecoveryResponse
+            {
+                Success = true,
+                Message = "Verification code sent to your email."
+            };
+        }
+
+        public bool UpdatePasswordWithVerificationCode(UpdatePasswordRequest request)
+        {
+            if (request == null) throw Faults.Create(FAULT_CODE_REQUEST_NULL, "Request cannot be null.");
+
+            string email = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
+            string code = request.VerificationCode;
+            string newPassword = request.NewPassword;
+            DateTime nowUtc = DateTime.UtcNow;
+
+            Logger.InfoFormat("Password reset attempt for email '{0}'.", email);
+
+            long accountId = userAccountData.GetAccountIdByEmail(email);
+            if (accountId <= 0)
+            {
+                throw Faults.Create(FAULT_CODE_ACCOUNT_NOT_FOUND, FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
+            }
+
+            var token = emailVerificationData.GetLatestTokenByAccountId(accountId, nowUtc);
+
+            if (token == null)
+            {
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
+                    "The verification code has expired or does not exist.");
+            }
+
+            byte[] inputHash = CodeGenerator.ComputeSha256Hash(code);
+
+            if (!AreByteSequencesEqualInConstantTime(inputHash, token.CODEHASH))
+            {
+                emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(token.TOKENID, nowUtc);
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
+                    "Invalid verification code.");
+            }
+
+            emailVerificationData.ConsumeToken(token.TOKENID);
+
+            byte[] newPasswordHash = PasswordHasher.HashPassword(newPassword);
+
+            bool success = userAccountData.UpdatePasswordOnly(accountId, newPasswordHash);
+
+            if (success)
+            {
+                Logger.InfoFormat("Password updated successfully for accountId '{0}'.", accountId);
+                return true;
+            }
+            else
+            {
+                throw Faults.Create(FAULT_CODE_UNEXPECTED_ERROR, "Could not update password in database.");
+            }
+        }
     }
 }

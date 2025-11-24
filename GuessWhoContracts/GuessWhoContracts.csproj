@@ -74,6 +74,8 @@
     <Compile Include="Dtos\RequestAndResponse\LoginResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\GetProfileRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\GetProfileResponse.cs" />
+    <Compile Include="Dtos\RequestAndResponse\PasswordRecoveryRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\PasswordRecoveryResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\RegisterRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\RegisterResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\ResendVerificationRequest.cs" />
@@ -83,6 +85,7 @@
     <Compile Include="Dtos\RequestAndResponse\SendFriendRequestResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\SetPlayerReadyStatusRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\StartMatchRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\UpdatePasswordRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\UpdateProfileRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\UpdateProfileResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\UserProfileSearchResult.cs" />

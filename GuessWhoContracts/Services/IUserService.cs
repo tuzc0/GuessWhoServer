@@ -18,5 +18,13 @@ namespace GuessWhoContracts.Services
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
         void ResendEmailVerificationCode(ResendVerificationRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        PasswordRecoveryResponse SendPasswordRecoveryCode(PasswordRecoveryRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        bool UpdatePasswordWithVerificationCode(UpdatePasswordRequest request);
     }
 }

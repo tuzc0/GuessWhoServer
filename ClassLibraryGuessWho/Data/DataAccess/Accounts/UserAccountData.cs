@@ -289,5 +289,35 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                 return true;
             }
         }
+
+        public long GetAccountIdByEmail(string email)
+        {
+            using (var dataBaseContext = new GuessWhoDBEntities())
+            {
+                var account = dataBaseContext.ACCOUNT
+                    .FirstOrDefault(a => a.EMAIL == email && !a.ISDELETED);
+
+                return account != null ? account.ACCOUNTID : 0;
+            }
+        }
+        public bool UpdatePasswordOnly(long accountId, byte[] newPasswordHash)
+        {
+            using (var dataBaseContext = new GuessWhoDBEntities())
+            {
+                var account = dataBaseContext.ACCOUNT
+                    .SingleOrDefault(a => a.ACCOUNTID == accountId);
+
+                if (account == null)
+                {
+                    return false;
+                } 
+
+                account.PASSWORD = newPasswordHash;
+                account.UPDATEDATUTC = DateTime.UtcNow;
+
+                dataBaseContext.SaveChanges();
+                return true;
+            }
+        }
     }
 }
