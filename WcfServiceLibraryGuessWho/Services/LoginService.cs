@@ -1,5 +1,6 @@
 ﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts;
 using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
+using ClassLibraryGuessWho.Data.DataAccess.Match;
 using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Services.WCF.Security;
 using GuessWhoContracts.Dtos.Dto;
@@ -44,6 +45,7 @@ namespace GuessWho.Services.WCF.Services
             "We could not complete the sign in because your session could not be updated. Please try again.";
 
         private readonly UserAccountData userAccountData = new UserAccountData();
+        private readonly MatchData matchData = new MatchData();
 
         public LoginResponse LoginUser(LoginRequest request)
         {
@@ -61,7 +63,7 @@ namespace GuessWho.Services.WCF.Services
 
                 if (!accountDto.IsValid || !profileDto.IsValid)
                 {
-                    Logger.WarnFormat("Login failed: account/profile not found for email '{0}'.",email);
+                    Logger.WarnFormat("Login failed: account/profile not found for email '{0}'.", email);
 
                     return new LoginResponse
                     {
@@ -75,7 +77,9 @@ namespace GuessWho.Services.WCF.Services
                 EnsurePasswordValidOrFault(password, accountDto, email);
                 EnsureLastLoginUpdatedOrFault(accountSearchParameters, email);
 
-                Logger.InfoFormat("Login successful for email '{0}'.",email);
+                Logger.InfoFormat("Login successful for email '{0}'.", email);
+
+                LeaveMatchesForUser(profileDto.UserId);
 
                 return new LoginResponse
                 {
@@ -176,6 +180,12 @@ namespace GuessWho.Services.WCF.Services
                     FAULT_CODE_LOGIN_UPDATE_LAST_LOGIN_FAILED,
                     FAULT_MESSAGE_LOGIN_UPDATE_LAST_LOGIN_FAILED);
             }
+        }
+
+        private void LeaveMatchesForUser(long userId)
+        {
+            bool cleaned = matchData.ForceLeaveAllMatchesForUser(userId);
+            Logger.InfoFormat("ForceLeaveAllMatchesForUser executed. UserId={0}, cleaned={1}", userId, cleaned);
         }
     }
 }

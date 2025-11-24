@@ -86,6 +86,7 @@
     <Compile Include="Dtos\RequestAndResponse\VerifyEmailRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\VerifyEmailResponse.cs" />
     <Compile Include="Enums\FriendRequestStatus.cs" />
+    <Compile Include="Enums\JointMatchResult.cs" />
     <Compile Include="Enums\LeaveMatchResult.cs" />
     <Compile Include="Enums\MatchStatus.cs" />
     <Compile Include="Enums\MatchVisibility.cs" />

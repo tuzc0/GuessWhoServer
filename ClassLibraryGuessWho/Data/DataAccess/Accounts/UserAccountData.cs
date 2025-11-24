@@ -120,9 +120,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
         public (AccountDto account, UserProfileDto profile) TryGetAccountWithProfile(AccountSearchParameters args)
         {
-            AccountDto account;
-            UserProfileDto profile;
-
             if (args == null)
             {
                 throw new ArgumentNullException(nameof(args));
@@ -143,19 +140,21 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                         .SingleOrDefault(a => a.USERID == args.UserId && !a.ISDELETED);
                 }
 
+                if (accountEntity == null)
+                {
+                    return (AccountDto.CreateInvalid(), UserProfileDto.CreateInvalid());
+                }
+
                 var profileEntity = dataBaseContext.USER_PROFILE
                     .SingleOrDefault(p => p.USERID == accountEntity.USERID);
 
-                if (profileEntity == null || accountEntity == null)
+                if (profileEntity == null)
                 {
-                    account = AccountDto.CreateInvalid();
-                    profile = UserProfileDto.CreateInvalid();
-
-                } else
-                {
-                    account = ToAccountDto(accountEntity);
-                    profile = ToUserProfileDto(profileEntity);
+                    return (AccountDto.CreateInvalid(), UserProfileDto.CreateInvalid());
                 }
+
+                var account = ToAccountDto(accountEntity);
+                var profile = ToUserProfileDto(profileEntity);
 
                 return (account, profile);
             }
@@ -214,10 +213,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             using (var transaction = dataBaseContext.Database.BeginTransaction())
             {
                 var accountEntity = dataBaseContext.ACCOUNT
-                    .SingleOrDefault(a => a.USERID == args.UserId) ?? throw new InvalidOperationException("Account not found.");
+                    .SingleOrDefault(a => a.USERID == args.UserId) ?? 
+                    throw new InvalidOperationException("Account not found.");
 
                 var userProfileEntity = dataBaseContext.USER_PROFILE
-                    .SingleOrDefault(p => p.USERID == accountEntity.USERID) ?? throw new InvalidOperationException("User profile not found.");
+                    .SingleOrDefault(p => p.USERID == accountEntity.USERID) ?? 
+                    throw new InvalidOperationException("User profile not found.");
 
                 userProfileEntity.DISPLAYNAME = args.NewDisplayName;
                 userProfileEntity.AVATARID = args.NewAvatarId;

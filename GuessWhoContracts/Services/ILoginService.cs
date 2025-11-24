@@ -1,4 +1,5 @@
 ﻿using GuessWhoContracts.Dtos.RequestAndResponse;
+using GuessWhoContracts.Faults;
 using System.ServiceModel;
 
 namespace GuessWhoContracts.Services
@@ -7,6 +8,7 @@ namespace GuessWhoContracts.Services
     public interface ILoginService
     {
         [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
         LoginResponse LoginUser(LoginRequest request);
     }
 }
