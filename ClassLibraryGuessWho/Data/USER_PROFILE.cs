@@ -28,13 +28,15 @@ namespace ClassLibraryGuessWho.Data
             this.MATCH_PLAYER = new HashSet<MATCH_PLAYER>();
             this.MODERATION_ACTION = new HashSet<MODERATION_ACTION>();
             this.MODERATION_ACTION1 = new HashSet<MODERATION_ACTION>();
+            this.TOURNAMENT_4P = new HashSet<TOURNAMENT_4P>();
+            this.TOURNAMENT_4P_PLAYER = new HashSet<TOURNAMENT_4P_PLAYER>();
         }
     
         public long USERID { get; set; }
         public string DISPLAYNAME { get; set; }
         public bool ISACTIVE { get; set; }
         public System.DateTime CREATEDATUTC { get; set; }
-        public Nullable<long> AVATARID { get; set; }
+        public string AVATARID { get; set; }
         public byte[] ROWVERSION { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
@@ -60,5 +62,9 @@ namespace ClassLibraryGuessWho.Data
         public virtual ICollection<MODERATION_ACTION> MODERATION_ACTION { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MODERATION_ACTION> MODERATION_ACTION1 { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<TOURNAMENT_4P_PLAYER> TOURNAMENT_4P_PLAYER { get; set; }
     }
 }

@@ -20,6 +20,8 @@ namespace ClassLibraryGuessWho.Data
             this.MATCH_INVITATION = new HashSet<MATCH_INVITATION>();
             this.MATCH_PLAYER = new HashSet<MATCH_PLAYER>();
             this.MODERATION_ACTION = new HashSet<MODERATION_ACTION>();
+            this.MATCH_PLAYER1 = new HashSet<MATCH_PLAYER>();
+            this.TOURNAMENT_4P_MATCH = new HashSet<TOURNAMENT_4P_MATCH>();
         }
     
         public long MATCHID { get; set; }
@@ -34,12 +36,17 @@ namespace ClassLibraryGuessWho.Data
     
         public virtual MATCHSTATUS MATCHSTATUS { get; set; }
         public virtual MATCHVISIBILITY MATCHVISIBILITY { get; set; }
-        public virtual USER_PROFILE USER_PROFILE { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH_INVITATION> MATCH_INVITATION { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH_PLAYER> MATCH_PLAYER { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MODERATION_ACTION> MODERATION_ACTION { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_PLAYER> MATCH_PLAYER1 { get; set; }
+        public virtual MATCHSTATUS MATCHSTATUS1 { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
+        public virtual USER_PROFILE USER_PROFILE { get; set; }
     }
 }

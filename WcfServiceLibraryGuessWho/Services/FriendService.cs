@@ -1,18 +1,65 @@
-﻿using ClassLibraryGuessWho.Contracts.Dtos;
-using ClassLibraryGuessWho.Contracts.Services;
-using ClassLibraryGuessWho.Data;
+﻿using ClassLibraryGuessWho.Data;
 using ClassLibraryGuessWho.Data.DataAccess.Friends;
+using GuessWhoContracts.Dtos.RequestAndResponse;
+using GuessWhoContracts.Faults;
+using GuessWhoContracts.Services;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
 
-namespace WcfServiceLibraryGuessWho.Services
+namespace GuessWho.Services.WCF.Services
 {
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall)]
     public class FriendService : IFriendService
     {
         private readonly FriendshipData friendshipData = new FriendshipData();
+
+        public GetFriendsResponse GetFriends(GetFriendsRequest request)
+        {
+            EnsureRequestNotNull(request);
+
+            if (!long.TryParse(request.AccountId, out long accountId) || accountId <= 0)
+                throw Faults.Create("InvalidAccountId", "Account ID is invalid.");
+
+            try
+            {
+                var userId = friendshipData.ResolveUserIdFromAccountId(accountId);
+
+                var friends = friendshipData.GetFriends(userId);
+
+                return new GetFriendsResponse
+                {
+                    Friends = friends.ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                throw Faults.Create("GetFriendsError", "Error fetching friends: " + ex.Message);
+            }
+        }
+
+        public GetPendingRequestsResponse GetPendingRequests(GetPendingFriendRequestsRequest request)
+        {
+            EnsureRequestNotNull(request);
+
+            if (!long.TryParse(request.AccountId, out long accountId) || accountId <= 0)
+                throw Faults.Create("InvalidAccountId", "Account ID is invalid.");
+
+            try
+            {
+                var userId = friendshipData.ResolveUserIdFromAccountId(accountId);
+                var requests = friendshipData.GetPendingRequests(userId);
+
+                return new GetPendingRequestsResponse
+                {
+                    Requests = requests.ToList()
+                };
+            }
+            catch (Exception ex)
+            {
+                throw Faults.Create("GetRequestsError", "Error fetching pending requests: " + ex.Message);
+            }
+        }
         public SearchProfilesResponse SearchProfiles(SearchProfileRequest request)
         {
 
