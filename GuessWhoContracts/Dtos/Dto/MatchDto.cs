@@ -20,12 +20,12 @@ namespace GuessWhoContracts.Dtos.Dto
             get { return MatchId != INVALID_MATCH_ID; }
         }
 
-        public static MatchDto CreateInvalid(string code = null)
+        public static MatchDto CreateInvalid()
         {
             return new MatchDto
             {
                 MatchId = INVALID_MATCH_ID,
-                Code = code ?? string.Empty,
+                Code = string.Empty,
                 StatusId = INVALID_STATUS_ID,
                 Mode = null,
                 VisibilityId = INVALID_VISIBILITY_ID,

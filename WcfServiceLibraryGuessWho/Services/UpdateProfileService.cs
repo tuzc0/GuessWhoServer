@@ -293,12 +293,23 @@ namespace GuessWho.Services.WCF.Services
 
         private (AccountDto Account, UserProfileDto Profile) LoadAccountAndProfileOrFault(long userId)
         {
-            bool found = userAccountData.GetAccountWithProfileByIdAccount( userId, out AccountDto account,
-                out UserProfileDto profile);
-
-            if (!found)
+            var args = new AccountSearchParameters
             {
-                Logger.WarnFormat("UpdateUserProfile failed: profile not found for userId '{0}'.", userId);
+                UserId = userId,
+                Email = string.Empty
+            };
+
+            var result = userAccountData.TryGetAccountWithProfile(args);
+            var account = result.account;
+            var profile = result.profile;
+
+            if (!account.IsValid || !profile.IsValid)
+            {
+                Logger.WarnFormat(
+                    "LoadAccountAndProfileOrFault failed: account/profile not found for email '{0}' and userId '{1}'.",
+                    args.Email ?? string.Empty,
+                    args.UserId);
+
                 throw Faults.Create(
                     FAULT_CODE_PROFILE_NOT_FOUND,
                     FAULT_MESSAGE_PROFILE_NOT_FOUND);
@@ -306,6 +317,7 @@ namespace GuessWho.Services.WCF.Services
 
             return (account, profile);
         }
+
 
         private static byte[] ValidateAndComputeNewPasswordOrThrow(UpdateProfileRequest request,byte[] accountPassword)
         {
