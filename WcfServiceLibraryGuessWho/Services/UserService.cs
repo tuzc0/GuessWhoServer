@@ -458,6 +458,7 @@ namespace GuessWho.Services.WCF.Services
                     FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
                     FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
                     ex);
+
             }
             catch (ArgumentOutOfRangeException ex)
             {
