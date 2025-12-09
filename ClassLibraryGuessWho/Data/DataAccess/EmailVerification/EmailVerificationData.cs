@@ -27,12 +27,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
             }
         }
 
-        public EMAIL_VERIFICATION GetLatestTokenByAccountId(long accountId, DateTime consumeDate)
+        public EMAIL_VERIFICATION GetLatestTokenByAccountId(long accountId)
         {
             using (var dataBaseContext = new GuessWhoDBEntities())
             {
                 return dataBaseContext.EMAIL_VERIFICATION
-                    .Where(t => t.ACCOUNTID == accountId && t.EXPIRESUTC >= consumeDate && t.CONSUMEDUTC == null)
+                    .Where(t => t.ACCOUNTID == accountId && t.CONSUMEDUTC == null)
                     .OrderByDescending(t => t.CREATEDATUTC)
                     .FirstOrDefault();
             }

@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="Dtos\Dto\AccountDto.cs" />
     <Compile Include="Dtos\Dto\AvatarDto.cs" />
+    <Compile Include="Dtos\Dto\LeaderboardPlayerDto.cs" />
     <Compile Include="Dtos\Dto\LobbyPlayerDto.cs" />
     <Compile Include="Dtos\Dto\MatchDto.cs" />
     <Compile Include="Dtos\Dto\TournamentDto.cs" />
@@ -65,6 +66,8 @@
     <Compile Include="Dtos\RequestAndResponse\FriendRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\GetFriendsRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\GetFriendsResponse.cs" />
+    <Compile Include="Dtos\RequestAndResponse\GetLeaderboardRequest.cs" />
+    <Compile Include="Dtos\RequestAndResponse\GetLeaderboardResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\GetPendingFriendRequestsRequest.cs" />
     <Compile Include="Dtos\RequestAndResponse\GetPendingFriendRequestsResponse.cs" />
     <Compile Include="Dtos\RequestAndResponse\JoinMatchRequest.cs" />
@@ -100,6 +103,7 @@
     <Compile Include="Services\IChatService.cs" />
     <Compile Include="Services\IChatServiceCallback.cs" />
     <Compile Include="Services\IFriendService.cs" />
+    <Compile Include="Services\ILeaderboardService.cs" />
     <Compile Include="Services\ILoginService.cs" />
     <Compile Include="Services\IMatchCallback.cs" />
     <Compile Include="Services\IMatchService.cs" />

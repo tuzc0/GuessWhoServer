@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Data.Entity;
-using System.Data.Entity.Core;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 {

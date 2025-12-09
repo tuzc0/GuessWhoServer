@@ -34,6 +34,8 @@ namespace GuessWho.Services.WCF.Services
         private const string FAULT_CODE_DATABASE_CONNECTION_FAILURE = "DATABASE_CONNECTION_FAILURE";
         private const string FAULT_CODE_UNEXPECTED_ERROR = "USER_REGISTER_UNEXPECTED_ERROR";
         private const string FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED = "EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED";
+        private const string FAULT_CODE_EMAIL_VERIFICATION_CODE_EXPIRED = "EMAIL_VERIFICATION_CODE_EXPIRED";
+        private const string FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_TOKEN = "EMAIL_VERIFICATION_CODE_INVALID_TOKEN";
         private const string FAULT_CODE_ACCOUNT_NOT_FOUND = "ACCOUNT_NOT_FOUND";
         private const string FAULT_CODE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT = "EMAIL_VERIFICATION_RESEND_TOO_FREQUENT";
         private const string FAULT_CODE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED = "EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED";
@@ -52,17 +54,21 @@ namespace GuessWho.Services.WCF.Services
         private const string FAULT_MESSAGE_REGISTER_EMAIL_ALREADY_EXISTS =
             "This email address is already registered. Try signing in or use a different email.";
         private const string FAULT_MESSAGE_REGISTER_DATA_INTEGRITY_VIOLATION =
-            "Your account could not be created due to a data consistency issue. Please try again.";
+            "Registration could not be completed due to a configuration error in the server. Please try again later.";
         private const string FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT =
-            "The server took too long to respond. Please try again.";
+            "The server did not respond in time. This may be due to network issues or the server being busy. Please check your internet connection and try again.";
         private const string FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE =
             "The server could not connect to the database. Please try again later.";
         private const string FAULT_MESSAGE_REGISTER_UNEXPECTED_ERROR =
             "An unexpected error occurred while creating your account. Please try again later.";
+        private const string FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_EXPIRED =
+            "The verification code has expired. Please request a new code.";
+        private const string FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_TOKEN =
+            "The verification code is invalid. Please check the code and try again.";
         private const string FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED =
-            "The verification code is invalid or has expired. Please request a new code.";
+            "A valid verification process was not found. Please try sending a code again.";
         private const string FAULT_MESSAGE_ACCOUNT_NOT_FOUND =
-            "We could not find an account with the provided information.";
+            "Account not found. Please check your email and try again, or create a new account.";
         private const string FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT =
             "You requested a code recently. Please wait a moment and try again.";
         private const string FAULT_MESSAGE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED =
@@ -70,15 +76,15 @@ namespace GuessWho.Services.WCF.Services
         private const string FAULT_MESSAGE_EMAIL_RECIPIENT_INVALID =
             "The destination email address is not valid. Check it and try again.";
         private const string FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT =
-            "The verification code must contain exactly 6 digits.";
+            "An invalid code format was generated. The verification code must be a sequence of exactly 6 numeric digits. Please try again.";
         private const string FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_MISSING =
-            "The email service is not correctly configured. Please try again later.";
+            "Email service temporarily unavailable. We are currently unable to send the verification code due to an internal server configuration issue. Please try again.";
         private const string FAULT_MESSAGE_EMAIL_SMTP_AUTHENTICATION_FAILED =
-            "The email service could not authenticate with the server. Please try again later.";
+            "Email authentication failed. We are temporarily unable to send the verification code due to an internal security issue. Please try again.";
         private const string FAULT_MESSAGE_EMAIL_SMTP_CONFIGURATION_ERROR =
-            "The email service is not available due to a configuration problem. Please try again later.";
+            "Email service is currently unavailable. We are unable to send the verification code due to a server configuration issue. Please try again in a few minutes.";
         private const string FAULT_MESSAGE_EMAIL_SMTP_UNAVAILABLE =
-            "The email service is temporarily unavailable. Please try again later.";
+            "Email service temporarily unavailable. We are unable to send the verification code right now. Please wait a few minutes and try again.";
         private const string FAULT_MESSAGE_EMAIL_SEND_FAILED =
             "We could not send the verification email. Please try again later.";
         private const string FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE =
@@ -211,18 +217,18 @@ namespace GuessWho.Services.WCF.Services
 
             if (!Regex.IsMatch(code, @"^\d{6}$"))
             {
-                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: invalid code format for accountId '{0}'.", 
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: invalid code format for accountId '{0}'.",
                     request.AccountId);
                 throw Faults.Create(
-                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
-                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_FORMAT);
             }
 
             bool found = userAccountData.GetAccountByIdAccount(request.AccountId, out AccountDto accountDto);
 
             if (!found)
             {
-                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: account not found for accountId '{0}'.", 
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: account not found for accountId '{0}'.",
                     request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_ACCOUNT_NOT_FOUND,
@@ -231,36 +237,47 @@ namespace GuessWho.Services.WCF.Services
 
             if (accountDto.IsEmailVerified)
             {
-                Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode skipped: email already verified for accountId '{0}'.", 
+                Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode skipped: email already verified for accountId '{0}'.",
                     request.AccountId);
                 return new VerifyEmailResponse { Success = true };
             }
 
-            var token = emailVerificationData.GetLatestTokenByAccountId(request.AccountId, currentUtcTimestamp)
+            var token = emailVerificationData.GetLatestTokenByAccountId(request.AccountId)
                 ?? throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
+
+            if (token.EXPIRESUTC < currentUtcTimestamp)
+            {
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: token expired for accountId '{0}'.",
+                    request.AccountId);
+
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_EXPIRED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_EXPIRED);
+            }
 
             byte[] codeHash = CodeGenerator.ComputeSha256Hash(code);
 
             if (!AreByteSequencesEqualInConstantTime(codeHash, token.CODEHASH))
             {
-                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: invalid code for accountId '{0}'.", 
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: invalid code for accountId '{0}'.",
                     request.AccountId);
 
                 emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(token.TOKENID, currentUtcTimestamp);
 
                 throw Faults.Create(
-                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
-                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_TOKEN,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_TOKEN);
             }
 
             int consumedRows = emailVerificationData.ConsumeToken(token.TOKENID);
 
             if (consumedRows == 0)
             {
-                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: token already consumed or not found for tokenId '{0}'.", 
+                Logger.WarnFormat("ConfirmEmailAddressWithVerificationCode failed: token already consumed or not found for tokenId '{0}'.",
                     token.TOKENID);
+
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
                     FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
@@ -268,7 +285,7 @@ namespace GuessWho.Services.WCF.Services
 
             userAccountData.MarkEmailVerified(request.AccountId, currentUtcTimestamp);
 
-            Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode succeeded for accountId '{0}'.", 
+            Logger.InfoFormat("ConfirmEmailAddressWithVerificationCode succeeded for accountId '{0}'.",
                 request.AccountId);
 
             return new VerifyEmailResponse { Success = true };
@@ -284,7 +301,7 @@ namespace GuessWho.Services.WCF.Services
 
             if (!found)
             {
-                Logger.WarnFormat("ResendEmailVerificationCode failed: account not found for accountId '{0}'.", 
+                Logger.WarnFormat("ResendEmailVerificationCode failed: account not found for accountId '{0}'.",
                     request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_ACCOUNT_NOT_FOUND,
@@ -293,7 +310,7 @@ namespace GuessWho.Services.WCF.Services
 
             if (accountDto.IsEmailVerified)
             {
-                Logger.InfoFormat("ResendEmailVerificationCode skipped: email already verified for accountId '{0}'.", 
+                Logger.InfoFormat("ResendEmailVerificationCode skipped: email already verified for accountId '{0}'.",
                     request.AccountId);
                 return;
             }
@@ -304,7 +321,7 @@ namespace GuessWho.Services.WCF.Services
 
             if (perMinute)
             {
-                Logger.WarnFormat("ResendEmailVerificationCode blocked by per-minute limit for accountId '{0}'.", 
+                Logger.WarnFormat("ResendEmailVerificationCode blocked by per-minute limit for accountId '{0}'.",
                     request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_RESEND_TOO_FREQUENT,
@@ -313,7 +330,7 @@ namespace GuessWho.Services.WCF.Services
 
             if (!withinHourCap)
             {
-                Logger.WarnFormat("ResendEmailVerificationCode blocked by hourly limit for accountId '{0}'.", 
+                Logger.WarnFormat("ResendEmailVerificationCode blocked by hourly limit for accountId '{0}'.",
                     request.AccountId);
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_RESEND_HOURLY_LIMIT_EXCEEDED,
@@ -555,13 +572,22 @@ namespace GuessWho.Services.WCF.Services
                 throw Faults.Create(FAULT_CODE_ACCOUNT_NOT_FOUND, FAULT_MESSAGE_ACCOUNT_NOT_FOUND);
             }
 
-            var token = emailVerificationData.GetLatestTokenByAccountId(accountId, nowUtc);
+            var token = emailVerificationData.GetLatestTokenByAccountId(accountId);
 
             if (token == null)
             {
                 throw Faults.Create(
                     FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
-                    "The verification code has expired or does not exist.");
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED);
+            }
+
+            if (token.EXPIRESUTC < nowUtc)
+            {
+                Logger.WarnFormat("UpdatePasswordWithVerificationCode failed: token expired for email '{0}'.", email);
+
+                throw Faults.Create(
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_EXPIRED,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_EXPIRED);
             }
 
             byte[] inputHash = CodeGenerator.ComputeSha256Hash(code);
@@ -569,9 +595,10 @@ namespace GuessWho.Services.WCF.Services
             if (!AreByteSequencesEqualInConstantTime(inputHash, token.CODEHASH))
             {
                 emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(token.TOKENID, nowUtc);
+
                 throw Faults.Create(
-                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_OR_EXPIRED,
-                    "Invalid verification code.");
+                    FAULT_CODE_EMAIL_VERIFICATION_CODE_INVALID_TOKEN,
+                    FAULT_MESSAGE_EMAIL_VERIFICATION_CODE_INVALID_TOKEN);
             }
 
             emailVerificationData.ConsumeToken(token.TOKENID);

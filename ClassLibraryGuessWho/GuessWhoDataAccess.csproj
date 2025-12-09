@@ -80,6 +80,7 @@
     <Compile Include="Data\DataAccess\EmailVerification\Parameters\CreateEmailTokenArgs.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationData.cs" />
     <Compile Include="Data\DataAccess\Friends\FriendshipData.cs" />
+    <Compile Include="Data\DataAccess\Leaderboard\LeaderboardData.cs" />
     <Compile Include="Data\DataAccess\Match\Parameters\CreateMatchArgs.cs" />
     <Compile Include="Data\DataAccess\Match\Parameters\CreateTournamentMatchArgs.cs" />
     <Compile Include="Data\DataAccess\Match\Parameters\JoinMatchArgs.cs" />

@@ -10,7 +10,7 @@ namespace ConsoleGuessWho
     internal static class Program
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
-        
+
         private const string SERVICE_HOST_STARTING_MESSAGE = "Starting Console host.";
         private const string SERVICE_HOST_STARTED_MESSAGE = "Console host started";
         private const string SERVICE_HOST_STOPPING_MESSAGE = "Stopping Console host";
@@ -29,6 +29,7 @@ namespace ConsoleGuessWho
             using (var hostFriendRequest = new ServiceHost(typeof(FriendService)))
             using (var hostMatch = new ServiceHost(typeof(MatchService)))
             using (var hostUpdateProfile = new ServiceHost(typeof(UpdateProfileService)))
+            using (var hostLeaderboard = new ServiceHost(typeof(LeaderboardService)))
             {
                 try
                 {
@@ -38,20 +39,22 @@ namespace ConsoleGuessWho
                     hostFriendRequest.Open();
                     hostMatch.Open();
                     hostUpdateProfile.Open();
+                    hostLeaderboard.Open();
 
                     Logger.Info(SERVICE_HOST_STARTED_MESSAGE);
-                    
+
                     Console.ReadLine();
 
                     Logger.Info(SERVICE_HOST_STOPPING_MESSAGE);
-                    
+
                     hostChat.Close();
                     hostFriendRequest.Close();
                     hostLogin.Close();
                     hostUser.Close();
                     hostMatch.Close();
                     hostUpdateProfile.Close();
-                    
+                    hostLeaderboard.Close();
+
                     Logger.Info(SERVICE_HOST_STOPPED_MESSAGE);
                 }
                 catch (AddressAlreadyInUseException ex)
@@ -67,6 +70,7 @@ namespace ConsoleGuessWho
                     hostFriendRequest.Abort();
                     hostMatch.Abort();
                     hostUpdateProfile.Abort();
+                    hostLeaderboard.Abort();
                 }
                 catch (Exception ex)
                 {
@@ -77,6 +81,7 @@ namespace ConsoleGuessWho
                     hostChat.Abort();
                     hostMatch.Abort();
                     hostUpdateProfile.Abort();
+                    hostLeaderboard.Abort();
                 }
             }
         }
