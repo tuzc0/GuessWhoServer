@@ -1,5 +1,4 @@
-﻿using ClassLibraryGuessWho.Data;
-using ClassLibraryGuessWho.Data.DataAccess.Friends;
+﻿using ClassLibraryGuessWho.Data.DataAccess.Friends;
 using GuessWhoContracts.Dtos.RequestAndResponse;
 using GuessWhoContracts.Faults;
 using GuessWhoContracts.Services;

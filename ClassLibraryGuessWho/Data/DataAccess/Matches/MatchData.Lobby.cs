@@ -8,82 +8,8 @@ using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Match
 {
-    public sealed class MatchData
+    public partial class MatchData
     {
-        private const byte HOST_SLOT_NUMBER = 1;
-        private const byte GUEST_SLOT_NUMBER = 2;
-        private const byte MATCH_STATUS_LOBBY = 1;
-        private const byte MATCH_STATUS_COMPLETED = 3;
-        private const byte MATCH_STATUS_CANCELED = 4;
-
-        public MatchDto CreateMatchClassic(CreateMatchArgs args)
-        {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            using (var transaction = dataBaseContext.Database.BeginTransaction())
-            {
-                var match = new MATCH
-                {
-                    VISIBILITYID = args.Visibility,
-                    STATUSID = args.MatchStatus,
-                    MODE = args.Mode,
-                    MATCHCODE = args.MatchCode,
-                    CREATEDATUTC = args.CreateDate,
-                    STARTTIME = null,
-                    ENDTIME = null,
-                    WINNERUSERID = null
-                };
-
-                dataBaseContext.MATCH.Add(match);
-                dataBaseContext.SaveChanges();
-
-                var matchPlayer = new MATCH_PLAYER
-                {
-                    MATCHID = match.MATCHID,
-                    USERID = args.UserProfileId,
-                    SLOTNUMBER = HOST_SLOT_NUMBER,
-                    ISWINNER = false,
-                    JOINEDATUTC = args.CreateDate,
-                    LEFTATUTC = null,
-                    ISHOST = true,
-                    ISREADY = false
-                };
-
-                dataBaseContext.MATCH_PLAYER.Add(matchPlayer);
-                dataBaseContext.SaveChanges();
-                transaction.Commit();
-
-                return new MatchDto
-                {
-                    MatchId = match.MATCHID,
-                    Code = match.MATCHCODE,
-                    StatusId = match.STATUSID,
-                    Mode = match.MODE,
-                    VisibilityId = match.VISIBILITYID,
-                    CreateAtUtc = match.CREATEDATUTC
-                };
-            }
-        }
-
-        public MatchDto GetOpenMatchByCode(string matchCode)
-        {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                var match = dataBaseContext.MATCH
-                    .AsNoTracking()
-                    .SingleOrDefault(m => 
-                    m.MATCHCODE == matchCode &&
-                    m.STARTTIME == null &&
-                    m.ENDTIME == null);
-
-                if (match == null)
-                {
-                    return MatchDto.CreateInvalid();
-                }
-
-                return MapToDto(match);
-            }
-        }
-
         public JoinMatchResult AddPlayerToMatchByCode(JoinMatchArgs args)
         {
             if (args == null)
@@ -98,7 +24,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
                 if (match == null)
                 {
-                    return JoinMatchResult.MatchNotJoinable; 
+                    return JoinMatchResult.MatchNotJoinable;
                 }
 
                 MATCH_PLAYER existingPlayer = GetExistingPlayer(dataBaseContext, args);
@@ -149,7 +75,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
                 return null;
             }
 
-            if (match.STATUSID != MATCH_STATUS_LOBBY)
+            if (!IsLobbyMatch(match))
             {
                 return null;
             }
@@ -167,11 +93,10 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
         private bool IsExistingActivePlayer(MATCH_PLAYER existingPlayer)
         {
-            return existingPlayer != null && existingPlayer.LEFTATUTC == null;
+            return IsActivePlayer(existingPlayer);
         }
 
-        private bool IsUserInActiveMatch(GuessWhoDBEntities dataBaseContext, long userProfileId,
-            long currentMatchId)
+        private bool IsUserInActiveMatch(GuessWhoDBEntities dataBaseContext, long userProfileId, long currentMatchId)
         {
             return dataBaseContext.MATCH_PLAYER
                 .Any(p =>
@@ -188,7 +113,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
                 mp.LEFTATUTC == null &&
                 mp.USERID != userId);
         }
-
 
         private void ReactivateExistingPlayer(MATCH_PLAYER existingPlayer, DateTime joinDateUtc)
         {
@@ -218,9 +142,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
         {
             using (var dataBaseContext = new GuessWhoDBEntities())
             {
-                return dataBaseContext.MATCH_PLAYER
-                    .AsNoTracking()
-                    .Where(mp => mp.MATCHID == matchId && mp.LEFTATUTC == null)
+                return GetActivePlayersForMatch(dataBaseContext, matchId)
                     .OrderBy(p => p.SLOTNUMBER)
                     .Select(p => new LobbyPlayerDto
                     {
@@ -230,6 +152,10 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
                             .Where(u => u.USERID == p.USERID)
                             .Select(u => u.DISPLAYNAME)
                             .FirstOrDefault(),
+                        AvatarId = dataBaseContext.USER_PROFILE
+                            .Where(u => u.USERID == p.USERID)
+                            .Select(u => u.AVATARID)
+                            .FirstOrDefault(),
                         SlotNumber = (byte)p.SLOTNUMBER,
                         IsReady = p.ISREADY,
                         IsHost = p.ISHOST
@@ -237,7 +163,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
                     .ToList();
             }
         }
-        public LeaveMatchResult LeaveMatch(LeaveMatchArgs args)
+
+        public LeaveMatchResult LeaveMatch(MatchPlayerArgs args)
         {
             if (args == null)
             {
@@ -272,21 +199,18 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
                 var leftDateUtc = DateTime.UtcNow;
 
-                player.LEFTATUTC = leftDateUtc;
-                player.ISREADY = false;
+                MarkPlayerAsLeft(player, leftDateUtc);
 
                 if (player.ISHOST)
                 {
                     match.STATUSID = MATCH_STATUS_COMPLETED;
 
-                    var remainingPlayers = dataBaseContext.MATCH_PLAYER
-                        .Where(mp => mp.MATCHID == args.MatchId && mp.LEFTATUTC == null)
+                    var remainingPlayers = GetActivePlayersForMatch(dataBaseContext, args.MatchId)
                         .ToList();
 
                     foreach (var other in remainingPlayers)
                     {
-                        other.LEFTATUTC = leftDateUtc;
-                        other.ISREADY = false;
+                        MarkPlayerAsLeft(other, leftDateUtc);
                     }
                 }
 
@@ -297,9 +221,49 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
             }
         }
 
+        public MarkReadyResult MarkPlayerAsReady(MatchPlayerArgs args)
+        {
+            if (args == null)
+            {
+                throw new ArgumentNullException(nameof(args));
+            }
+
+            using (var dataBaseContext = new GuessWhoDBEntities())
+            {
+                var player = dataBaseContext.MATCH_PLAYER
+                    .SingleOrDefault(mp =>
+                        mp.MATCHID == args.MatchId &&
+                        mp.USERID == args.UserProfileId);
+
+                if (player == null)
+                {
+                    return MarkReadyResult.PlayerNotFound;
+                }
+
+                if (!IsActivePlayer(player))
+                {
+                    return MarkReadyResult.PlayerAlreadyLeft;
+                }
+
+                if (player.MATCH == null || !IsLobbyMatch(player.MATCH))
+                {
+                    return MarkReadyResult.MatchNotInLobby;
+                }
+
+                if (player.ISREADY)
+                {
+                    return MarkReadyResult.Success;
+                }
+
+                player.ISREADY = true;
+                dataBaseContext.SaveChanges();
+
+                return MarkReadyResult.Success;
+            }
+        }
+
         public bool ForceLeaveAllMatchesForUser(long userId)
         {
-   
             using (var dataBaseContext = new GuessWhoDBEntities())
             using (var transaction = dataBaseContext.Database.BeginTransaction())
             {
@@ -316,8 +280,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
                 foreach (var entry in activeEntries)
                 {
-                    entry.LEFTATUTC = nowUtc;
-                    entry.ISREADY = false;
+                    MarkPlayerAsLeft(entry, nowUtc);
                 }
 
                 var hostMatchIds = activeEntries
@@ -328,7 +291,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
                 if (hostMatchIds.Count > 0)
                 {
-
                     var hostMatches = dataBaseContext.MATCH
                         .Where(m => hostMatchIds.Contains(m.MATCHID))
                         .ToList();
@@ -337,14 +299,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
                     {
                         match.STATUSID = MATCH_STATUS_CANCELED;
 
-                        var otherPlayers = dataBaseContext.MATCH_PLAYER
-                            .Where(mp => mp.MATCHID == match.MATCHID && mp.LEFTATUTC == null)
+                        var otherPlayers = GetActivePlayersForMatch(dataBaseContext, match.MATCHID)
                             .ToList();
 
                         foreach (var other in otherPlayers)
                         {
-                            other.LEFTATUTC = nowUtc;
-                            other.ISREADY = false;
+                            MarkPlayerAsLeft(other, nowUtc);
                         }
                     }
                 }
@@ -354,26 +314,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Match
 
                 return true;
             }
-        }
-
-
-
-        private static MatchDto MapToDto(MATCH match)
-        {
-            if (match == null)
-            {
-                return MatchDto.CreateInvalid();
-            }
-
-            return new MatchDto
-            {
-                MatchId = match.MATCHID,
-                Code = match.MATCHCODE,
-                StatusId = match.STATUSID,
-                Mode = match.MODE,
-                VisibilityId = match.VISIBILITYID,
-                CreateAtUtc = match.CREATEDATUTC
-            };
         }
     }
 }

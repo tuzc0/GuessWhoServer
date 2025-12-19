@@ -25,10 +25,10 @@ namespace ClassLibraryGuessWho.Data
         public System.DateTime CREATEDATUTC { get; set; }
         public Nullable<System.DateTime> EXPIRESATUTC { get; set; }
     
-        public virtual MATCH MATCH { get; set; }
         public virtual MODERATIONACTIONTYPE MODERATIONACTIONTYPE { get; set; }
         public virtual MODERATIONSCOPe MODERATIONSCOPe { get; set; }
         public virtual USER_PROFILE USER_PROFILE { get; set; }
         public virtual USER_PROFILE USER_PROFILE1 { get; set; }
+        public virtual MATCH MATCH { get; set; }
     }
 }

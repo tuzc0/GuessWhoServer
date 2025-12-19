@@ -4,8 +4,7 @@
     {
         public string AvatarId { get; set; }
         public string Name { get; set; }
-        public bool isDefault { get; set; }
-        public bool isActive { get; set; }
-
+        public bool IsDefault { get; set; }
+        public bool IsActive { get; set; }
     }
 }

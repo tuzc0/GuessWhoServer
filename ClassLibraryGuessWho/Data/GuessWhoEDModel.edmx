@@ -35,20 +35,8 @@
           <Key>
             <PropertyRef Name="CHARACTERID" />
           </Key>
-          <Property Name="CHARACTERID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
-          <Property Name="CHARACTERSETID" Type="bigint" Nullable="false" />
-          <Property Name="DISPLAYNAME" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="IMAGEURL" Type="nvarchar" MaxLength="400" Nullable="false" />
+          <Property Name="CHARACTERID" Type="nvarchar" MaxLength="100" Nullable="false" />
           <Property Name="ISACTIVE" Type="bit" Nullable="false" />
-        </EntityType>
-        <EntityType Name="CHARACTER_SET">
-          <Key>
-            <PropertyRef Name="CHARACTERSETID" />
-          </Key>
-          <Property Name="CHARACTERSETID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
-          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
-          <Property Name="ISACTIVE" Type="bit" Nullable="false" />
-          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
         </EntityType>
         <EntityType Name="EMAIL_VERIFICATION">
           <Key>
@@ -98,12 +86,21 @@
           <Property Name="MATCHID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="VISIBILITYID" Type="tinyint" Nullable="false" />
           <Property Name="STATUSID" Type="tinyint" Nullable="false" />
-          <Property Name="MODE" Type="nvarchar" MaxLength="50" Nullable="false" />
           <Property Name="MATCHCODE" Type="nvarchar" MaxLength="10" Nullable="false" />
           <Property Name="STARTTIME" Type="datetime2" Precision="7" />
           <Property Name="ENDTIME" Type="datetime2" Precision="7" />
           <Property Name="WINNERUSERID" Type="bigint" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="MODEID" Type="tinyint" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MATCH_DECK_CARD">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+            <PropertyRef Name="POSITION" />
+          </Key>
+          <Property Name="MATCHID" Type="bigint" Nullable="false" />
+          <Property Name="POSITION" Type="int" Nullable="false" />
+          <Property Name="CHARACTERID" Type="nvarchar" MaxLength="100" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCH_INVITATION">
           <Key>
@@ -119,6 +116,19 @@
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
           <Property Name="RESPONDEDATUTC" Type="datetime2" Precision="7" />
         </EntityType>
+        <EntityType Name="MATCH_MODE">
+          <Key>
+            <PropertyRef Name="MODEID" />
+          </Key>
+          <Property Name="MODEID" Type="tinyint" Nullable="false" />
+          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="DESCRIPTION" Type="nvarchar" MaxLength="200" />
+          <Property Name="DEFAULT_DECK_SIZE" Type="int" Nullable="false" />
+          <Property Name="DEFAULT_TURN_TIME_SEC" Type="int" Nullable="false" />
+          <Property Name="DEFAULT_MATCH_DURATION_SEC" Type="int" />
+          <Property Name="DEFAULT_MAX_PLAYERS" Type="tinyint" Nullable="false" />
+          <Property Name="IS_ACTIVE" Type="bit" Nullable="false" />
+        </EntityType>
         <EntityType Name="MATCH_PLAYER">
           <Key>
             <PropertyRef Name="MATCHID" />
@@ -132,6 +142,7 @@
           <Property Name="LEFTATUTC" Type="datetime2" Precision="7" />
           <Property Name="ISHOST" Type="bit" Nullable="false" />
           <Property Name="ISREADY" Type="bit" Nullable="false" />
+          <Property Name="SECRETCHARACTERID" Type="nvarchar" MaxLength="100" />
         </EntityType>
         <EntityType Name="MATCHSTATUS">
           <Key>
@@ -192,7 +203,6 @@
           </Key>
           <Property Name="TOURNAMENTID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="HOSTUSERID" Type="bigint" Nullable="false" />
-          <Property Name="CHARACTERSETID" Type="bigint" />
           <Property Name="TURNSECONDS" Type="int" Nullable="false" />
           <Property Name="STATUSID" Type="tinyint" Nullable="false" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
@@ -411,18 +421,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK_CHARACTER_SET">
-          <End Role="CHARACTER_SET" Type="Self.CHARACTER_SET" Multiplicity="1" />
-          <End Role="CHARACTER" Type="Self.CHARACTER" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CHARACTER_SET">
-              <PropertyRef Name="CHARACTERSETID" />
-            </Principal>
-            <Dependent Role="CHARACTER">
-              <PropertyRef Name="CHARACTERSETID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK_EMAIL_VERIF_ACCOUNT">
           <End Role="ACCOUNT" Type="Self.ACCOUNT" Multiplicity="1" />
           <End Role="EMAIL_VERIFICATION" Type="Self.EMAIL_VERIFICATION" Multiplicity="*" />
@@ -483,6 +481,54 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_MATCH_DECK_CARD_CHARACTER">
+          <End Role="CHARACTER" Type="Self.CHARACTER" Multiplicity="1" />
+          <End Role="MATCH_DECK_CARD" Type="Self.MATCH_DECK_CARD" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CHARACTER">
+              <PropertyRef Name="CHARACTERID" />
+            </Principal>
+            <Dependent Role="MATCH_DECK_CARD">
+              <PropertyRef Name="CHARACTERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_DECK_CARD_MATCH">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1" />
+          <End Role="MATCH_DECK_CARD" Type="Self.MATCH_DECK_CARD" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_DECK_CARD">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_MATCH_MODE">
+          <End Role="MATCH_MODE" Type="Self.MATCH_MODE" Multiplicity="1" />
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH_MODE">
+              <PropertyRef Name="MODEID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="MODEID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_PLAYER_CHARACTER">
+          <End Role="CHARACTER" Type="Self.CHARACTER" Multiplicity="0..1" />
+          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CHARACTER">
+              <PropertyRef Name="CHARACTERID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="SECRETCHARACTERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_MATCH_PLAYER_MATCH">
           <End Role="MATCH" Type="Self.MATCH" Multiplicity="1" />
           <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
@@ -504,18 +550,6 @@
             </Principal>
             <Dependent Role="MATCH">
               <PropertyRef Name="STATUSID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_TOURNAMENT_4P_CHARACTERSET">
-          <End Role="CHARACTER_SET" Type="Self.CHARACTER_SET" Multiplicity="0..1" />
-          <End Role="TOURNAMENT_4P" Type="Self.TOURNAMENT_4P" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CHARACTER_SET">
-              <PropertyRef Name="CHARACTERSETID" />
-            </Principal>
-            <Dependent Role="TOURNAMENT_4P">
-              <PropertyRef Name="CHARACTERSETID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -591,7 +625,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Function Name="fn_diagramobjects" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="true" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" ReturnType="int" />
         <Function Name="SP_ACCEPTFRIENDREQUEST" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
           <Parameter Name="FRIENDREQUESTID" Type="bigint" Mode="In" />
         </Function>
@@ -633,13 +666,14 @@
           <EntitySet Name="ACCOUNT" EntityType="Self.ACCOUNT" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AVATAR" EntityType="Self.AVATAR" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="CHARACTER" EntityType="Self.CHARACTER" Schema="dbo" store:Type="Tables" />
-          <EntitySet Name="CHARACTER_SET" EntityType="Self.CHARACTER_SET" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="EMAIL_VERIFICATION" EntityType="Self.EMAIL_VERIFICATION" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="FRIEND_REQUEST" EntityType="Self.FRIEND_REQUEST" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="FRIENDREQUESTSTATUS" EntityType="Self.FRIENDREQUESTSTATUS" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="FRIENDSHIP" EntityType="Self.FRIENDSHIP" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH" EntityType="Self.MATCH" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCH_DECK_CARD" EntityType="Self.MATCH_DECK_CARD" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH_INVITATION" EntityType="Self.MATCH_INVITATION" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCH_MODE" EntityType="Self.MATCH_MODE" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH_PLAYER" EntityType="Self.MATCH_PLAYER" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCHSTATUS" EntityType="Self.MATCHSTATUS" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCHVISIBILITY" EntityType="Self.MATCHVISIBILITY" Schema="dbo" store:Type="Tables" />
@@ -711,10 +745,6 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="ACCOUNT" EntitySet="ACCOUNT" />
           </AssociationSet>
-          <AssociationSet Name="FK_CHARACTER_SET" Association="Self.FK_CHARACTER_SET">
-            <End Role="CHARACTER_SET" EntitySet="CHARACTER_SET" />
-            <End Role="CHARACTER" EntitySet="CHARACTER" />
-          </AssociationSet>
           <AssociationSet Name="FK_EMAIL_VERIF_ACCOUNT" Association="Self.FK_EMAIL_VERIF_ACCOUNT">
             <End Role="ACCOUNT" EntitySet="ACCOUNT" />
             <End Role="EMAIL_VERIFICATION" EntitySet="EMAIL_VERIFICATION" />
@@ -735,6 +765,22 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="FRIENDSHIP" EntitySet="FRIENDSHIP" />
           </AssociationSet>
+          <AssociationSet Name="FK_MATCH_DECK_CARD_CHARACTER" Association="Self.FK_MATCH_DECK_CARD_CHARACTER">
+            <End Role="CHARACTER" EntitySet="CHARACTER" />
+            <End Role="MATCH_DECK_CARD" EntitySet="MATCH_DECK_CARD" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_DECK_CARD_MATCH" Association="Self.FK_MATCH_DECK_CARD_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_DECK_CARD" EntitySet="MATCH_DECK_CARD" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_MATCH_MODE" Association="Self.FK_MATCH_MATCH_MODE">
+            <End Role="MATCH_MODE" EntitySet="MATCH_MODE" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_PLAYER_CHARACTER" Association="Self.FK_MATCH_PLAYER_CHARACTER">
+            <End Role="CHARACTER" EntitySet="CHARACTER" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
           <AssociationSet Name="FK_MATCH_PLAYER_MATCH" Association="Self.FK_MATCH_PLAYER_MATCH">
             <End Role="MATCH" EntitySet="MATCH" />
             <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
@@ -742,10 +788,6 @@
           <AssociationSet Name="FK_MATCH_STATUS" Association="Self.FK_MATCH_STATUS">
             <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
             <End Role="MATCH" EntitySet="MATCH" />
-          </AssociationSet>
-          <AssociationSet Name="FK_TOURNAMENT_4P_CHARACTERSET" Association="Self.FK_TOURNAMENT_4P_CHARACTERSET">
-            <End Role="CHARACTER_SET" EntitySet="CHARACTER_SET" />
-            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
           </AssociationSet>
           <AssociationSet Name="FK_TOURNAMENT_4P_HOSTUSER" Association="Self.FK_TOURNAMENT_4P_HOSTUSER">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
@@ -795,28 +837,6 @@
           <Property Name="DELETEDATUTC" Type="DateTime" Precision="7" />
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_ACCOUNT_USER_PROFILE" FromRole="ACCOUNT" ToRole="USER_PROFILE" />
         </EntityType>
-        <EntityType Name="CHARACTER">
-          <Key>
-            <PropertyRef Name="CHARACTERID" />
-          </Key>
-          <Property Name="CHARACTERID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="CHARACTERSETID" Type="Int64" Nullable="false" />
-          <Property Name="DISPLAYNAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="IMAGEURL" Type="String" MaxLength="400" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="ISACTIVE" Type="Boolean" Nullable="false" />
-          <NavigationProperty Name="CHARACTER_SET" Relationship="Self.FK_CHARACTER_SET" FromRole="CHARACTER" ToRole="CHARACTER_SET" />
-        </EntityType>
-        <EntityType Name="CHARACTER_SET">
-          <Key>
-            <PropertyRef Name="CHARACTERSETID" />
-          </Key>
-          <Property Name="CHARACTERSETID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="ISACTIVE" Type="Boolean" Nullable="false" />
-          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
-          <NavigationProperty Name="CHARACTER" Relationship="Self.FK_CHARACTER_SET" FromRole="CHARACTER_SET" ToRole="CHARACTER" />
-          <NavigationProperty Name="TOURNAMENT_4P" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_CHARACTERSET" FromRole="CHARACTER_SET" ToRole="TOURNAMENT_4P" />
-        </EntityType>
         <EntityType Name="EMAIL_VERIFICATION">
           <Key>
             <PropertyRef Name="TOKENID" />
@@ -865,29 +885,6 @@
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_FRIENDSHIP_USER1" FromRole="FRIENDSHIP" ToRole="USER_PROFILE" />
           <NavigationProperty Name="USER_PROFILE1" Relationship="GuessWhoDBModel.FK_FRIENDSHIP_USER2" FromRole="FRIENDSHIP" ToRole="USER_PROFILE" />
         </EntityType>
-        <EntityType Name="MATCH">
-          <Key>
-            <PropertyRef Name="MATCHID" />
-          </Key>
-          <Property Name="MATCHID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="VISIBILITYID" Type="Byte" Nullable="false" />
-          <Property Name="STATUSID" Type="Byte" Nullable="false" />
-          <Property Name="MODE" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="MATCHCODE" Type="String" MaxLength="10" FixedLength="false" Unicode="true" Nullable="false" />
-          <Property Name="STARTTIME" Type="DateTime" Precision="7" />
-          <Property Name="ENDTIME" Type="DateTime" Precision="7" />
-          <Property Name="WINNERUSERID" Type="Int64" />
-          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
-          <NavigationProperty Name="MATCHSTATUS" Relationship="Self.FK__MATCH__STATUSID__71E7C201" FromRole="MATCH" ToRole="MATCHSTATUS" />
-          <NavigationProperty Name="MATCHVISIBILITY" Relationship="Self.FK__MATCH__VISIBILIT__6FFF798F" FromRole="MATCH" ToRole="MATCHVISIBILITY" />
-          <NavigationProperty Name="MATCH_INVITATION" Relationship="Self.FK__MATCH_INV__MATCH__7E4D98E6" FromRole="MATCH" ToRole="MATCH_INVITATION" />
-          <NavigationProperty Name="MATCH_PLAYER" Relationship="Self.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH" ToRole="MATCH_PLAYER" />
-          <NavigationProperty Name="MODERATION_ACTION" Relationship="Self.FK__MODERATIO__MATCH__0AB36FCB" FromRole="MATCH" ToRole="MODERATION_ACTION" />
-          <NavigationProperty Name="MATCH_PLAYER1" Relationship="Self.FK_MATCH_PLAYER_MATCH" FromRole="MATCH" ToRole="MATCH_PLAYER" />
-          <NavigationProperty Name="MATCHSTATUS1" Relationship="Self.FK_MATCH_STATUS" FromRole="MATCH" ToRole="MATCHSTATUS" />
-          <NavigationProperty Name="TOURNAMENT_4P_MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH" FromRole="MATCH" ToRole="TOURNAMENT_4P_MATCH" />
-          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK__MATCH__WINNERUSE__72DBE63A" FromRole="MATCH" ToRole="USER_PROFILE" />
-        </EntityType>
         <EntityType Name="MATCH_INVITATION">
           <Key>
             <PropertyRef Name="MATCHINVITATIONID" />
@@ -901,26 +898,9 @@
           <Property Name="INVITATIONSTATUS" Type="Byte" Nullable="false" />
           <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
           <Property Name="RESPONDEDATUTC" Type="DateTime" Precision="7" />
-          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH_INV__MATCH__7E4D98E6" FromRole="MATCH_INVITATION" ToRole="MATCH" />
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK__MATCH_INV__INVIT__7F41BD1F" FromRole="MATCH_INVITATION" ToRole="USER_PROFILE" />
           <NavigationProperty Name="USER_PROFILE1" Relationship="GuessWhoDBModel.FK__MATCH_INV__TARGE__0035E158" FromRole="MATCH_INVITATION" ToRole="USER_PROFILE" />
-        </EntityType>
-        <EntityType Name="MATCH_PLAYER">
-          <Key>
-            <PropertyRef Name="MATCHID" />
-            <PropertyRef Name="USERID" />
-          </Key>
-          <Property Name="MATCHID" Type="Int64" Nullable="false" />
-          <Property Name="USERID" Type="Int64" Nullable="false" />
-          <Property Name="SLOTNUMBER" Type="Byte" />
-          <Property Name="ISWINNER" Type="Boolean" Nullable="false" />
-          <Property Name="JOINEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
-          <Property Name="LEFTATUTC" Type="DateTime" Precision="7" />
-          <Property Name="ISHOST" Type="Boolean" Nullable="false" />
-          <Property Name="ISREADY" Type="Boolean" Nullable="false" />
-          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH_PLAYER" ToRole="MATCH" />
-          <NavigationProperty Name="MATCH1" Relationship="Self.FK_MATCH_PLAYER_MATCH" FromRole="MATCH_PLAYER" ToRole="MATCH" />
-          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK__MATCH_PLA__USERI__7894BF90" FromRole="MATCH_PLAYER" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK__MATCH_INV__MATCH__7E4D98E6" FromRole="MATCH_INVITATION" ToRole="MATCH" />
         </EntityType>
         <EntityType Name="MATCHSTATUS">
           <Key>
@@ -928,8 +908,8 @@
           </Key>
           <Property Name="STATUSID" Type="Byte" Nullable="false" />
           <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH__STATUSID__71E7C201" FromRole="MATCHSTATUS" ToRole="MATCH" />
-          <NavigationProperty Name="MATCH1" Relationship="Self.FK_MATCH_STATUS" FromRole="MATCHSTATUS" ToRole="MATCH" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK__MATCH__STATUSID__71E7C201" FromRole="MATCHSTATUS" ToRole="MATCH" />
+          <NavigationProperty Name="MATCH1" Relationship="GuessWhoDBModel.FK_MATCH_STATUS" FromRole="MATCHSTATUS" ToRole="MATCH" />
         </EntityType>
         <EntityType Name="MATCHVISIBILITY">
           <Key>
@@ -937,7 +917,7 @@
           </Key>
           <Property Name="VISIBILITYID" Type="Byte" Nullable="false" />
           <Property Name="NAME" Type="String" MaxLength="50" FixedLength="false" Unicode="true" Nullable="false" />
-          <NavigationProperty Name="MATCH" Relationship="Self.FK__MATCH__VISIBILIT__6FFF798F" FromRole="MATCHVISIBILITY" ToRole="MATCH" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK__MATCH__VISIBILIT__6FFF798F" FromRole="MATCHVISIBILITY" ToRole="MATCH" />
         </EntityType>
         <EntityType Name="MODERATION_ACTION">
           <Key>
@@ -953,11 +933,11 @@
           <Property Name="MATCHID" Type="Int64" />
           <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
           <Property Name="EXPIRESATUTC" Type="DateTime" annotation:StoreGeneratedPattern="Computed" Precision="7" />
-          <NavigationProperty Name="MATCH" Relationship="Self.FK__MODERATIO__MATCH__0AB36FCB" FromRole="MODERATION_ACTION" ToRole="MATCH" />
           <NavigationProperty Name="MODERATIONACTIONTYPE" Relationship="Self.FK__MODERATIO__ACTIO__08CB2759" FromRole="MODERATION_ACTION" ToRole="MODERATIONACTIONTYPE" />
           <NavigationProperty Name="MODERATIONSCOPe" Relationship="Self.FK__MODERATIO__SCOPE__09BF4B92" FromRole="MODERATION_ACTION" ToRole="MODERATIONSCOPe" />
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK__MODERATIO__MODER__07D70320" FromRole="MODERATION_ACTION" ToRole="USER_PROFILE" />
           <NavigationProperty Name="USER_PROFILE1" Relationship="GuessWhoDBModel.FK__MODERATIO__TARGE__06E2DEE7" FromRole="MODERATION_ACTION" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK__MODERATIO__MATCH__0AB36FCB" FromRole="MODERATION_ACTION" ToRole="MATCH" />
         </EntityType>
         <EntityType Name="MODERATIONACTIONTYPE">
           <Key>
@@ -997,18 +977,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK_CHARACTER_SET">
-          <End Role="CHARACTER_SET" Type="Self.CHARACTER_SET" Multiplicity="1" />
-          <End Role="CHARACTER" Type="Self.CHARACTER" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CHARACTER_SET">
-              <PropertyRef Name="CHARACTERSETID" />
-            </Principal>
-            <Dependent Role="CHARACTER">
-              <PropertyRef Name="CHARACTERSETID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK__FRIEND_RE__STATU__591C1437">
           <End Role="FRIENDREQUESTSTATUS" Type="Self.FRIENDREQUESTSTATUS" Multiplicity="1" />
           <End Role="FRIEND_REQUEST" Type="Self.FRIEND_REQUEST" Multiplicity="*" />
@@ -1017,94 +985,6 @@
               <PropertyRef Name="STATUSID" />
             </Principal>
             <Dependent Role="FRIEND_REQUEST">
-              <PropertyRef Name="STATUSID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK__MATCH__STATUSID__71E7C201">
-          <End Role="MATCHSTATUS" Type="Self.MATCHSTATUS" Multiplicity="1" />
-          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="MATCHSTATUS">
-              <PropertyRef Name="STATUSID" />
-            </Principal>
-            <Dependent Role="MATCH">
-              <PropertyRef Name="STATUSID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK__MATCH__VISIBILIT__6FFF798F">
-          <End Role="MATCHVISIBILITY" Type="Self.MATCHVISIBILITY" Multiplicity="1" />
-          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="MATCHVISIBILITY">
-              <PropertyRef Name="VISIBILITYID" />
-            </Principal>
-            <Dependent Role="MATCH">
-              <PropertyRef Name="VISIBILITYID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK__MATCH_INV__MATCH__7E4D98E6">
-          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1">
-            <OnDelete Action="Cascade" />
-          </End>
-          <End Role="MATCH_INVITATION" Type="Self.MATCH_INVITATION" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="MATCH">
-              <PropertyRef Name="MATCHID" />
-            </Principal>
-            <Dependent Role="MATCH_INVITATION">
-              <PropertyRef Name="MATCHID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK__MATCH_PLA__MATCH__77A09B57">
-          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1">
-            <OnDelete Action="Cascade" />
-          </End>
-          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="MATCH">
-              <PropertyRef Name="MATCHID" />
-            </Principal>
-            <Dependent Role="MATCH_PLAYER">
-              <PropertyRef Name="MATCHID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK__MODERATIO__MATCH__0AB36FCB">
-          <End Role="MATCH" Type="Self.MATCH" Multiplicity="0..1" />
-          <End Role="MODERATION_ACTION" Type="Self.MODERATION_ACTION" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="MATCH">
-              <PropertyRef Name="MATCHID" />
-            </Principal>
-            <Dependent Role="MODERATION_ACTION">
-              <PropertyRef Name="MATCHID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_MATCH_PLAYER_MATCH">
-          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1" />
-          <End Role="MATCH_PLAYER" Type="Self.MATCH_PLAYER" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="MATCH">
-              <PropertyRef Name="MATCHID" />
-            </Principal>
-            <Dependent Role="MATCH_PLAYER">
-              <PropertyRef Name="MATCHID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_MATCH_STATUS">
-          <End Role="MATCHSTATUS" Type="Self.MATCHSTATUS" Multiplicity="1" />
-          <End Role="MATCH" Type="Self.MATCH" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="MATCHSTATUS">
-              <PropertyRef Name="STATUSID" />
-            </Principal>
-            <Dependent Role="MATCH">
               <PropertyRef Name="STATUSID" />
             </Dependent>
           </ReferentialConstraint>
@@ -1135,15 +1015,11 @@
         </Association>
         <EntityContainer Name="GuessWhoDBEntities" annotation:LazyLoadingEnabled="true">
           <EntitySet Name="ACCOUNT" EntityType="Self.ACCOUNT" />
-          <EntitySet Name="CHARACTER" EntityType="Self.CHARACTER" />
-          <EntitySet Name="CHARACTER_SET" EntityType="Self.CHARACTER_SET" />
           <EntitySet Name="EMAIL_VERIFICATION" EntityType="Self.EMAIL_VERIFICATION" />
           <EntitySet Name="FRIEND_REQUEST" EntityType="Self.FRIEND_REQUEST" />
           <EntitySet Name="FRIENDREQUESTSTATUS" EntityType="Self.FRIENDREQUESTSTATUS" />
           <EntitySet Name="FRIENDSHIP" EntityType="Self.FRIENDSHIP" />
-          <EntitySet Name="MATCH" EntityType="Self.MATCH" />
           <EntitySet Name="MATCH_INVITATION" EntityType="Self.MATCH_INVITATION" />
-          <EntitySet Name="MATCH_PLAYER" EntityType="Self.MATCH_PLAYER" />
           <EntitySet Name="MATCHSTATUS" EntityType="Self.MATCHSTATUS" />
           <EntitySet Name="MATCHVISIBILITY" EntityType="Self.MATCHVISIBILITY" />
           <EntitySet Name="MODERATION_ACTION" EntityType="Self.MODERATION_ACTION" />
@@ -1154,41 +1030,9 @@
             <End Role="ACCOUNT" EntitySet="ACCOUNT" />
             <End Role="EMAIL_VERIFICATION" EntitySet="EMAIL_VERIFICATION" />
           </AssociationSet>
-          <AssociationSet Name="FK_CHARACTER_SET" Association="Self.FK_CHARACTER_SET">
-            <End Role="CHARACTER_SET" EntitySet="CHARACTER_SET" />
-            <End Role="CHARACTER" EntitySet="CHARACTER" />
-          </AssociationSet>
           <AssociationSet Name="FK__FRIEND_RE__STATU__591C1437" Association="Self.FK__FRIEND_RE__STATU__591C1437">
             <End Role="FRIENDREQUESTSTATUS" EntitySet="FRIENDREQUESTSTATUS" />
             <End Role="FRIEND_REQUEST" EntitySet="FRIEND_REQUEST" />
-          </AssociationSet>
-          <AssociationSet Name="FK__MATCH__STATUSID__71E7C201" Association="Self.FK__MATCH__STATUSID__71E7C201">
-            <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
-            <End Role="MATCH" EntitySet="MATCH" />
-          </AssociationSet>
-          <AssociationSet Name="FK__MATCH__VISIBILIT__6FFF798F" Association="Self.FK__MATCH__VISIBILIT__6FFF798F">
-            <End Role="MATCHVISIBILITY" EntitySet="MATCHVISIBILITY" />
-            <End Role="MATCH" EntitySet="MATCH" />
-          </AssociationSet>
-          <AssociationSet Name="FK__MATCH_INV__MATCH__7E4D98E6" Association="Self.FK__MATCH_INV__MATCH__7E4D98E6">
-            <End Role="MATCH" EntitySet="MATCH" />
-            <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
-          </AssociationSet>
-          <AssociationSet Name="FK__MATCH_PLA__MATCH__77A09B57" Association="Self.FK__MATCH_PLA__MATCH__77A09B57">
-            <End Role="MATCH" EntitySet="MATCH" />
-            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
-          </AssociationSet>
-          <AssociationSet Name="FK__MODERATIO__MATCH__0AB36FCB" Association="Self.FK__MODERATIO__MATCH__0AB36FCB">
-            <End Role="MATCH" EntitySet="MATCH" />
-            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
-          </AssociationSet>
-          <AssociationSet Name="FK_MATCH_PLAYER_MATCH" Association="Self.FK_MATCH_PLAYER_MATCH">
-            <End Role="MATCH" EntitySet="MATCH" />
-            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
-          </AssociationSet>
-          <AssociationSet Name="FK_MATCH_STATUS" Association="Self.FK_MATCH_STATUS">
-            <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
-            <End Role="MATCH" EntitySet="MATCH" />
           </AssociationSet>
           <AssociationSet Name="FK__MODERATIO__ACTIO__08CB2759" Association="Self.FK__MODERATIO__ACTIO__08CB2759">
             <End Role="MODERATIONACTIONTYPE" EntitySet="MODERATIONACTIONTYPE" />
@@ -1235,25 +1079,8 @@
             <Parameter Name="new_diagramname" Mode="In" Type="String" />
           </FunctionImport>
           <FunctionImport Name="sp_upgraddiagrams" />
-          <EntitySet Name="TOURNAMENT_4P" EntityType="GuessWhoDBModel.TOURNAMENT_4P" />
           <EntitySet Name="TOURNAMENT_4P_MATCH" EntityType="GuessWhoDBModel.TOURNAMENT_4P_MATCH" />
           <EntitySet Name="TOURNAMENT_4P_PLAYER" EntityType="GuessWhoDBModel.TOURNAMENT_4P_PLAYER" />
-          <AssociationSet Name="FK_TOURNAMENT_4P_CHARACTERSET" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_CHARACTERSET">
-            <End Role="CHARACTER_SET" EntitySet="CHARACTER_SET" />
-            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
-          </AssociationSet>
-          <AssociationSet Name="FK_TOURNAMENT_4P_MATCH_MATCH" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH">
-            <End Role="MATCH" EntitySet="MATCH" />
-            <End Role="TOURNAMENT_4P_MATCH" EntitySet="TOURNAMENT_4P_MATCH" />
-          </AssociationSet>
-          <AssociationSet Name="FK_TOURNAMENT_4P_MATCH_TOURNAMENT" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_TOURNAMENT">
-            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
-            <End Role="TOURNAMENT_4P_MATCH" EntitySet="TOURNAMENT_4P_MATCH" />
-          </AssociationSet>
-          <AssociationSet Name="FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT">
-            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
-            <End Role="TOURNAMENT_4P_PLAYER" EntitySet="TOURNAMENT_4P_PLAYER" />
-          </AssociationSet>
           <EntitySet Name="AVATAR" EntityType="GuessWhoDBModel.AVATAR" />
           <EntitySet Name="USER_PROFILE" EntityType="GuessWhoDBModel.USER_PROFILE" />
           <AssociationSet Name="FK_ACCOUNT_USER_PROFILE" Association="GuessWhoDBModel.FK_ACCOUNT_USER_PROFILE">
@@ -1280,10 +1107,6 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="FRIENDSHIP" EntitySet="FRIENDSHIP" />
           </AssociationSet>
-          <AssociationSet Name="FK__MATCH__WINNERUSE__72DBE63A" Association="GuessWhoDBModel.FK__MATCH__WINNERUSE__72DBE63A">
-            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
-            <End Role="MATCH" EntitySet="MATCH" />
-          </AssociationSet>
           <AssociationSet Name="FK__MATCH_INV__INVIT__7F41BD1F" Association="GuessWhoDBModel.FK__MATCH_INV__INVIT__7F41BD1F">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
@@ -1291,10 +1114,6 @@
           <AssociationSet Name="FK__MATCH_INV__TARGE__0035E158" Association="GuessWhoDBModel.FK__MATCH_INV__TARGE__0035E158">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
-          </AssociationSet>
-          <AssociationSet Name="FK__MATCH_PLA__USERI__7894BF90" Association="GuessWhoDBModel.FK__MATCH_PLA__USERI__7894BF90">
-            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
-            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
           </AssociationSet>
           <AssociationSet Name="FK__MODERATIO__MODER__07D70320" Association="GuessWhoDBModel.FK__MODERATIO__MODER__07D70320">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
@@ -1304,15 +1123,85 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
           </AssociationSet>
-          <AssociationSet Name="FK_TOURNAMENT_4P_HOSTUSER" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER">
-            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
-            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
-          </AssociationSet>
           <AssociationSet Name="FK_TOURNAMENT_4P_PLAYER_USER" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_USER">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="TOURNAMENT_4P_PLAYER" EntitySet="TOURNAMENT_4P_PLAYER" />
           </AssociationSet>
-        </EntityContainer>
+          <EntitySet Name="CHARACTER" EntityType="GuessWhoDBModel.CHARACTER" />
+          <EntitySet Name="MATCH_PLAYER" EntityType="GuessWhoDBModel.MATCH_PLAYER" />
+          <EntitySet Name="TOURNAMENT_4P" EntityType="GuessWhoDBModel.TOURNAMENT_4P" />
+          <AssociationSet Name="FK_MATCH_PLAYER_CHARACTER" Association="GuessWhoDBModel.FK_MATCH_PLAYER_CHARACTER">
+            <End Role="CHARACTER" EntitySet="CHARACTER" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_PLA__USERI__7894BF90" Association="GuessWhoDBModel.FK__MATCH_PLA__USERI__7894BF90">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TOURNAMENT_4P_HOSTUSER" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TOURNAMENT_4P_MATCH_TOURNAMENT" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_TOURNAMENT">
+            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
+            <End Role="TOURNAMENT_4P_MATCH" EntitySet="TOURNAMENT_4P_MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT">
+            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
+            <End Role="TOURNAMENT_4P_PLAYER" EntitySet="TOURNAMENT_4P_PLAYER" />
+          </AssociationSet>
+          <EntitySet Name="MATCH_DECK_CARD" EntityType="GuessWhoDBModel.MATCH_DECK_CARD" />
+          <AssociationSet Name="FK_MATCH_DECK_CARD_CHARACTER" Association="GuessWhoDBModel.FK_MATCH_DECK_CARD_CHARACTER">
+            <End Role="CHARACTER" EntitySet="CHARACTER" />
+            <End Role="MATCH_DECK_CARD" EntitySet="MATCH_DECK_CARD" />
+          </AssociationSet>
+          <EntitySet Name="MATCH" EntityType="GuessWhoDBModel.MATCH" />
+          <EntitySet Name="MATCH_MODE" EntityType="GuessWhoDBModel.MATCH_MODE" />
+          <AssociationSet Name="FK__MATCH__STATUSID__71E7C201" Association="GuessWhoDBModel.FK__MATCH__STATUSID__71E7C201">
+            <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH__VISIBILIT__6FFF798F" Association="GuessWhoDBModel.FK__MATCH__VISIBILIT__6FFF798F">
+            <End Role="MATCHVISIBILITY" EntitySet="MATCHVISIBILITY" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH__WINNERUSE__72DBE63A" Association="GuessWhoDBModel.FK__MATCH__WINNERUSE__72DBE63A">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_INV__MATCH__7E4D98E6" Association="GuessWhoDBModel.FK__MATCH_INV__MATCH__7E4D98E6">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_INVITATION" EntitySet="MATCH_INVITATION" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MATCH_PLA__MATCH__77A09B57" Association="GuessWhoDBModel.FK__MATCH_PLA__MATCH__77A09B57">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK__MODERATIO__MATCH__0AB36FCB" Association="GuessWhoDBModel.FK__MODERATIO__MATCH__0AB36FCB">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MODERATION_ACTION" EntitySet="MODERATION_ACTION" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_DECK_CARD_MATCH" Association="GuessWhoDBModel.FK_MATCH_DECK_CARD_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_DECK_CARD" EntitySet="MATCH_DECK_CARD" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_MATCH_MODE" Association="GuessWhoDBModel.FK_MATCH_MATCH_MODE">
+            <End Role="MATCH_MODE" EntitySet="MATCH_MODE" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_PLAYER_MATCH" Association="GuessWhoDBModel.FK_MATCH_PLAYER_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_PLAYER" EntitySet="MATCH_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_STATUS" Association="GuessWhoDBModel.FK_MATCH_STATUS">
+            <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
+            <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TOURNAMENT_4P_MATCH_MATCH" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="TOURNAMENT_4P_MATCH" EntitySet="TOURNAMENT_4P_MATCH" />
+          </AssociationSet>
+          </EntityContainer>
         <ComplexType Name="sp_helpdiagramdefinition_Result">
           <Property Type="Int32" Name="version" Nullable="true" />
           <Property Type="Binary" Name="definition" Nullable="true" />
@@ -1324,21 +1213,6 @@
           <Property Type="String" Name="Owner" Nullable="true" MaxLength="128" />
           <Property Type="Int32" Name="OwnerID" Nullable="false" />
         </ComplexType>
-        <EntityType Name="TOURNAMENT_4P">
-          <Key>
-            <PropertyRef Name="TOURNAMENTID" />
-          </Key>
-          <Property Name="TOURNAMENTID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="HOSTUSERID" Type="Int64" Nullable="false" />
-          <Property Name="CHARACTERSETID" Type="Int64" />
-          <Property Name="TURNSECONDS" Type="Int32" Nullable="false" />
-          <Property Name="STATUSID" Type="Byte" Nullable="false" />
-          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
-          <NavigationProperty Name="CHARACTER_SET" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_CHARACTERSET" FromRole="TOURNAMENT_4P" ToRole="CHARACTER_SET" />
-          <NavigationProperty Name="TOURNAMENT_4P_MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_TOURNAMENT" FromRole="TOURNAMENT_4P" ToRole="TOURNAMENT_4P_MATCH" />
-          <NavigationProperty Name="TOURNAMENT_4P_PLAYER" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" FromRole="TOURNAMENT_4P" ToRole="TOURNAMENT_4P_PLAYER" />
-          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER" FromRole="TOURNAMENT_4P" ToRole="USER_PROFILE" />
-        </EntityType>
         <EntityType Name="TOURNAMENT_4P_MATCH">
           <Key>
             <PropertyRef Name="TOURNAMENTMATCHID" />
@@ -1348,8 +1222,8 @@
           <Property Name="MATCHID" Type="Int64" Nullable="false" />
           <Property Name="ROUNDNUMBER" Type="Byte" Nullable="false" />
           <Property Name="BRACKETPOSITION" Type="Byte" Nullable="false" />
-          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH" FromRole="TOURNAMENT_4P_MATCH" ToRole="MATCH" />
           <NavigationProperty Name="TOURNAMENT_4P" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_TOURNAMENT" FromRole="TOURNAMENT_4P_MATCH" ToRole="TOURNAMENT_4P" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH" FromRole="TOURNAMENT_4P_MATCH" ToRole="MATCH" />
         </EntityType>
         <EntityType Name="TOURNAMENT_4P_PLAYER">
           <Key>
@@ -1359,57 +1233,9 @@
           <Property Name="TOURNAMENTID" Type="Int32" Nullable="false" />
           <Property Name="USERID" Type="Int64" Nullable="false" />
           <Property Name="SLOTNUMBER" Type="Byte" Nullable="false" />
-          <NavigationProperty Name="TOURNAMENT_4P" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" FromRole="TOURNAMENT_4P_PLAYER" ToRole="TOURNAMENT_4P" />
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_USER" FromRole="TOURNAMENT_4P_PLAYER" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="TOURNAMENT_4P" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" FromRole="TOURNAMENT_4P_PLAYER" ToRole="TOURNAMENT_4P" />
         </EntityType>
-        <Association Name="FK_TOURNAMENT_4P_CHARACTERSET">
-          <End Type="GuessWhoDBModel.CHARACTER_SET" Role="CHARACTER_SET" Multiplicity="0..1" />
-          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="CHARACTER_SET">
-              <PropertyRef Name="CHARACTERSETID" />
-            </Principal>
-            <Dependent Role="TOURNAMENT_4P">
-              <PropertyRef Name="CHARACTERSETID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_TOURNAMENT_4P_MATCH_MATCH">
-          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1" />
-          <End Type="GuessWhoDBModel.TOURNAMENT_4P_MATCH" Role="TOURNAMENT_4P_MATCH" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="MATCH">
-              <PropertyRef Name="MATCHID" />
-            </Principal>
-            <Dependent Role="TOURNAMENT_4P_MATCH">
-              <PropertyRef Name="MATCHID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_TOURNAMENT_4P_MATCH_TOURNAMENT">
-          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="1" />
-          <End Type="GuessWhoDBModel.TOURNAMENT_4P_MATCH" Role="TOURNAMENT_4P_MATCH" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="TOURNAMENT_4P">
-              <PropertyRef Name="TOURNAMENTID" />
-            </Principal>
-            <Dependent Role="TOURNAMENT_4P_MATCH">
-              <PropertyRef Name="TOURNAMENTID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK_TOURNAMENT_4P_PLAYER_TOURNAMENT">
-          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="1" />
-          <End Type="GuessWhoDBModel.TOURNAMENT_4P_PLAYER" Role="TOURNAMENT_4P_PLAYER" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="TOURNAMENT_4P">
-              <PropertyRef Name="TOURNAMENTID" />
-            </Principal>
-            <Dependent Role="TOURNAMENT_4P_PLAYER">
-              <PropertyRef Name="TOURNAMENTID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <EntityType Name="AVATAR">
           <Key>
             <PropertyRef Name="AVATARID" />
@@ -1436,14 +1262,14 @@
           <NavigationProperty Name="FRIEND_REQUEST1" Relationship="GuessWhoDBModel.FK_FR_REQ_REQUESTER" FromRole="USER_PROFILE" ToRole="FRIEND_REQUEST" />
           <NavigationProperty Name="FRIENDSHIP" Relationship="GuessWhoDBModel.FK_FRIENDSHIP_USER1" FromRole="USER_PROFILE" ToRole="FRIENDSHIP" />
           <NavigationProperty Name="FRIENDSHIP1" Relationship="GuessWhoDBModel.FK_FRIENDSHIP_USER2" FromRole="USER_PROFILE" ToRole="FRIENDSHIP" />
-          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK__MATCH__WINNERUSE__72DBE63A" FromRole="USER_PROFILE" ToRole="MATCH" />
           <NavigationProperty Name="MATCH_INVITATION" Relationship="GuessWhoDBModel.FK__MATCH_INV__INVIT__7F41BD1F" FromRole="USER_PROFILE" ToRole="MATCH_INVITATION" />
           <NavigationProperty Name="MATCH_INVITATION1" Relationship="GuessWhoDBModel.FK__MATCH_INV__TARGE__0035E158" FromRole="USER_PROFILE" ToRole="MATCH_INVITATION" />
-          <NavigationProperty Name="MATCH_PLAYER" Relationship="GuessWhoDBModel.FK__MATCH_PLA__USERI__7894BF90" FromRole="USER_PROFILE" ToRole="MATCH_PLAYER" />
           <NavigationProperty Name="MODERATION_ACTION" Relationship="GuessWhoDBModel.FK__MODERATIO__MODER__07D70320" FromRole="USER_PROFILE" ToRole="MODERATION_ACTION" />
           <NavigationProperty Name="MODERATION_ACTION1" Relationship="GuessWhoDBModel.FK__MODERATIO__TARGE__06E2DEE7" FromRole="USER_PROFILE" ToRole="MODERATION_ACTION" />
-          <NavigationProperty Name="TOURNAMENT_4P" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER" FromRole="USER_PROFILE" ToRole="TOURNAMENT_4P" />
           <NavigationProperty Name="TOURNAMENT_4P_PLAYER" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_USER" FromRole="USER_PROFILE" ToRole="TOURNAMENT_4P_PLAYER" />
+          <NavigationProperty Name="MATCH_PLAYER" Relationship="GuessWhoDBModel.FK__MATCH_PLA__USERI__7894BF90" FromRole="USER_PROFILE" ToRole="MATCH_PLAYER" />
+          <NavigationProperty Name="TOURNAMENT_4P" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER" FromRole="USER_PROFILE" ToRole="TOURNAMENT_4P" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK__MATCH__WINNERUSE__72DBE63A" FromRole="USER_PROFILE" ToRole="MATCH" />
         </EntityType>
         <Association Name="FK_ACCOUNT_USER_PROFILE">
           <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
@@ -1517,18 +1343,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK__MATCH__WINNERUSE__72DBE63A">
-          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="0..1" />
-          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="USER_PROFILE">
-              <PropertyRef Name="USERID" />
-            </Principal>
-            <Dependent Role="MATCH">
-              <PropertyRef Name="WINNERUSERID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK__MATCH_INV__INVIT__7F41BD1F">
           <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
           <End Type="GuessWhoDBModel.MATCH_INVITATION" Role="MATCH_INVITATION" Multiplicity="*" />
@@ -1550,18 +1364,6 @@
             </Principal>
             <Dependent Role="MATCH_INVITATION">
               <PropertyRef Name="TARGETUSERID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
-        <Association Name="FK__MATCH_PLA__USERI__7894BF90">
-          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
-          <End Type="GuessWhoDBModel.MATCH_PLAYER" Role="MATCH_PLAYER" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="USER_PROFILE">
-              <PropertyRef Name="USERID" />
-            </Principal>
-            <Dependent Role="MATCH_PLAYER">
-              <PropertyRef Name="USERID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -1589,18 +1391,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK_TOURNAMENT_4P_HOSTUSER">
-          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
-          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="USER_PROFILE">
-              <PropertyRef Name="USERID" />
-            </Principal>
-            <Dependent Role="TOURNAMENT_4P">
-              <PropertyRef Name="HOSTUSERID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK_TOURNAMENT_4P_PLAYER_USER">
           <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
           <End Type="GuessWhoDBModel.TOURNAMENT_4P_PLAYER" Role="TOURNAMENT_4P_PLAYER" Multiplicity="*" />
@@ -1613,7 +1403,306 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-      </Schema>
+        <EntityType Name="CHARACTER">
+          <Key>
+            <PropertyRef Name="CHARACTERID" />
+          </Key>
+          <Property Name="CHARACTERID" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="ISACTIVE" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="MATCH_PLAYER" Relationship="GuessWhoDBModel.FK_MATCH_PLAYER_CHARACTER" FromRole="CHARACTER" ToRole="MATCH_PLAYER" />
+          <NavigationProperty Name="MATCH_DECK_CARD" Relationship="GuessWhoDBModel.FK_MATCH_DECK_CARD_CHARACTER" FromRole="CHARACTER" ToRole="MATCH_DECK_CARD" />
+        </EntityType>
+        <EntityType Name="MATCH_PLAYER">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+            <PropertyRef Name="USERID" />
+          </Key>
+          <Property Name="MATCHID" Type="Int64" Nullable="false" />
+          <Property Name="USERID" Type="Int64" Nullable="false" />
+          <Property Name="SLOTNUMBER" Type="Byte" />
+          <Property Name="ISWINNER" Type="Boolean" Nullable="false" />
+          <Property Name="JOINEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="LEFTATUTC" Type="DateTime" Precision="7" />
+          <Property Name="ISHOST" Type="Boolean" Nullable="false" />
+          <Property Name="ISREADY" Type="Boolean" Nullable="false" />
+          <Property Name="SECRETCHARACTERID" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="CHARACTER" Relationship="GuessWhoDBModel.FK_MATCH_PLAYER_CHARACTER" FromRole="MATCH_PLAYER" ToRole="CHARACTER" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK__MATCH_PLA__USERI__7894BF90" FromRole="MATCH_PLAYER" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH_PLAYER" ToRole="MATCH" />
+          <NavigationProperty Name="MATCH1" Relationship="GuessWhoDBModel.FK_MATCH_PLAYER_MATCH" FromRole="MATCH_PLAYER" ToRole="MATCH" />
+        </EntityType>
+        <EntityType Name="TOURNAMENT_4P">
+          <Key>
+            <PropertyRef Name="TOURNAMENTID" />
+          </Key>
+          <Property Name="TOURNAMENTID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="HOSTUSERID" Type="Int64" Nullable="false" />
+          <Property Name="TURNSECONDS" Type="Int32" Nullable="false" />
+          <Property Name="STATUSID" Type="Byte" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER" FromRole="TOURNAMENT_4P" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="TOURNAMENT_4P_MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_TOURNAMENT" FromRole="TOURNAMENT_4P" ToRole="TOURNAMENT_4P_MATCH" />
+          <NavigationProperty Name="TOURNAMENT_4P_PLAYER" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" FromRole="TOURNAMENT_4P" ToRole="TOURNAMENT_4P_PLAYER" />
+        </EntityType>
+        <Association Name="FK_MATCH_PLAYER_CHARACTER">
+          <End Type="GuessWhoDBModel.CHARACTER" Role="CHARACTER" Multiplicity="0..1" />
+          <End Type="GuessWhoDBModel.MATCH_PLAYER" Role="MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CHARACTER">
+              <PropertyRef Name="CHARACTERID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="SECRETCHARACTERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_PLA__USERI__7894BF90">
+          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_PLAYER" Role="MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TOURNAMENT_4P_HOSTUSER">
+          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="TOURNAMENT_4P">
+              <PropertyRef Name="HOSTUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TOURNAMENT_4P_MATCH_TOURNAMENT">
+          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.TOURNAMENT_4P_MATCH" Role="TOURNAMENT_4P_MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="TOURNAMENT_4P">
+              <PropertyRef Name="TOURNAMENTID" />
+            </Principal>
+            <Dependent Role="TOURNAMENT_4P_MATCH">
+              <PropertyRef Name="TOURNAMENTID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TOURNAMENT_4P_PLAYER_TOURNAMENT">
+          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.TOURNAMENT_4P_PLAYER" Role="TOURNAMENT_4P_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="TOURNAMENT_4P">
+              <PropertyRef Name="TOURNAMENTID" />
+            </Principal>
+            <Dependent Role="TOURNAMENT_4P_PLAYER">
+              <PropertyRef Name="TOURNAMENTID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="MATCH_DECK_CARD">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+            <PropertyRef Name="POSITION" />
+          </Key>
+          <Property Name="MATCHID" Type="Int64" Nullable="false" />
+          <Property Name="POSITION" Type="Int32" Nullable="false" />
+          <Property Name="CHARACTERID" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <NavigationProperty Name="CHARACTER" Relationship="GuessWhoDBModel.FK_MATCH_DECK_CARD_CHARACTER" FromRole="MATCH_DECK_CARD" ToRole="CHARACTER" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_MATCH_DECK_CARD_MATCH" FromRole="MATCH_DECK_CARD" ToRole="MATCH" />
+        </EntityType>
+        <Association Name="FK_MATCH_DECK_CARD_CHARACTER">
+          <End Type="GuessWhoDBModel.CHARACTER" Role="CHARACTER" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_DECK_CARD" Role="MATCH_DECK_CARD" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="CHARACTER">
+              <PropertyRef Name="CHARACTERID" />
+            </Principal>
+            <Dependent Role="MATCH_DECK_CARD">
+              <PropertyRef Name="CHARACTERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="MATCH">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+          </Key>
+          <Property Name="MATCHID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="VISIBILITYID" Type="Byte" Nullable="false" />
+          <Property Name="STATUSID" Type="Byte" Nullable="false" />
+          <Property Name="MATCHCODE" Type="String" Nullable="false" MaxLength="10" FixedLength="false" Unicode="true" />
+          <Property Name="STARTTIME" Type="DateTime" Precision="7" />
+          <Property Name="ENDTIME" Type="DateTime" Precision="7" />
+          <Property Name="WINNERUSERID" Type="Int64" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="MODEID" Type="Byte" Nullable="false" />
+          <NavigationProperty Name="MATCHSTATUS" Relationship="GuessWhoDBModel.FK__MATCH__STATUSID__71E7C201" FromRole="MATCH" ToRole="MATCHSTATUS" />
+          <NavigationProperty Name="MATCHVISIBILITY" Relationship="GuessWhoDBModel.FK__MATCH__VISIBILIT__6FFF798F" FromRole="MATCH" ToRole="MATCHVISIBILITY" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK__MATCH__WINNERUSE__72DBE63A" FromRole="MATCH" ToRole="USER_PROFILE" />
+          <NavigationProperty Name="MATCH_INVITATION" Relationship="GuessWhoDBModel.FK__MATCH_INV__MATCH__7E4D98E6" FromRole="MATCH" ToRole="MATCH_INVITATION" />
+          <NavigationProperty Name="MATCH_PLAYER" Relationship="GuessWhoDBModel.FK__MATCH_PLA__MATCH__77A09B57" FromRole="MATCH" ToRole="MATCH_PLAYER" />
+          <NavigationProperty Name="MODERATION_ACTION" Relationship="GuessWhoDBModel.FK__MODERATIO__MATCH__0AB36FCB" FromRole="MATCH" ToRole="MODERATION_ACTION" />
+          <NavigationProperty Name="MATCH_DECK_CARD" Relationship="GuessWhoDBModel.FK_MATCH_DECK_CARD_MATCH" FromRole="MATCH" ToRole="MATCH_DECK_CARD" />
+          <NavigationProperty Name="MATCH_MODE" Relationship="GuessWhoDBModel.FK_MATCH_MATCH_MODE" FromRole="MATCH" ToRole="MATCH_MODE" />
+          <NavigationProperty Name="MATCH_PLAYER1" Relationship="GuessWhoDBModel.FK_MATCH_PLAYER_MATCH" FromRole="MATCH" ToRole="MATCH_PLAYER" />
+          <NavigationProperty Name="MATCHSTATUS1" Relationship="GuessWhoDBModel.FK_MATCH_STATUS" FromRole="MATCH" ToRole="MATCHSTATUS" />
+          <NavigationProperty Name="TOURNAMENT_4P_MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH" FromRole="MATCH" ToRole="TOURNAMENT_4P_MATCH" />
+        </EntityType>
+        <EntityType Name="MATCH_MODE">
+          <Key>
+            <PropertyRef Name="MODEID" />
+          </Key>
+          <Property Name="MODEID" Type="Byte" Nullable="false" />
+          <Property Name="NAME" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="DESCRIPTION" Type="String" MaxLength="200" FixedLength="false" Unicode="true" />
+          <Property Name="DEFAULT_DECK_SIZE" Type="Int32" Nullable="false" />
+          <Property Name="DEFAULT_TURN_TIME_SEC" Type="Int32" Nullable="false" />
+          <Property Name="DEFAULT_MATCH_DURATION_SEC" Type="Int32" />
+          <Property Name="DEFAULT_MAX_PLAYERS" Type="Byte" Nullable="false" />
+          <Property Name="IS_ACTIVE" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_MATCH_MATCH_MODE" FromRole="MATCH_MODE" ToRole="MATCH" />
+        </EntityType>
+        <Association Name="FK__MATCH__STATUSID__71E7C201">
+          <End Type="GuessWhoDBModel.MATCHSTATUS" Role="MATCHSTATUS" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHSTATUS">
+              <PropertyRef Name="STATUSID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH__VISIBILIT__6FFF798F">
+          <End Type="GuessWhoDBModel.MATCHVISIBILITY" Role="MATCHVISIBILITY" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHVISIBILITY">
+              <PropertyRef Name="VISIBILITYID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="VISIBILITYID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH__WINNERUSE__72DBE63A">
+          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="0..1" />
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="WINNERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_INV__MATCH__7E4D98E6">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="GuessWhoDBModel.MATCH_INVITATION" Role="MATCH_INVITATION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_INVITATION">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MATCH_PLA__MATCH__77A09B57">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1">
+            <OnDelete Action="Cascade" />
+          </End>
+          <End Type="GuessWhoDBModel.MATCH_PLAYER" Role="MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK__MODERATIO__MATCH__0AB36FCB">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="0..1" />
+          <End Type="GuessWhoDBModel.MODERATION_ACTION" Role="MODERATION_ACTION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MODERATION_ACTION">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_DECK_CARD_MATCH">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_DECK_CARD" Role="MATCH_DECK_CARD" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_DECK_CARD">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_MATCH_MODE">
+          <End Type="GuessWhoDBModel.MATCH_MODE" Role="MATCH_MODE" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH_MODE">
+              <PropertyRef Name="MODEID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="MODEID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_PLAYER_MATCH">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_PLAYER" Role="MATCH_PLAYER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_PLAYER">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_STATUS">
+          <End Type="GuessWhoDBModel.MATCHSTATUS" Role="MATCHSTATUS" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCHSTATUS">
+              <PropertyRef Name="STATUSID" />
+            </Principal>
+            <Dependent Role="MATCH">
+              <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_TOURNAMENT_4P_MATCH_MATCH">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.TOURNAMENT_4P_MATCH" Role="TOURNAMENT_4P_MATCH" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="TOURNAMENT_4P_MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
     <edmx:Mappings>
@@ -1634,27 +1723,6 @@
                 <ScalarProperty Name="LOCKEDUNTILUTC" ColumnName="LOCKEDUNTILUTC" />
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
                 <ScalarProperty Name="UPDATEDATUTC" ColumnName="UPDATEDATUTC" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
-          <EntitySetMapping Name="CHARACTER">
-            <EntityTypeMapping TypeName="GuessWhoDBModel.CHARACTER">
-              <MappingFragment StoreEntitySet="CHARACTER">
-                <ScalarProperty Name="CHARACTERID" ColumnName="CHARACTERID" />
-                <ScalarProperty Name="CHARACTERSETID" ColumnName="CHARACTERSETID" />
-                <ScalarProperty Name="DISPLAYNAME" ColumnName="DISPLAYNAME" />
-                <ScalarProperty Name="IMAGEURL" ColumnName="IMAGEURL" />
-                <ScalarProperty Name="ISACTIVE" ColumnName="ISACTIVE" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
-          <EntitySetMapping Name="CHARACTER_SET">
-            <EntityTypeMapping TypeName="GuessWhoDBModel.CHARACTER_SET">
-              <MappingFragment StoreEntitySet="CHARACTER_SET">
-                <ScalarProperty Name="CHARACTERSETID" ColumnName="CHARACTERSETID" />
-                <ScalarProperty Name="NAME" ColumnName="NAME" />
-                <ScalarProperty Name="ISACTIVE" ColumnName="ISACTIVE" />
-                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
@@ -1703,21 +1771,6 @@
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
-          <EntitySetMapping Name="MATCH">
-            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH">
-              <MappingFragment StoreEntitySet="MATCH">
-                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
-                <ScalarProperty Name="VISIBILITYID" ColumnName="VISIBILITYID" />
-                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
-                <ScalarProperty Name="MODE" ColumnName="MODE" />
-                <ScalarProperty Name="MATCHCODE" ColumnName="MATCHCODE" />
-                <ScalarProperty Name="STARTTIME" ColumnName="STARTTIME" />
-                <ScalarProperty Name="ENDTIME" ColumnName="ENDTIME" />
-                <ScalarProperty Name="WINNERUSERID" ColumnName="WINNERUSERID" />
-                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
           <EntitySetMapping Name="MATCH_INVITATION">
             <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_INVITATION">
               <MappingFragment StoreEntitySet="MATCH_INVITATION">
@@ -1730,20 +1783,6 @@
                 <ScalarProperty Name="INVITATIONSTATUS" ColumnName="INVITATIONSTATUS" />
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
                 <ScalarProperty Name="RESPONDEDATUTC" ColumnName="RESPONDEDATUTC" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
-          <EntitySetMapping Name="MATCH_PLAYER">
-            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_PLAYER">
-              <MappingFragment StoreEntitySet="MATCH_PLAYER">
-                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
-                <ScalarProperty Name="USERID" ColumnName="USERID" />
-                <ScalarProperty Name="SLOTNUMBER" ColumnName="SLOTNUMBER" />
-                <ScalarProperty Name="ISWINNER" ColumnName="ISWINNER" />
-                <ScalarProperty Name="JOINEDATUTC" ColumnName="JOINEDATUTC" />
-                <ScalarProperty Name="LEFTATUTC" ColumnName="LEFTATUTC" />
-                <ScalarProperty Name="ISHOST" ColumnName="ISHOST" />
-                <ScalarProperty Name="ISREADY" ColumnName="ISREADY" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
@@ -1832,18 +1871,6 @@
           </FunctionImportMapping>
           <FunctionImportMapping FunctionImportName="sp_renamediagram" FunctionName="GuessWhoDBModel.Store.sp_renamediagram" />
           <FunctionImportMapping FunctionImportName="sp_upgraddiagrams" FunctionName="GuessWhoDBModel.Store.sp_upgraddiagrams" />
-          <EntitySetMapping Name="TOURNAMENT_4P">
-            <EntityTypeMapping TypeName="GuessWhoDBModel.TOURNAMENT_4P">
-              <MappingFragment StoreEntitySet="TOURNAMENT_4P">
-                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
-                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
-                <ScalarProperty Name="TURNSECONDS" ColumnName="TURNSECONDS" />
-                <ScalarProperty Name="CHARACTERSETID" ColumnName="CHARACTERSETID" />
-                <ScalarProperty Name="HOSTUSERID" ColumnName="HOSTUSERID" />
-                <ScalarProperty Name="TOURNAMENTID" ColumnName="TOURNAMENTID" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
           <EntitySetMapping Name="TOURNAMENT_4P_MATCH">
             <EntityTypeMapping TypeName="GuessWhoDBModel.TOURNAMENT_4P_MATCH">
               <MappingFragment StoreEntitySet="TOURNAMENT_4P_MATCH">
@@ -1886,6 +1913,78 @@
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
+          <EntitySetMapping Name="CHARACTER">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.CHARACTER">
+              <MappingFragment StoreEntitySet="CHARACTER">
+                <ScalarProperty Name="ISACTIVE" ColumnName="ISACTIVE" />
+                <ScalarProperty Name="CHARACTERID" ColumnName="CHARACTERID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH_PLAYER">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_PLAYER">
+              <MappingFragment StoreEntitySet="MATCH_PLAYER">
+                <ScalarProperty Name="SECRETCHARACTERID" ColumnName="SECRETCHARACTERID" />
+                <ScalarProperty Name="ISREADY" ColumnName="ISREADY" />
+                <ScalarProperty Name="ISHOST" ColumnName="ISHOST" />
+                <ScalarProperty Name="LEFTATUTC" ColumnName="LEFTATUTC" />
+                <ScalarProperty Name="JOINEDATUTC" ColumnName="JOINEDATUTC" />
+                <ScalarProperty Name="ISWINNER" ColumnName="ISWINNER" />
+                <ScalarProperty Name="SLOTNUMBER" ColumnName="SLOTNUMBER" />
+                <ScalarProperty Name="USERID" ColumnName="USERID" />
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="TOURNAMENT_4P">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.TOURNAMENT_4P">
+              <MappingFragment StoreEntitySet="TOURNAMENT_4P">
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
+                <ScalarProperty Name="TURNSECONDS" ColumnName="TURNSECONDS" />
+                <ScalarProperty Name="HOSTUSERID" ColumnName="HOSTUSERID" />
+                <ScalarProperty Name="TOURNAMENTID" ColumnName="TOURNAMENTID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH_DECK_CARD">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_DECK_CARD">
+              <MappingFragment StoreEntitySet="MATCH_DECK_CARD">
+                <ScalarProperty Name="CHARACTERID" ColumnName="CHARACTERID" />
+                <ScalarProperty Name="POSITION" ColumnName="POSITION" />
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH">
+              <MappingFragment StoreEntitySet="MATCH">
+                <ScalarProperty Name="MODEID" ColumnName="MODEID" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="WINNERUSERID" ColumnName="WINNERUSERID" />
+                <ScalarProperty Name="ENDTIME" ColumnName="ENDTIME" />
+                <ScalarProperty Name="STARTTIME" ColumnName="STARTTIME" />
+                <ScalarProperty Name="MATCHCODE" ColumnName="MATCHCODE" />
+                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
+                <ScalarProperty Name="VISIBILITYID" ColumnName="VISIBILITYID" />
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH_MODE">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_MODE">
+              <MappingFragment StoreEntitySet="MATCH_MODE">
+                <ScalarProperty Name="IS_ACTIVE" ColumnName="IS_ACTIVE" />
+                <ScalarProperty Name="DEFAULT_MAX_PLAYERS" ColumnName="DEFAULT_MAX_PLAYERS" />
+                <ScalarProperty Name="DEFAULT_MATCH_DURATION_SEC" ColumnName="DEFAULT_MATCH_DURATION_SEC" />
+                <ScalarProperty Name="DEFAULT_TURN_TIME_SEC" ColumnName="DEFAULT_TURN_TIME_SEC" />
+                <ScalarProperty Name="DEFAULT_DECK_SIZE" ColumnName="DEFAULT_DECK_SIZE" />
+                <ScalarProperty Name="DESCRIPTION" ColumnName="DESCRIPTION" />
+                <ScalarProperty Name="NAME" ColumnName="NAME" />
+                <ScalarProperty Name="MODEID" ColumnName="MODEID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
         </EntityContainerMapping>
       </Mapping>
     </edmx:Mappings>
@@ -1901,7 +2000,7 @@
       <DesignerInfoPropertySet>
         <DesignerProperty Name="ValidateOnBuild" Value="true" />
         <DesignerProperty Name="EnablePluralization" Value="false" />
-        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="True" />
         <DesignerProperty Name="UseLegacyProvider" Value="false" />
         <DesignerProperty Name="CodeGenerationStrategy" Value="Ninguno" />
       </DesignerInfoPropertySet>

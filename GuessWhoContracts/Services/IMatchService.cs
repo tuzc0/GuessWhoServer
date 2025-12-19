@@ -9,16 +9,7 @@ namespace GuessWhoContracts.Services
     {
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
-        void SusbcribeLobby(long matchId);
-
-        [OperationContract]
-        [FaultContract(typeof(ServiceFault))]
-        void UnsusbcribeLobby(long matchId);
-
-        [OperationContract]
-        [FaultContract(typeof(ServiceFault))]
-
-        CreateMatchResponse CreateMatch(CreateMatchRequest request);
+        CreateMatchResponse CreateMatch(CreateMatchRequest request); 
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
@@ -35,5 +26,25 @@ namespace GuessWhoContracts.Services
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
         BasicResponse StartMatch(StartMatchRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        BasicResponse EndMatch(EndMatchRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        BasicResponse ChooseSecretCharacter(ChooseSecretCharacterRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        MatchDeckResponse GetMatchDeck(GetMatchDeckRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        void SubscribeLobby(long matchId);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        void UnsubscribeLobby(long matchId);
     }
 }

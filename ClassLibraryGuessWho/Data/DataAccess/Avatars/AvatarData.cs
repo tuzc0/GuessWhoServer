@@ -1,11 +1,20 @@
 ﻿using GuessWhoContracts.Dtos.Dto;
 using System.Collections.Generic;
 using System.Linq;
+using System; 
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Avatars
 {
     public class AvatarData
     {
+        private readonly GuessWhoDBEntities dataBaseContext; 
+
+        public AvatarData (GuessWhoDBEntities dataBaseContext)
+        {
+            this.dataBaseContext = dataBaseContext ??
+                throw new ArgumentNullException(nameof(dataBaseContext));
+        }
+
         public List<AvatarDto> GetActiveAvatars()
         {
             using (var dataBaseContext = new GuessWhoDBEntities())
@@ -16,8 +25,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Avatars
                     {
                         AvatarId = a.AVATARID,
                         Name = a.NAME,
-                        isDefault = a.ISDEFAULT,
-                        isActive = a.ISACTIVE
+                        IsDefault = a.ISDEFAULT,
+                        IsActive = a.ISACTIVE
                     })
                     .ToList();
             } 
@@ -33,6 +42,5 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Avatars
                 return defaultAvatar?.AVATARID;
             }
         }
-
     }
 }

@@ -8,5 +8,4 @@
         PlayerAlreadyLeft = 3,
         TechnicalError = 99
     }
-
 }

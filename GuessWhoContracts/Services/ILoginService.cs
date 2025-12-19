@@ -10,5 +10,9 @@ namespace GuessWhoContracts.Services
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
         LoginResponse LoginUser(LoginRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        BasicResponse LogoutUser(LogoutRequest request);
     }
 }

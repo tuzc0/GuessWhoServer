@@ -14,12 +14,19 @@ namespace ClassLibraryGuessWho.Data
     
     public partial class CHARACTER
     {
-        public long CHARACTERID { get; set; }
-        public long CHARACTERSETID { get; set; }
-        public string DISPLAYNAME { get; set; }
-        public string IMAGEURL { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
+        public CHARACTER()
+        {
+            this.MATCH_PLAYER = new HashSet<MATCH_PLAYER>();
+            this.MATCH_DECK_CARD = new HashSet<MATCH_DECK_CARD>();
+        }
+    
+        public string CHARACTERID { get; set; }
         public bool ISACTIVE { get; set; }
     
-        public virtual CHARACTER_SET CHARACTER_SET { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_PLAYER> MATCH_PLAYER { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_DECK_CARD> MATCH_DECK_CARD { get; set; }
     }
 }

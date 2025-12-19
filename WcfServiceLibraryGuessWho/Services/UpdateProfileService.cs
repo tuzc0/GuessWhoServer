@@ -4,19 +4,21 @@ using ClassLibraryGuessWho.Data.Helpers;
 using GuessWho.Services.WCF.Security;
 using GuessWhoContracts.Dtos.Dto;
 using GuessWhoContracts.Dtos.RequestAndResponse;
+using GuessWhoContracts.Enums;
 using GuessWhoContracts.Faults;
 using GuessWhoContracts.Services;
 using log4net;
 using System;
+using System.Data.Entity.Infrastructure;
 using System.ServiceModel;
 
 namespace GuessWho.Services.WCF.Services
 {
-    [ServiceBehavior(IncludeExceptionDetailInFaults = false)]
+    [ServiceBehavior(IncludeExceptionDetailInFaults = false, InstanceContextMode = InstanceContextMode.Single)]
     public class UpdateProfileService : IUpdateProfileService
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(UpdateProfileService));
-        private readonly UserAccountData userAccountData = new UserAccountData();
+        private readonly UserAccountData userAccountData;
 
         private const string FAULT_CODE_REQUEST_NULL = "PROFILE_REQUEST_NULL";
         private const string FAULT_CODE_USER_ID_INVALID = "PROFILE_USER_ID_INVALID";
@@ -53,7 +55,28 @@ namespace GuessWho.Services.WCF.Services
         private const string FAULT_MESSAGE_PROFILE_DELETE_FAILED =
             "We could not delete your profile. Please try again later.";
 
+        private const string LOG_DB_TIMEOUT_GET_PROFILE = "Database command timeout while loading profile.";
+        private const string LOG_DB_CONNECTION_GET_PROFILE = "Database connection failure while loading profile.";
+        private const string LOG_DB_UNEXPECTED_GET_PROFILE = "Unexpected DB error while loading profile.";
+        private const string LOG_UNEXPECTED_GET_PROFILE = "Unexpected error in GetProfile.";
+
+        private const string LOG_DB_TIMEOUT_UPDATE_PROFILE = "Database command timeout while updating profile.";
+        private const string LOG_DB_CONNECTION_UPDATE_PROFILE = "Database connection failure while updating profile.";
+        private const string LOG_DB_UNEXPECTED_UPDATE_PROFILE = "Unexpected DB error while updating profile.";
+        private const string LOG_UNEXPECTED_UPDATE_PROFILE = "Unexpected error in UpdateUserProfile.";
+
+        private const string LOG_DB_TIMEOUT_DELETE_PROFILE = "Database command timeout while deleting profile.";
+        private const string LOG_DB_CONNECTION_DELETE_PROFILE = "Database connection failure while deleting profile.";
+        private const string LOG_DB_UNEXPECTED_DELETE_PROFILE = "Unexpected DB error while deleting profile.";
+        private const string LOG_UNEXPECTED_DELETE_PROFILE = "Unexpected error in DeleteUserProfile.";
+
         private const long INVALID_USER_ID = 0;
+
+        public UpdateProfileService(UserAccountData userAccountData)
+        {
+            this.userAccountData = userAccountData ?? 
+                throw new ArgumentNullException(nameof(userAccountData));
+        }
 
         public GetProfileResponse GetProfile(GetProfileRequest request)
         {
@@ -91,29 +114,13 @@ namespace GuessWho.Services.WCF.Services
             {
                 throw;
             }
-            catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
-            {
-                Logger.Fatal("Database command timeout while loading profile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
-                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT, 
-                    ex);
+            catch (DbUpdateException ex) 
+            { 
+                return HandleDatabaseExceptionForGetProfile(ex); 
             }
-            catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
-            {
-                Logger.Fatal("Database connection failure while loading profile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_DATABASE_CONNECTION_FAILURE,
-                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE, 
-                    ex);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Unexpected error in GetProfile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_UNEXPECTED_GET_PROFILE_ERROR,
-                    FAULT_MESSAGE_UNEXPECTED_GET_PROFILE_ERROR, 
-                    ex);
+            catch (Exception ex) 
+            { 
+                return HandleInfrastructureExceptionForGetProfile(ex); 
             }
         }
 
@@ -160,32 +167,16 @@ namespace GuessWho.Services.WCF.Services
                 };
             }
             catch (FaultException<ServiceFault>)
-            {
-                throw;
+            { 
+                throw; 
             }
-            catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
-            {
-                Logger.Fatal("Database command timeout while updating profile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
-                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
-                    ex);
+            catch (DbUpdateException ex) 
+            { 
+                return HandleDatabaseExceptionForUpdateProfile(ex); 
             }
-            catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
-            {
-                Logger.Fatal("Database connection failure while updating profile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_DATABASE_CONNECTION_FAILURE,
-                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
-                    ex);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Unexpected error in UpdateUserProfile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_UNEXPECTED_ERROR,
-                    FAULT_MESSAGE_UNEXPECTED_UPDATE_PROFILE_ERROR,
-                    ex);
+            catch (Exception ex) 
+            { 
+                return HandleInfrastructureExceptionForUpdateProfile(ex); 
             }
         }
 
@@ -228,29 +219,13 @@ namespace GuessWho.Services.WCF.Services
             {
                 throw;
             }
-            catch (Exception ex) when (SqlExceptionInspector.IsCommandTimeout(ex))
-            {
-                Logger.Fatal("Database command timeout while deleting profile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
-                    FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
-                    ex);
-            }
-            catch (Exception ex) when (SqlExceptionInspector.IsConnectionFailure(ex))
-            {
-                Logger.Fatal("Database connection failure while deleting profile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_DATABASE_CONNECTION_FAILURE,
-                    FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
-                    ex);
+            catch (DbUpdateException ex) 
+            { 
+                return HandleDatabaseExceptionForDeleteProfile(ex);
             }
             catch (Exception ex)
-            {
-                Logger.Error("Unexpected error in DeleteUserProfile.", ex);
-                throw Faults.Create(
-                    FAULT_CODE_UNEXPECTED_ERROR,
-                    FAULT_MESSAGE_UNEXPECTED_UPDATE_PROFILE_ERROR,
-                    ex);
+            { 
+                return HandleInfrastructureExceptionForDeleteProfile(ex); 
             }
         }
 
@@ -299,7 +274,7 @@ namespace GuessWho.Services.WCF.Services
                 Email = string.Empty
             };
 
-            var result = userAccountData.TryGetAccountWithProfile(args);
+            var result = userAccountData.TryGetAccountWithProfileForUpdate(args);
             var account = result.account;
             var profile = result.profile;
 
@@ -338,6 +313,198 @@ namespace GuessWho.Services.WCF.Services
             }
 
             return PasswordHasher.HashPassword(request.NewPasswordPlain);
+        }
+
+        private GetProfileResponse HandleDatabaseExceptionForGetProfile(DbUpdateException ex)
+        {
+            var errorInfo = SqlExceptionInspector.Inspect(ex);
+
+            if (errorInfo.HasSqlException)
+            {
+                switch (errorInfo.Kind)
+                {
+                    case SqlErrorKind.Timeout:
+                        Logger.Fatal(LOG_DB_TIMEOUT_GET_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
+                            FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
+                            ex);
+
+                    case SqlErrorKind.ConnectionFailure:
+                    case SqlErrorKind.DatabaseNotFound:
+                        Logger.Fatal(LOG_DB_CONNECTION_GET_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_CONNECTION_FAILURE,
+                            FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                            ex);
+                }
+            }
+
+            Logger.Fatal(LOG_DB_UNEXPECTED_GET_PROFILE, ex);
+            throw Faults.Create(
+                FAULT_CODE_UNEXPECTED_GET_PROFILE_ERROR,
+                FAULT_MESSAGE_UNEXPECTED_GET_PROFILE_ERROR,
+                ex);
+        }
+
+        private GetProfileResponse HandleInfrastructureExceptionForGetProfile(Exception ex)
+        {
+            var errorInfo = SqlExceptionInspector.Inspect(ex);
+
+            if (errorInfo.HasSqlException)
+            {
+                switch (errorInfo.Kind)
+                {
+                    case SqlErrorKind.Timeout:
+                        Logger.Fatal(LOG_DB_TIMEOUT_GET_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
+                            FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
+                            ex);
+
+                    case SqlErrorKind.ConnectionFailure:
+                    case SqlErrorKind.DatabaseNotFound:
+                        Logger.Fatal(LOG_DB_CONNECTION_GET_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_CONNECTION_FAILURE,
+                            FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                            ex);
+                }
+            }
+
+            Logger.Error(LOG_UNEXPECTED_GET_PROFILE, ex);
+            throw Faults.Create(
+                FAULT_CODE_UNEXPECTED_GET_PROFILE_ERROR,
+                FAULT_MESSAGE_UNEXPECTED_GET_PROFILE_ERROR,
+                ex);
+        }
+
+        private UpdateProfileResponse HandleDatabaseExceptionForUpdateProfile(DbUpdateException ex)
+        {
+            var errorInfo = SqlExceptionInspector.Inspect(ex);
+
+            if (errorInfo.HasSqlException)
+            {
+                switch (errorInfo.Kind)
+                {
+                    case SqlErrorKind.Timeout:
+                        Logger.Fatal(LOG_DB_TIMEOUT_UPDATE_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
+                            FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
+                            ex);
+
+                    case SqlErrorKind.ConnectionFailure:
+                    case SqlErrorKind.DatabaseNotFound:
+                        Logger.Fatal(LOG_DB_CONNECTION_UPDATE_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_CONNECTION_FAILURE,
+                            FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                            ex);
+                }
+            }
+
+            Logger.Fatal(LOG_DB_UNEXPECTED_UPDATE_PROFILE, ex);
+            throw Faults.Create(
+                FAULT_CODE_UNEXPECTED_ERROR,
+                FAULT_MESSAGE_UNEXPECTED_UPDATE_PROFILE_ERROR,
+                ex);
+        }
+
+        private UpdateProfileResponse HandleInfrastructureExceptionForUpdateProfile(Exception ex)
+        {
+            var errorInfo = SqlExceptionInspector.Inspect(ex);
+
+            if (errorInfo.HasSqlException)
+            {
+                switch (errorInfo.Kind)
+                {
+                    case SqlErrorKind.Timeout:
+                        Logger.Fatal(LOG_DB_TIMEOUT_UPDATE_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
+                            FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
+                            ex);
+
+                    case SqlErrorKind.ConnectionFailure:
+                    case SqlErrorKind.DatabaseNotFound:
+                        Logger.Fatal(LOG_DB_CONNECTION_UPDATE_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_CONNECTION_FAILURE,
+                            FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                            ex);
+                }
+            }
+
+            Logger.Error(LOG_UNEXPECTED_UPDATE_PROFILE, ex);
+            throw Faults.Create(
+                FAULT_CODE_UNEXPECTED_ERROR,
+                FAULT_MESSAGE_UNEXPECTED_UPDATE_PROFILE_ERROR,
+                ex);
+        }
+
+        private BasicResponse HandleDatabaseExceptionForDeleteProfile(DbUpdateException ex)
+        {
+            var errorInfo = SqlExceptionInspector.Inspect(ex);
+
+            if (errorInfo.HasSqlException)
+            {
+                switch (errorInfo.Kind)
+                {
+                    case SqlErrorKind.Timeout:
+                        Logger.Fatal(LOG_DB_TIMEOUT_DELETE_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
+                            FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
+                            ex);
+
+                    case SqlErrorKind.ConnectionFailure:
+                    case SqlErrorKind.DatabaseNotFound:
+                        Logger.Fatal(LOG_DB_CONNECTION_DELETE_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_CONNECTION_FAILURE,
+                            FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                            ex);
+                }
+            }
+
+            Logger.Fatal(LOG_DB_UNEXPECTED_DELETE_PROFILE, ex);
+            throw Faults.Create(
+                FAULT_CODE_UNEXPECTED_ERROR,
+                FAULT_MESSAGE_UNEXPECTED_UPDATE_PROFILE_ERROR,
+                ex);
+        }
+
+        private BasicResponse HandleInfrastructureExceptionForDeleteProfile(Exception ex)
+        {
+            var errorInfo = SqlExceptionInspector.Inspect(ex);
+
+            if (errorInfo.HasSqlException)
+            {
+                switch (errorInfo.Kind)
+                {
+                    case SqlErrorKind.Timeout:
+                        Logger.Fatal(LOG_DB_TIMEOUT_DELETE_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_COMMAND_TIMEOUT,
+                            FAULT_MESSAGE_DATABASE_COMMAND_TIMEOUT,
+                            ex);
+
+                    case SqlErrorKind.ConnectionFailure:
+                    case SqlErrorKind.DatabaseNotFound:
+                        Logger.Fatal(LOG_DB_CONNECTION_DELETE_PROFILE, ex);
+                        throw Faults.Create(
+                            FAULT_CODE_DATABASE_CONNECTION_FAILURE,
+                            FAULT_MESSAGE_DATABASE_CONNECTION_FAILURE,
+                            ex);
+                }
+            }
+
+            Logger.Error(LOG_UNEXPECTED_DELETE_PROFILE, ex);
+            throw Faults.Create(
+                FAULT_CODE_UNEXPECTED_ERROR,
+                FAULT_MESSAGE_UNEXPECTED_UPDATE_PROFILE_ERROR,
+                ex);
         }
     }
 }

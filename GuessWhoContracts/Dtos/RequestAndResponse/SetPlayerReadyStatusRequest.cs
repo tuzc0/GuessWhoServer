@@ -5,7 +5,7 @@ namespace GuessWhoContracts.Dtos.RequestAndResponse
     [DataContract]
     public class SetPlayerReadyStatusRequest
     {
-        [DataMember] public int MatchId { get; set; }
+        [DataMember] public long MatchId { get; set; }
         [DataMember] public long UserId { get; set; }
         [DataMember] public bool IsReady { get; set; }
     }

@@ -12,23 +12,24 @@ namespace ClassLibraryGuessWho.Data
     using System;
     using System.Collections.Generic;
     
-    public partial class CHARACTER_SET
+    public partial class MATCH_MODE
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public CHARACTER_SET()
+        public MATCH_MODE()
         {
-            this.CHARACTER = new HashSet<CHARACTER>();
-            this.TOURNAMENT_4P = new HashSet<TOURNAMENT_4P>();
+            this.MATCH = new HashSet<MATCH>();
         }
     
-        public long CHARACTERSETID { get; set; }
+        public byte MODEID { get; set; }
         public string NAME { get; set; }
-        public bool ISACTIVE { get; set; }
-        public System.DateTime CREATEDATUTC { get; set; }
+        public string DESCRIPTION { get; set; }
+        public int DEFAULT_DECK_SIZE { get; set; }
+        public int DEFAULT_TURN_TIME_SEC { get; set; }
+        public Nullable<int> DEFAULT_MATCH_DURATION_SEC { get; set; }
+        public byte DEFAULT_MAX_PLAYERS { get; set; }
+        public bool IS_ACTIVE { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<CHARACTER> CHARACTER { get; set; }
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
+        public virtual ICollection<MATCH> MATCH { get; set; }
     }
 }

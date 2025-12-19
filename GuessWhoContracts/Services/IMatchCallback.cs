@@ -3,6 +3,7 @@ using System.ServiceModel;
 
 namespace GuessWhoContracts.Services
 {
+    [ServiceContract]
     public interface IMatchCallback
     {
         [OperationContract(IsOneWay = true)]
@@ -13,5 +14,17 @@ namespace GuessWhoContracts.Services
 
         [OperationContract(IsOneWay = true)]
         void OnReadyChanged(LobbyPlayerDto player);
+
+        [OperationContract(IsOneWay = true)]
+        void OnSecretCharacterChosen(long matchId, long userId);
+
+        [OperationContract(IsOneWay = true)]
+        void OnAllSecretCharactersChosen(long matchId);
+
+        [OperationContract(IsOneWay = true)]
+        void OnGameStarted(long matchId);
+
+        [OperationContract(IsOneWay = true)]
+        void OnGameEnded(long matchId, long winnerUserId);
     }
 }

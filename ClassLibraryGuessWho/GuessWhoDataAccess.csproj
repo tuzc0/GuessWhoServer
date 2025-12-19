@@ -68,22 +68,29 @@
     <Compile Include="Data\CHARACTER.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
-    <Compile Include="Data\CHARACTER_SET.cs">
-      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
-    </Compile>
     <Compile Include="Data\DataAccess\Accounts\Parameters\CreateAccountArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\Parameters\AccountSearchParameters.cs" />
     <Compile Include="Data\DataAccess\Accounts\Parameters\UpdateAccountArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\UserAccountData.cs" />
     <Compile Include="Data\DataAccess\Avatars\AvatarData.cs" />
+    <Compile Include="Data\DataAccess\Characters\CharacterData.cs" />
+    <Compile Include="Data\DataAccess\Characters\CharacterDeckData.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\Parameters\CreateEmailTokenArgs.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationData.cs" />
+    <Compile Include="Data\DataAccess\EmailVerification\Parameters\ExpireTokensArgs.cs" />
+    <Compile Include="Data\DataAccess\EmailVerification\Parameters\IncrementFailedAttemptArgs.cs" />
+    <Compile Include="Data\DataAccess\EmailVerification\Parameters\ResendLimitsQuery.cs" />
     <Compile Include="Data\DataAccess\Friends\FriendshipData.cs" />
-    <Compile Include="Data\DataAccess\Match\Parameters\CreateMatchArgs.cs" />
-    <Compile Include="Data\DataAccess\Match\Parameters\CreateTournamentMatchArgs.cs" />
-    <Compile Include="Data\DataAccess\Match\Parameters\JoinMatchArgs.cs" />
-    <Compile Include="Data\DataAccess\Match\MatchData.cs" />
-    <Compile Include="Data\DataAccess\Match\Parameters\LeaveMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.Helpers.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.Lobby.cs" />
+    <Compile Include="Data\DataAccess\Matches\Parameters\ChooseSecretCharacterArgs.cs" />
+    <Compile Include="Data\DataAccess\Matches\Parameters\CreateMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Matches\Parameters\CreateTournamentMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Matches\Parameters\EndMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Matches\Parameters\JoinMatchArgs.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.Lifecycle.cs" />
+    <Compile Include="Data\DataAccess\Matches\Parameters\KickPlayerArgs.cs" />
+    <Compile Include="Data\DataAccess\Matches\Parameters\MatchPlayerArgs.cs" />
     <Compile Include="Data\EMAIL_VERIFICATION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
@@ -121,7 +128,13 @@
     <Compile Include="Data\MATCHVISIBILITY.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\MATCH_DECK_CARD.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
     <Compile Include="Data\MATCH_INVITATION.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\MATCH_MODE.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\MATCH_PLAYER.cs">

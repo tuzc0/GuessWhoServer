@@ -28,26 +28,27 @@ namespace ClassLibraryGuessWho.Data
         }
     
         public virtual DbSet<ACCOUNT> ACCOUNT { get; set; }
-        public virtual DbSet<CHARACTER> CHARACTER { get; set; }
-        public virtual DbSet<CHARACTER_SET> CHARACTER_SET { get; set; }
         public virtual DbSet<EMAIL_VERIFICATION> EMAIL_VERIFICATION { get; set; }
         public virtual DbSet<FRIEND_REQUEST> FRIEND_REQUEST { get; set; }
         public virtual DbSet<FRIENDREQUESTSTATUS> FRIENDREQUESTSTATUS { get; set; }
         public virtual DbSet<FRIENDSHIP> FRIENDSHIP { get; set; }
-        public virtual DbSet<MATCH> MATCH { get; set; }
         public virtual DbSet<MATCH_INVITATION> MATCH_INVITATION { get; set; }
-        public virtual DbSet<MATCH_PLAYER> MATCH_PLAYER { get; set; }
         public virtual DbSet<MATCHSTATUS> MATCHSTATUS { get; set; }
         public virtual DbSet<MATCHVISIBILITY> MATCHVISIBILITY { get; set; }
         public virtual DbSet<MODERATION_ACTION> MODERATION_ACTION { get; set; }
         public virtual DbSet<MODERATIONACTIONTYPE> MODERATIONACTIONTYPE { get; set; }
         public virtual DbSet<MODERATIONSCOPe> MODERATIONSCOPe { get; set; }
         public virtual DbSet<sysdiagrams> sysdiagrams { get; set; }
-        public virtual DbSet<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
         public virtual DbSet<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
         public virtual DbSet<TOURNAMENT_4P_PLAYER> TOURNAMENT_4P_PLAYER { get; set; }
         public virtual DbSet<AVATAR> AVATAR { get; set; }
         public virtual DbSet<USER_PROFILE> USER_PROFILE { get; set; }
+        public virtual DbSet<CHARACTER> CHARACTER { get; set; }
+        public virtual DbSet<MATCH_PLAYER> MATCH_PLAYER { get; set; }
+        public virtual DbSet<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
+        public virtual DbSet<MATCH_DECK_CARD> MATCH_DECK_CARD { get; set; }
+        public virtual DbSet<MATCH> MATCH { get; set; }
+        public virtual DbSet<MATCH_MODE> MATCH_MODE { get; set; }
     
         public virtual int SP_ACCEPTFRIENDREQUEST(Nullable<long> fRIENDREQUESTID)
         {
