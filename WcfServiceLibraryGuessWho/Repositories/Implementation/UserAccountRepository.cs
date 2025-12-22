@@ -66,7 +66,9 @@ namespace GuessWhoServices.Repositories.Implementation
         public bool DeleteAccount(long accountId) => Execute(
             userAccountData => userAccountData.DeleteAccount(accountId));
 
-        // --- MÉTODO AÑADIDO PARA CORREGIR EL ERROR ---
+        public bool MarkUserProfileActive(long userProfileId) => Execute(
+            userAccountData => userAccountData.MarkUserProfileActive(userProfileId));
+
         public bool MarkUserProfileInactive(long userProfileId) => Execute(
             userAccountData => userAccountData.MarkUserProfileInactive(userProfileId));
     }

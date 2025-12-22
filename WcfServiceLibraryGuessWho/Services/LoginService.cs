@@ -1,11 +1,11 @@
 ﻿using GuessWhoContracts.Dtos.RequestAndResponse;
 using GuessWhoContracts.Faults;
 using GuessWhoContracts.Services;
+using GuessWhoContracts.Enums;
 using log4net;
 using System;
 using System.Data.Entity.Infrastructure;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators;
 using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
 using WcfServiceLibraryGuessWho.Coordinators.Parameters;
 
@@ -27,16 +27,16 @@ namespace GuessWho.Services.WCF.Services
         private const string FAULT_MESSAGE_LOGIN_FAILED =
             "Your login could not be processed. Please check your credentials or try again later.";
 
-        private readonly ILoginManager loginManager;
-        private readonly ILoginFaultMapper loginFaultMapper;
+        private readonly ILoginCoordinator _loginCoordinator;
+        private readonly ILoginFaultMapper _loginFaultMapper;
 
         public LoginService(
-            ILoginManager loginManager,
+            ILoginCoordinator loginCoordinator,
             ILoginFaultMapper loginFaultMapper)
         {
-            this.loginManager = loginManager ??
-                throw new ArgumentNullException(nameof(loginManager));
-            this.loginFaultMapper = loginFaultMapper ??
+            _loginCoordinator = loginCoordinator ??
+                throw new ArgumentNullException(nameof(loginCoordinator));
+            _loginFaultMapper = loginFaultMapper ??
                 throw new ArgumentNullException(nameof(loginFaultMapper));
         }
 
@@ -45,44 +45,42 @@ namespace GuessWho.Services.WCF.Services
             if (request == null)
             {
                 Logger.Warn("LoginUser request is null.");
-                throw Faults.Create(
-                    FAULT_CODE_REQUEST_NULL,
-                    FAULT_MESSAGE_REQUEST_NULL);
+                throw Faults.Create(FAULT_CODE_REQUEST_NULL, FAULT_MESSAGE_REQUEST_NULL);
             }
 
             LoginArgs loginArgs = BuildLoginArgs(request);
 
             try
             {
-                LoginResult result = loginManager.Login(loginArgs);
+                var result = _loginCoordinator.LoginAndInitializeSession(loginArgs);
+
+                if (!result.IsSuccess)
+                {
+                    Logger.Info($"Login failed for user {request.Email}. Status: {result.Status}");
+
+                    return new LoginResponse
+                    {
+                        ValidUser = false
+                    };
+                }
 
                 return new LoginResponse
                 {
-                    UserId = result.UserId,
-                    DisplayName = result.DisplayName,
-                    Email = result.Email,
+                    UserId = result.Profile.UserId,
+                    DisplayName = result.Profile.DisplayName,
+                    Email = result.Account.Email,
                     ValidUser = true
                 };
             }
             catch (ArgumentException ex)
             {
                 Logger.Warn("LoginUser failed due to invalid input.", ex);
-
-                // IMPORTANTE: Se usa la constante local, NO ex.Message
-                throw Faults.Create(
-                    FAULT_CODE_LOGIN_INVALID_INPUT,
-                    FAULT_MESSAGE_LOGIN_INVALID_INPUT,
-                    ex);
+                throw Faults.Create(FAULT_CODE_LOGIN_INVALID_INPUT, FAULT_MESSAGE_LOGIN_INVALID_INPUT, ex);
             }
             catch (InvalidOperationException ex)
             {
                 Logger.Error("LoginUser failed due to invalid operation.", ex);
-
-                // IMPORTANTE: Se usa la constante local para ocultar detalles del Manager
-                throw Faults.Create(
-                    FAULT_CODE_LOGIN_FAILED,
-                    FAULT_MESSAGE_LOGIN_FAILED,
-                    ex);
+                throw Faults.Create(FAULT_CODE_LOGIN_FAILED, FAULT_MESSAGE_LOGIN_FAILED, ex);
             }
             catch (FaultException)
             {
@@ -90,11 +88,11 @@ namespace GuessWho.Services.WCF.Services
             }
             catch (DbUpdateException ex)
             {
-                throw loginFaultMapper.MapLoginDbException(ex);
+                throw _loginFaultMapper.MapLoginDbException(ex);
             }
             catch (Exception ex)
             {
-                throw loginFaultMapper.MapLoginException(ex);
+                throw _loginFaultMapper.MapLoginException(ex);
             }
         }
 
@@ -103,14 +101,12 @@ namespace GuessWho.Services.WCF.Services
             if (request == null)
             {
                 Logger.Warn("LogoutUser request is null.");
-                throw Faults.Create(
-                    FAULT_CODE_REQUEST_NULL,
-                    FAULT_MESSAGE_REQUEST_NULL);
+                throw Faults.Create(FAULT_CODE_REQUEST_NULL, FAULT_MESSAGE_REQUEST_NULL);
             }
 
             try
             {
-                bool result = loginManager.Logout(request.UserProfileId);
+                bool result = _loginCoordinator.Logout(request.UserProfileId);
                 return new BasicResponse { Success = result };
             }
             catch (FaultException)
@@ -119,11 +115,11 @@ namespace GuessWho.Services.WCF.Services
             }
             catch (DbUpdateException ex)
             {
-                throw loginFaultMapper.MapLogoutDbException(ex);
+                throw _loginFaultMapper.MapLogoutDbException(ex);
             }
             catch (Exception ex)
             {
-                throw loginFaultMapper.MapLogoutException(ex);
+                throw _loginFaultMapper.MapLogoutException(ex);
             }
         }
 

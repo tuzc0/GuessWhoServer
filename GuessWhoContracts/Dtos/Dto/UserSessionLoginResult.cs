@@ -5,16 +5,16 @@ namespace GuessWhoContracts.Dtos.Dto
     public class UserSessionLoginResult
     {
         public UserSessionLoginStatus Status { get; private set; }
-
         public AccountDto Account { get; private set; }
-
         public UserProfileDto Profile { get; private set; }
+
+        public bool IsSuccess => Status == UserSessionLoginStatus.Success;
 
         private UserSessionLoginResult()
         {
         }
 
-        public static UserSessionLoginResult Ok(AccountDto account, UserProfileDto profile)
+        public static UserSessionLoginResult CreateSuccessful(AccountDto account, UserProfileDto profile)
         {
             return new UserSessionLoginResult
             {
@@ -24,7 +24,7 @@ namespace GuessWhoContracts.Dtos.Dto
             };
         }
 
-        public static UserSessionLoginResult Fail(UserSessionLoginStatus status)
+        public static UserSessionLoginResult CreateFailed(UserSessionLoginStatus status)
         {
             return new UserSessionLoginResult
             {

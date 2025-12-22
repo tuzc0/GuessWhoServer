@@ -92,6 +92,26 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             return isUpdated;
         }
 
+        public bool MarkUserProfileActive(long userId)
+        {
+            var profileEntity = dataContext.USER_PROFILE
+                    .SingleOrDefault(p => p.USERID == userId);
+
+            if (profileEntity == null)
+            {
+                return false;
+            }
+
+            if (profileEntity.ISACTIVE)
+            {
+                return true;
+            }
+
+            profileEntity.ISACTIVE = true;
+
+            return dataContext.SaveChanges() > 0;
+        }
+
         public bool MarkUserProfileInactive(long userId)
         {
             var profileEntity = dataContext.USER_PROFILE

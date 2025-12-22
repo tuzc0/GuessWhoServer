@@ -30,6 +30,8 @@ namespace GuessWhoServices.Repositories.Interfaces
 
         bool DeleteAccount(long accountId);
 
+        bool MarkUserProfileActive(long userProfileId);
+
         bool MarkUserProfileInactive(long userProfileId);
     }
 }

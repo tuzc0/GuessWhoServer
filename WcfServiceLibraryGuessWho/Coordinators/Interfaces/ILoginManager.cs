@@ -1,11 +1,10 @@
 ﻿using WcfServiceLibraryGuessWho.Coordinators.Parameters;
+using GuessWhoContracts.Dtos.Dto; 
 
 namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
 {
     public interface ILoginManager
     {
-        LoginResult Login(LoginArgs loginArgs);
-
-        bool Logout(long userProfileId);
+        UserSessionLoginResult Login(LoginArgs loginArgs);
     }
 }

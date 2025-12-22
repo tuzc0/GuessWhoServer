@@ -1,6 +1,6 @@
-﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts;
-using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
+﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
 using GuessWho.Services.WCF.Security;
+using GuessWhoContracts.Dtos.Dto;
 using GuessWhoContracts.Enums;
 using GuessWhoServices.Repositories.Interfaces;
 using System;
@@ -10,120 +10,58 @@ using WcfServiceLibraryGuessWho.Coordinators.Parameters;
 
 namespace WcfServiceLibraryGuessWho.Coordinators
 {
-    public sealed class LoginResult
-    {
-        public LoginResult(long userId, string displayName, string email)
-        {
-            UserId = userId;
-            DisplayName = displayName ?? string.Empty;
-            Email = email ?? string.Empty;
-        }
-
-        public long UserId { get; }
-        public string DisplayName { get; }
-        public string Email { get; }
-    }
-
     public sealed class LoginManager : ILoginManager
     {
-        private readonly IUserAccountRepository accountRepository;
-        private readonly IGameSessionRepository gameSessionRepository;
+        private readonly IUserAccountRepository _accountRepository;
 
-        public LoginManager(
-            IUserAccountRepository accountRepository,
-            IGameSessionRepository gameSessionRepository)
+        public LoginManager(IUserAccountRepository accountRepository)
         {
-            this.accountRepository = accountRepository ??
+            _accountRepository = accountRepository ??
                 throw new ArgumentNullException(nameof(accountRepository));
-            this.gameSessionRepository = gameSessionRepository ??
-                throw new ArgumentNullException(nameof(gameSessionRepository));
         }
 
-        public LoginResult Login(LoginArgs loginArgs)
+        public UserSessionLoginResult Login(LoginArgs loginArgs)
         {
-            if (loginArgs == null)
+            ValidateLoginArgs(loginArgs);
+
+            var searchParams = new AccountSearchParameters
             {
-                throw new ArgumentNullException(nameof(loginArgs),
-                    LoginServiceFaults.ERROR_MESSAGE_ARGS_REQUIRED);
-            }
+                Email = loginArgs.Email.Trim().ToLowerInvariant()
+            };
 
-            string email = EnsureEmailIsProvided(loginArgs.Email);
-            string password = EnsurePasswordIsProvided(loginArgs.Password);
-
-            var searchParams = new AccountSearchParameters { Email = email };
-            var result = accountRepository.GetAccountWithProfileForLogin(searchParams);
+            var result = _accountRepository.GetAccountWithProfileForLogin(searchParams);
 
             if (result == null || result.Status == AccountProfileStatus.NotFoundOrDeleted)
             {
-                throw new InvalidOperationException(LoginServiceFaults.ERROR_MESSAGE_ACCOUNT_NOT_FOUND);
+                return UserSessionLoginResult.CreateFailed(UserSessionLoginStatus.InvalidCredentials);
             }
 
             if (result.Status == AccountProfileStatus.Locked)
             {
-                throw new InvalidOperationException(LoginServiceFaults.ERROR_MESSAGE_ACCOUNT_LOCKED);
+                return UserSessionLoginResult.CreateFailed(UserSessionLoginStatus.AccountLocked);
             }
 
-            if (result.Status == AccountProfileStatus.ProfileAlreadyActive)
-            {
-                throw new InvalidOperationException(LoginServiceFaults.ERROR_MESSAGE_PROFILE_ALREADY_ACTIVE);
-            }
-
-            bool isPasswordValid = PasswordHasher.Verify(password, result.Account.PasswordHash);
+            bool isPasswordValid = PasswordHasher.Verify(loginArgs.Password, result.Account.PasswordHash);
             if (!isPasswordValid)
             {
-                throw new InvalidOperationException(LoginServiceFaults.ERROR_MESSAGE_INVALID_PASSWORD);
+                return UserSessionLoginResult.CreateFailed(UserSessionLoginStatus.InvalidCredentials);
             }
 
-            bool updated = accountRepository.UpdateLastLoginUtc(searchParams);
-            if (!updated)
-            {
-                throw new InvalidOperationException(LoginServiceFaults.ERROR_MESSAGE_UPDATE_LOGIN_FAILED);
-            }
+            _accountRepository.UpdateLastLoginUtc(searchParams);
 
-            gameSessionRepository.ForceLeaveActiveSessionsForUser(result.Profile.UserId);
-
-            return new LoginResult(
-                result.Profile.UserId,
-                result.Profile.DisplayName,
-                result.Account.Email);
+            return UserSessionLoginResult.CreateSuccessful(result.Account, result.Profile);
         }
 
-        public bool Logout(long userProfileId)
+        private void ValidateLoginArgs(LoginArgs args)
         {
-            if (userProfileId <= 0)
-            {
-                return false;
-            }
+            if (args == null)
+                throw new ArgumentNullException(nameof(args), LoginServiceFaults.ERROR_MESSAGE_ARGS_REQUIRED);
 
-            return accountRepository.MarkUserProfileInactive(userProfileId);
-        }
+            if (string.IsNullOrWhiteSpace(args.Email))
+                throw new ArgumentException(LoginServiceFaults.ERROR_MESSAGE_EMAIL_REQUIRED);
 
-        private static string EnsureEmailIsProvided(string email)
-        {
-            string normalizedEmail = (email ?? string.Empty).Trim().ToLowerInvariant();
-
-            if (string.IsNullOrWhiteSpace(normalizedEmail))
-            {
-                throw new ArgumentException(
-                    LoginServiceFaults.ERROR_MESSAGE_EMAIL_REQUIRED,
-                    nameof(LoginArgs.Email));
-            }
-
-            return normalizedEmail;
-        }
-
-        private static string EnsurePasswordIsProvided(string password)
-        {
-            string safePassword = password ?? string.Empty;
-
-            if (string.IsNullOrWhiteSpace(safePassword))
-            {
-                throw new ArgumentException(
-                    LoginServiceFaults.ERROR_MESSAGE_PASSWORD_REQUIRED,
-                    nameof(LoginArgs.Password));
-            }
-
-            return safePassword;
+            if (string.IsNullOrWhiteSpace(args.Password))
+                throw new ArgumentException(LoginServiceFaults.ERROR_MESSAGE_PASSWORD_REQUIRED);
         }
     }
 }

@@ -37,8 +37,6 @@ namespace ConsoleGuessWho
         private const string SERVICE_HOST_STOPPING_MESSAGE = "Stopping Console host";
         private const string SERVICE_HOST_STOPPED_MESSAGE = "Console host stopped";
         private const string SERVICE_HOST_FATAL_ERROR_MESSAGE = "Fatal error in host";
-        private const string SERVICE_HOST_ERROR_ADDRESS_IN_USE = "The port is already in use";
-        private const string SERVICE_HOST_ERROR_FAILED_COMMUNICATION = "Failed to establish communication";
 
         static void Main(string[] args)
         {
@@ -68,8 +66,14 @@ namespace ConsoleGuessWho
                 Func<LoginService> loginServiceFactory = () => {
                     var accountRepo = new UserAccountRepository(contextFactory);
                     var sessionRepo = new GameSessionRepository(contextFactory);
+
+                    var loginManager = new LoginManager(accountRepo);
+                    var sessionManager = new GameSessionManager(sessionRepo);
+
+                    var loginCoordinator = new LoginCoordinator(loginManager, sessionManager, accountRepo);
+
                     return new LoginService(
-                        new LoginManager(accountRepo, sessionRepo),
+                        loginCoordinator,
                         new LoginFaultMapper()
                     );
                 };
