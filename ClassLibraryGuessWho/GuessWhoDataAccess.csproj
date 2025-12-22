@@ -84,6 +84,7 @@
     <Compile Include="Data\DataAccess\EmailVerification\Parameters\IncrementFailedAttemptArgs.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\Parameters\ResendLimitsQuery.cs" />
     <Compile Include="Data\DataAccess\Friends\FriendshipData.cs" />
+    <Compile Include="Data\DataAccess\Matches\IMatchData.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Helpers.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Lobby.cs" />
     <Compile Include="Data\DataAccess\Matches\Parameters\ChooseSecretCharacterArgs.cs" />

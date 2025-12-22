@@ -13,11 +13,11 @@ namespace GuessWhoServices.Repositories.Implementation
 
         public UserAccountRepository(IGuessWhoDbContextFactory contextFactory)
         {
-            this.contextFactory = contextFactory 
+            this.contextFactory = contextFactory
                 ?? throw new ArgumentNullException(nameof(contextFactory));
         }
 
-        private T Execute<T> (Func<IUserAccountData, T> action)
+        private T Execute<T>(Func<IUserAccountData, T> action)
         {
             using (var context = contextFactory.Create())
             {
@@ -30,13 +30,13 @@ namespace GuessWhoServices.Repositories.Implementation
             userAccountData => userAccountData.EmailExists(email));
 
         public (AccountDto account, UserProfileDto userProfile) CreateAccount(
-            CreateAccountArgs createAccountArgs) => Execute(UserAccountData => 
+            CreateAccountArgs createAccountArgs) => Execute(UserAccountData =>
                 UserAccountData.CreateAccount(createAccountArgs));
 
         public AccountDto GetAccountByIdAccount(long accountId) => Execute(
             userAccountData => userAccountData.GetAccountByIdAccount(accountId));
 
-        public (AccountDto account, UserProfileDto userProfile) 
+        public (AccountDto account, UserProfileDto userProfile)
             GetAccountWithProfileByIdAccount(long accountId) => Execute(
                 userAccountData => userAccountData.GetAccountWithProfileByIdAccount(accountId));
 
@@ -49,8 +49,8 @@ namespace GuessWhoServices.Repositories.Implementation
         public bool UpdatePasswordOnly(long accountId, byte[] newPassword) => Execute(
             userAccountData => userAccountData.UpdatePasswordOnly(accountId, newPassword));
 
-        public (AccountDto account, UserProfileDto userProfile) 
-            UpdateDisplayNameAndPassword(UpdateAccountArgs updateAccountArgs) => 
+        public (AccountDto account, UserProfileDto userProfile)
+            UpdateDisplayNameAndPassword(UpdateAccountArgs updateAccountArgs) =>
             Execute(userAccountData => userAccountData.UpdateDisplayNameAndPassword(updateAccountArgs));
 
         public AccountProfileResult GetAccountWithProfileForLogin(AccountSearchParameters accountSearchParameters)
@@ -65,5 +65,9 @@ namespace GuessWhoServices.Repositories.Implementation
 
         public bool DeleteAccount(long accountId) => Execute(
             userAccountData => userAccountData.DeleteAccount(accountId));
+
+        // --- MÉTODO AÑADIDO PARA CORREGIR EL ERROR ---
+        public bool MarkUserProfileInactive(long userProfileId) => Execute(
+            userAccountData => userAccountData.MarkUserProfileInactive(userProfileId));
     }
 }

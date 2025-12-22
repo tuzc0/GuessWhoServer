@@ -29,5 +29,7 @@ namespace GuessWhoServices.Repositories.Interfaces
         bool UpdateLastLoginUtc(AccountSearchParameters accountSearchParameters);
 
         bool DeleteAccount(long accountId);
+
+        bool MarkUserProfileInactive(long userProfileId);
     }
 }

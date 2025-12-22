@@ -10,7 +10,7 @@ using WcfServiceLibraryGuessWho.Services.MatchApplication;
 
 namespace GuessWho.Services.WCF.Services
 {
-    [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single,
+    [ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall,
         ConcurrencyMode = ConcurrencyMode.Multiple,
         IncludeExceptionDetailInFaults = false)]
     public sealed class MatchService : IMatchService
@@ -19,39 +19,18 @@ namespace GuessWho.Services.WCF.Services
         private readonly ILobbyCoordinator lobbyCoordinator;
         private readonly IMatchLifecycleService matchLifecycleService;
 
-        public MatchService()
-        {
-            var matchData = new MatchData();
-
-            var notifierLogger = LogManager.GetLogger(typeof(LobbyNotifier));
-            var lobbyNotifier = new LobbyNotifier(notifierLogger);
-
-            var characterData = new CharacterData();
-            var characterDeckData = new CharacterDeckData();
-
-            IMatchDeckProvider matchDeckProvider = new MatchDeckProvider(characterData, characterDeckData);
-
-            matchCreationService = new MatchCreationService(matchData);
-            lobbyCoordinator = new LobbyCoordinator(matchData, lobbyNotifier);
-            matchLifecycleService = new MatchLifecycleService(
-                matchData,
-                lobbyNotifier,
-                matchDeckProvider);
-        }
-
-
-        internal MatchService(
-            IMatchCreationService matchCreationService, 
+        public MatchService(
+            IMatchCreationService matchCreationService,
             ILobbyCoordinator lobbyCoordinator,
             IMatchLifecycleService matchLifecycleService)
         {
-            this.matchCreationService = matchCreationService ?? 
+            this.matchCreationService = matchCreationService ??
                 throw new ArgumentNullException(nameof(matchCreationService));
-            
-            this.lobbyCoordinator = lobbyCoordinator ?? 
+
+            this.lobbyCoordinator = lobbyCoordinator ??
                 throw new ArgumentNullException(nameof(lobbyCoordinator));
-            
-            this.matchLifecycleService = matchLifecycleService ?? 
+
+            this.matchLifecycleService = matchLifecycleService ??
                 throw new ArgumentNullException(nameof(matchLifecycleService));
         }
 
@@ -75,6 +54,15 @@ namespace GuessWho.Services.WCF.Services
             return lobbyCoordinator.SetPlayerReadyStatus(request);
         }
 
+        public void SubscribeLobby(long matchId)
+        {
+            lobbyCoordinator.SubscribeLobby(matchId);
+        }
+
+        public void UnsubscribeLobby(long matchId)
+        {
+            lobbyCoordinator.UnsubscribeLobby(matchId);
+        }
         public BasicResponse StartMatch(StartMatchRequest request)
         {
             return matchLifecycleService.StartMatch(request);
@@ -93,16 +81,6 @@ namespace GuessWho.Services.WCF.Services
         public MatchDeckResponse GetMatchDeck(GetMatchDeckRequest request)
         {
             return matchLifecycleService.GetMatchDeck(request);
-        }
-
-        public void SubscribeLobby(long matchId)
-        {
-            lobbyCoordinator.SubscribeLobby(matchId);
-        }
-
-        public void UnsubscribeLobby(long matchId)
-        {
-            lobbyCoordinator.UnsubscribeLobby(matchId);
         }
     }
 }

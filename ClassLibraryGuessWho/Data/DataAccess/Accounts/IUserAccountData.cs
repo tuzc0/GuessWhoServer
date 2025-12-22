@@ -10,6 +10,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
         (AccountDto account, UserProfileDto profile) CreateAccount(CreateAccountArgs args);
         AccountDto GetAccountByIdAccount(long accountId);
         bool MarkEmailVerified(long accountId, DateTime nowUtc);
+        bool MarkUserProfileInactive(long userId);
         AccountProfileResult GetAccountWithProfileForLogin(AccountSearchParameters args);
         (AccountDto account, UserProfileDto profile) TryGetAccountWithProfileForUpdate(AccountSearchParameters args);
         bool UpdateLastLoginUtc(AccountSearchParameters args);
