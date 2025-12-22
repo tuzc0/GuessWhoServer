@@ -12,10 +12,10 @@ namespace ClassLibraryGuessWho.Data
     using System;
     using System.Collections.Generic;
     
-    public partial class MODERATIONSCOPe
+    public partial class MODERATIONSCOPE
     {
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
-        public MODERATIONSCOPe()
+        public MODERATIONSCOPE()
         {
             this.MODERATION_ACTION = new HashSet<MODERATION_ACTION>();
         }

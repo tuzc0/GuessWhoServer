@@ -21,8 +21,8 @@ namespace ClassLibraryGuessWho.Data
         public System.DateTime CREATEDATUTC { get; set; }
         public Nullable<System.DateTime> RESPONDEDATUTC { get; set; }
     
-        public virtual FRIENDREQUESTSTATUS FRIENDREQUESTSTATUS { get; set; }
         public virtual USER_PROFILE USER_PROFILE { get; set; }
         public virtual USER_PROFILE USER_PROFILE1 { get; set; }
+        public virtual FRIENDREQUESTSTATUS FRIENDREQUESTSTATUS { get; set; }
     }
 }

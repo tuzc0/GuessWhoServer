@@ -20,7 +20,7 @@ namespace ClassLibraryGuessWho.Data
         public byte ROUNDNUMBER { get; set; }
         public byte BRACKETPOSITION { get; set; }
     
-        public virtual TOURNAMENT_4P TOURNAMENT_4P { get; set; }
         public virtual MATCH MATCH { get; set; }
+        public virtual TOURNAMENT_4P TOURNAMENT_4P { get; set; }
     }
 }

@@ -1,15 +1,20 @@
-﻿using System;
-using System.ServiceModel;
-using ClassLibraryGuessWho.Data;
+﻿using ClassLibraryGuessWho.Data;
 using ClassLibraryGuessWho.Data.DataAccess.Accounts;
-using ClassLibraryGuessWho.Data.DataAccess.Match;
+using ClassLibraryGuessWho.Data.Factories;
+using ConsoleGuessWho.Infraestructure.Wcf;
 using GuessWho.Services.WCF.Services;
-using GuessWho.Services.WCF.Services.MatchApplication;
 using GuessWhoServices.Repositories.Implementation;
 using GuessWhoServices.Repositories.Interfaces;
 using log4net;
 using log4net.Config;
+using System;
+using System.ServiceModel;
 using WcfServiceLibraryGuessWho.Communication.Email;
+using WcfServiceLibraryGuessWho.Coordinators;
+using WcfServiceLibraryGuessWho.Coordinators.EmailVerification;
+using WcfServiceLibraryGuessWho.Coordinators.FaultsCatalogs;
+using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
+using WcfServiceLibraryGuessWho.Coordinators.Interfaces.EmailVerification;
 using WcfServiceLibraryGuessWho.Services.Settings;
 
 [assembly: XmlConfigurator(Watch = true)]
@@ -31,41 +36,71 @@ namespace ConsoleGuessWho
         {
             Logger.Info(SERVICE_HOST_STARTING_MESSAGE);
 
-            UserSecuritySettings securitySettings = UserSecuritySettingsLoader.Load();
-
-            //posteriormente se creara un factory
             var userContext = new GuessWhoDBEntities();
             var loginContext = new GuessWhoDBEntities();
             var profileContext = new GuessWhoDBEntities();
 
             try
             {
-                IUserAccountRepository accountRepository = new UserAccountRepository(userContext);
-                IEmailVerificationRepository emailRepository = (IEmailVerificationRepository)new EmailVerificationRepository(userContext);
-                IAvatarRepository avatarRepository = (IAvatarRepository)new AvatarRepository(userContext);
-                IVerificationEmailSender emailSender = new VerificationEmailSender();
+                var contextFactory = new GuessWhoDbContextFactory();
 
-                var userService = new UserService(
-                    accountRepository,
-                    emailRepository,
-                    avatarRepository,
-                    emailSender,
-                    securitySettings);
+                Func<UserService> userServiceFactory = () =>
+                {
+                    IUserAccountRepository accountRepository = new UserAccountRepository(contextFactory);
+                    IEmailVerificationRepository emailVerificationRepository = new EmailVerificationRepository(contextFactory);
+                    IAvatarRepository avatarRepository = new AvatarRepository(contextFactory);
 
-                var loginService = new LoginService(
-                    new UserAccountData(loginContext));
+                    UserSecuritySettings userSecuritySettings = UserSecuritySettingsLoader.Load();
 
-                var updateProfileService = new UpdateProfileService(
-                    new UserAccountData(profileContext));
+                    IVerificationEmailSender verificationEmailSender = new VerificationEmailSender();
 
-                using (var hostUser = new ServiceHost(userService))
+                    IVerificationCodeService verificationCodeService = new VerificationCodeService();
+                    IVerificationEmailDispatcher verificationEmailDispatcher =
+                        new VerificationEmailDispatcher(verificationEmailSender);
+
+                    IUserRegistrationManager userRegistrationManager =
+                        new UserRegistrationManager(
+                            accountRepository,
+                            emailVerificationRepository,
+                            avatarRepository,
+                            verificationEmailSender);
+
+                    IEmailVerificationManager emailVerificationManager =
+                        new EmailVerificationManager(
+                            accountRepository,
+                            emailVerificationRepository,
+                            verificationCodeService,
+                            verificationEmailDispatcher,
+                            userSecuritySettings);
+
+                    IPasswordRecoveryManager passwordRecoveryManager =
+                        new PasswordRecoveryManager(
+                            accountRepository,
+                            emailVerificationRepository,
+                            verificationCodeService,
+                            verificationEmailDispatcher,
+                            userSecuritySettings);
+
+                    IUserFaultMapper userFaultMapper = new UserFaultMapper();
+
+                    return new UserService(
+                        userRegistrationManager,
+                        emailVerificationManager,
+                        passwordRecoveryManager,
+                        userFaultMapper);
+                };
+
+                var loginService = new LoginService(new UserAccountData(loginContext));
+                var updateProfileService = new UpdateProfileService(new UserAccountData(profileContext));
+
+                using (var hostUser = new ServiceHost(typeof(UserService)))
                 using (var hostLogin = new ServiceHost(loginService))
                 using (var hostUpdateProfile = new ServiceHost(updateProfileService))
-
                 using (var hostChat = new ServiceHost(typeof(ChatService)))
                 using (var hostFriendRequest = new ServiceHost(typeof(FriendService)))
                 using (var hostMatch = new ServiceHost(typeof(MatchService)))
                 {
+                    hostUser.Description.Behaviors.Add(new DelegateServiceBehavior(() => userServiceFactory()));
                     hostUser.Open();
                     hostLogin.Open();
                     hostUpdateProfile.Open();

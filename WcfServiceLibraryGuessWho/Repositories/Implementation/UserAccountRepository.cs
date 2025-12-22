@@ -1,6 +1,6 @@
-﻿using ClassLibraryGuessWho.Data;
-using ClassLibraryGuessWho.Data.DataAccess.Accounts;
+﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts;
 using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
+using ClassLibraryGuessWho.Data.Factories;
 using GuessWhoContracts.Dtos.Dto;
 using GuessWhoServices.Repositories.Interfaces;
 using System;
@@ -9,81 +9,61 @@ namespace GuessWhoServices.Repositories.Implementation
 {
     public class UserAccountRepository : IUserAccountRepository
     {
-        private readonly UserAccountData userAccountData; 
+        private readonly IGuessWhoDbContextFactory contextFactory;
 
-        public UserAccountRepository(UserAccountData userAccountData)
+        public UserAccountRepository(IGuessWhoDbContextFactory contextFactory)
         {
-            this.userAccountData = userAccountData ?? 
-                throw new ArgumentNullException(nameof(userAccountData));
+            this.contextFactory = contextFactory 
+                ?? throw new ArgumentNullException(nameof(contextFactory));
         }
 
-        public UserAccountRepository(GuessWhoDBEntities dataContext): 
-            this(new UserAccountData(dataContext)) 
+        private T Execute<T> (Func<IUserAccountData, T> action)
         {
+            using (var context = contextFactory.Create())
+            {
+                var userAccountData = new UserAccountData(context);
+                return action(userAccountData);
+            }
         }
 
-        public bool EmailExist(string email)
-        {
-            return userAccountData.EmailExists(email);
-        }
+        public bool EmailExist(string email) => Execute(
+            userAccountData => userAccountData.EmailExists(email));
 
         public (AccountDto account, UserProfileDto userProfile) CreateAccount(
-            CreateAccountArgs createAccountArgs)
-        {
-            return userAccountData.CreateAccount(createAccountArgs);
-        }
+            CreateAccountArgs createAccountArgs) => Execute(UserAccountData => 
+                UserAccountData.CreateAccount(createAccountArgs));
 
-        public AccountDto GetAccountByIdAccount(long accountId)
-        {
-            return userAccountData.GetAccountByIdAccount(accountId);
-        }
+        public AccountDto GetAccountByIdAccount(long accountId) => Execute(
+            userAccountData => userAccountData.GetAccountByIdAccount(accountId));
 
         public (AccountDto account, UserProfileDto userProfile) 
-            GetAccountWithProfileByIdAccount(long accountId)
-        {
-            return userAccountData.GetAccountWithProfileByIdAccount(accountId);
-        }
+            GetAccountWithProfileByIdAccount(long accountId) => Execute(
+                userAccountData => userAccountData.GetAccountWithProfileByIdAccount(accountId));
 
-        public bool MarkEmailVerified(long accountId, DateTime nowUtc)
-        {
-            return userAccountData.MarkEmailVerified(accountId, nowUtc);
-        }
+        public bool MarkEmailVerified(long accountId, DateTime nowUtc) => Execute(
+            userAccountData => userAccountData.MarkEmailVerified(accountId, nowUtc));
 
-        public long GetAccountIdByEmail(string email)
-        {
-            return userAccountData.GetAccountIdByEmail(email);
-        }
-        
-        public bool UpdatePasswordOnly(long accountId, byte[] newPassword)
-        {
-            return userAccountData.UpdatePasswordOnly(accountId, newPassword);
-        }
+        public long GetAccountIdByEmail(string email) => Execute(
+            userAccountData => userAccountData.GetAccountIdByEmail(email));
+
+        public bool UpdatePasswordOnly(long accountId, byte[] newPassword) => Execute(
+            userAccountData => userAccountData.UpdatePasswordOnly(accountId, newPassword));
 
         public (AccountDto account, UserProfileDto userProfile) 
-            UpdateDisplayNameAndPassword(UpdateAccountArgs updateAccountArgs)
-        {
-            return userAccountData.UpdateDisplayNameAndPassword(updateAccountArgs);
-        }
+            UpdateDisplayNameAndPassword(UpdateAccountArgs updateAccountArgs) => 
+            Execute(userAccountData => userAccountData.UpdateDisplayNameAndPassword(updateAccountArgs));
 
         public AccountProfileResult GetAccountWithProfileForLogin(AccountSearchParameters accountSearchParameters)
-        {
-            return userAccountData.GetAccountWithProfileForLogin(accountSearchParameters);
-        }
+            => Execute(userAccountData => userAccountData.GetAccountWithProfileForLogin(accountSearchParameters));
 
         public (AccountDto account, UserProfileDto userProfile) TryGetAccountWithProfileForUpdate(
-            AccountSearchParameters accountSearchParameters)
-        {
-            return userAccountData.TryGetAccountWithProfileForUpdate(accountSearchParameters);
-        }
+            AccountSearchParameters accountSearchParameters) => Execute(
+                userAccountData => userAccountData.TryGetAccountWithProfileForUpdate(accountSearchParameters));
 
-        public bool UpdateLastLoginUtc(AccountSearchParameters accountSearchParameters)
-        {
-            return userAccountData.UpdateLastLoginUtc(accountSearchParameters);
-        }
+        public bool UpdateLastLoginUtc(AccountSearchParameters accountSearchParameters) => Execute(
+            userAccountData => userAccountData.UpdateLastLoginUtc(accountSearchParameters));
 
-        public bool DeleteAccount(long accountId)
-        {
-            return userAccountData.DeleteAccount(accountId);
-        }
+        public bool DeleteAccount(long accountId) => Execute(
+            userAccountData => userAccountData.DeleteAccount(accountId));
     }
 }

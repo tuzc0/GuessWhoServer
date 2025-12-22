@@ -18,7 +18,6 @@ namespace ClassLibraryGuessWho.Data
         public MATCHSTATUS()
         {
             this.MATCH = new HashSet<MATCH>();
-            this.MATCH1 = new HashSet<MATCH>();
         }
     
         public byte STATUSID { get; set; }
@@ -26,7 +25,5 @@ namespace ClassLibraryGuessWho.Data
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH> MATCH { get; set; }
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<MATCH> MATCH1 { get; set; }
     }
 }

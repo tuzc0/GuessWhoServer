@@ -5,7 +5,7 @@ using System;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Avatars
 {
-    public class AvatarData
+    public class AvatarData : IAvatarData
     {
         private readonly GuessWhoDBEntities dataBaseContext; 
 
@@ -17,9 +17,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Avatars
 
         public List<AvatarDto> GetActiveAvatars()
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                return dataBaseContext.AVATAR
+            return dataBaseContext.AVATAR
                     .Where(a => a.ISACTIVE)
                     .Select(a => new AvatarDto
                     {
@@ -29,18 +27,14 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Avatars
                         IsActive = a.ISACTIVE
                     })
                     .ToList();
-            } 
         }
 
         public string GetDefaultAvatarId()
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                var defaultAvatar = dataBaseContext.AVATAR
+            var defaultAvatar = dataBaseContext.AVATAR
                     .FirstOrDefault(a => a.ISDEFAULT && a.ISACTIVE);
 
-                return defaultAvatar?.AVATARID;
-            }
+            return defaultAvatar?.AVATARID;
         }
     }
 }

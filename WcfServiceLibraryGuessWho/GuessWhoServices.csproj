@@ -122,7 +122,22 @@
     <Compile Include="Communication\Email\EmailSendException.cs" />
     <Compile Include="Communication\Email\IVerificationEmailSender.cs" />
     <Compile Include="Communication\Email\VerificationEmailSender.cs" />
+    <Compile Include="Coordinators\EmailVerificationManager.cs" />
+    <Compile Include="Coordinators\EmailVerification\VerificationCodeService.cs" />
+    <Compile Include="Coordinators\EmailVerification\VerificationEmailDispatcher.cs" />
+    <Compile Include="Coordinators\FaultsCatalogs\EmailVerificationFaults.cs" />
+    <Compile Include="Coordinators\FaultsCatalogs\PasswordRecoveryFaults.cs" />
+    <Compile Include="Coordinators\FaultsCatalogs\UserFaultMapper.cs" />
+    <Compile Include="Coordinators\FaultsCatalogs\UserRegistrationFaults.cs" />
+    <Compile Include="Coordinators\FaultsCatalogs\UserServiceFaults.cs" />
+    <Compile Include="Coordinators\Interfaces\IEmailVerificationManager.cs" />
+    <Compile Include="Coordinators\Interfaces\EmailVerification\IVerificationEmailDispatcher.cs" />
+    <Compile Include="Coordinators\Interfaces\IPasswordRecoveryManager.cs" />
+    <Compile Include="Coordinators\Interfaces\FaultsMappers\IUserFaultMapper.cs" />
+    <Compile Include="Coordinators\Interfaces\IUserRegistrationManager.cs" />
+    <Compile Include="Coordinators\Interfaces\EmailVerification\IVerificationCodeService.cs" />
     <Compile Include="Coordinators\Parameters\RegisterUserArgs.cs" />
+    <Compile Include="Coordinators\PasswordRecoveryManager.cs" />
     <Compile Include="Coordinators\UserRegistrationManager.cs" />
     <Compile Include="Coordinators\UserSessionCoordinator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -171,6 +186,7 @@
       <Name>GuessWhoContracts</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <VSToolsPath Condition="'$(VSToolsPath)' == '' and '$(VisualStudioVersion)' != '' and '$(VisualStudioVersion)' != '11.0'">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>

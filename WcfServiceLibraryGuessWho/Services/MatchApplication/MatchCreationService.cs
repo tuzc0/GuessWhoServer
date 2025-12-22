@@ -24,7 +24,6 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
         private const string ERROR_DATABASE_CONNECTION = "DatabaseConnection";
         private const string ERROR_DATABASE_UPDATE = "DatabaseUpdate";
         private const string ERROR_DATABASE_SQL = "DatabaseSql";
-        private const string ERROR_UNKNOWN = "UnknownError";
 
         private const string MESSAGE_REQUEST_NULL = "Request cannot be null.";
         private const string MESSAGE_FOREIGN_KEY = "Operation violates an existing relation.";
@@ -32,7 +31,6 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
         private const string MESSAGE_DATABASE_CONNECTION = "Unable to connect to the database.";
         private const string MESSAGE_DATABASE_UPDATE = "A database update error occurred.";
         private const string MESSAGE_DATABASE_SQL = "A database error occurred.";
-        private const string MESSAGE_UNKNOWN_CREATE_ERROR = "Failed to create the match due to an unknown error.";
 
         public MatchCreationService(MatchData matchData)
         {

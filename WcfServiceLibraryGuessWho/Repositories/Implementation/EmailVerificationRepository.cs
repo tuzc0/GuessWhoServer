@@ -1,6 +1,6 @@
-﻿using ClassLibraryGuessWho.Data;
-using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
+﻿using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
 using ClassLibraryGuessWho.Data.DataAccess.EmailVerification.Parameters;
+using ClassLibraryGuessWho.Data.Factories;
 using GuessWhoContracts.Dtos.Dto;
 using GuessWhoServices.Repositories.Interfaces;
 using System;
@@ -9,47 +9,51 @@ namespace GuessWhoServices.Repositories.Implementation
 {
     public class EmailVerificationRepository : IEmailVerificationRepository
     {
-        private readonly EmailVerificationData emailVerificationData;
+        private readonly IGuessWhoDbContextFactory contextFactory;
 
-        public EmailVerificationRepository(EmailVerificationData emailVerificationData)
+        public EmailVerificationRepository(IGuessWhoDbContextFactory contextFactory)
         {
-            this.emailVerificationData = emailVerificationData ?? 
-                throw new ArgumentNullException(nameof(emailVerificationData));
+            this.contextFactory = contextFactory ?? 
+                throw new ArgumentNullException(nameof(contextFactory));
         }
 
-        public EmailVerificationRepository(GuessWhoDBEntities dataContext) : 
-            this (new EmailVerificationData(dataContext))
-        { 
-        }
-
-        public bool AddVerificationToken(CreateEmailTokenArgs args)
+        private T Execute<T>(Func<IEmailVerificationData, T> action)
         {
-            return emailVerificationData.AddVerificationToken(args);
+            using (var context = contextFactory.Create())
+            {
+                var emailVerificationData = new EmailVerificationData(context);
+                return action(emailVerificationData);
+            }
         }
 
-        public EmailVerificationTokenDto GetLatestTokenByAccountId(long accountId, DateTime consumeDate)
+        private void Execute(Action<IEmailVerificationData> action)
         {
-            return emailVerificationData.GetLatestTokenByAccountId(accountId, consumeDate);
+            using (var context = contextFactory.Create())
+            {
+                var emailVerificationData = new EmailVerificationData(context);
+                action(emailVerificationData);
+            }
         }
 
-        public int ConsumeToken(Guid tokenId)
-        {
-            return emailVerificationData.ConsumeToken(tokenId);
-        }
+        public bool AddVerificationToken(CreateEmailTokenArgs args) =>
+            Execute(emailVerificationData => emailVerificationData.AddVerificationToken(args));
 
-        public int IncrementFailedAttemptsAndMaybeExpire(IncrementFailedAttemptArgs args)
-        {
-            return emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(args);
-        }
+        public EmailVerificationTokenDto GetLatestTokenByAccountId(long accountId, DateTime consumeDate) =>
+            Execute(emailVerificationData => emailVerificationData.GetLatestTokenByAccountId(accountId, consumeDate));
 
-        public EmailVerificationResendLimitsDto GetEmailVerificationResendLimits(ResendLimitsQuery query)
-        {
-            return emailVerificationData.GetEmailVerificationResendLimits(query);
-        }
+        public EmailVerificationTokenDto GetLatestTokenStatusByAccountId(long accountId) => 
+            Execute(emailVerificationData => emailVerificationData.GetLatestTokenStatusByAccountId(accountId));
 
-        public void ExpireActiveTokens(ExpireTokensArgs args)
-        {
-            emailVerificationData.ExpireActiveTokens(args);
-        }
+        public int ConsumeToken(Guid tokenId) => 
+            Execute(emailVerificationData => emailVerificationData.ConsumeToken(tokenId));
+
+        public int IncrementFailedAttemptsAndMaybeExpire(IncrementFailedAttemptArgs args) => 
+            Execute(emailVerificationData => emailVerificationData.IncrementFailedAttemptsAndMaybeExpire(args));
+
+        public EmailVerificationResendLimitsDto GetEmailVerificationResendLimits(ResendLimitsQuery query) => 
+            Execute(emailVerificationData => emailVerificationData.GetEmailVerificationResendLimits(query));
+
+        public void ExpireActiveTokens(ExpireTokensArgs args) =>
+            Execute(emailVerificationData => emailVerificationData.ExpireActiveTokens(args));
     }
 }

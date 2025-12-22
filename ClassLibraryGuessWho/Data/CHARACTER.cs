@@ -17,16 +17,16 @@ namespace ClassLibraryGuessWho.Data
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
         public CHARACTER()
         {
-            this.MATCH_PLAYER = new HashSet<MATCH_PLAYER>();
             this.MATCH_DECK_CARD = new HashSet<MATCH_DECK_CARD>();
+            this.MATCH_PLAYER = new HashSet<MATCH_PLAYER>();
         }
     
         public string CHARACTERID { get; set; }
         public bool ISACTIVE { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<MATCH_PLAYER> MATCH_PLAYER { get; set; }
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH_DECK_CARD> MATCH_DECK_CARD { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_PLAYER> MATCH_PLAYER { get; set; }
     }
 }

@@ -33,8 +33,8 @@ namespace ClassLibraryGuessWho.Data
         public bool ISDELETED { get; set; }
         public Nullable<System.DateTime> DELETEDATUTC { get; set; }
     
+        public virtual USER_PROFILE USER_PROFILE { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<EMAIL_VERIFICATION> EMAIL_VERIFICATION { get; set; }
-        public virtual USER_PROFILE USER_PROFILE { get; set; }
     }
 }

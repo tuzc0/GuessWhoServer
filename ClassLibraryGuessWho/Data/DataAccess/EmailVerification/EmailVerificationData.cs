@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 {
-    public sealed class EmailVerificationData
+    public sealed class EmailVerificationData : IEmailVerificationData
     {
         private const int MIN_AFFECTED_ROWS = 1;
         private const int RESEND_COOLDOWN_SECONDS = 60;
@@ -27,6 +27,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
             var tokenEntity = new EMAIL_VERIFICATION
             {
+                TOKENID = Guid.NewGuid(),
                 ACCOUNTID = args.AccountId,
                 CODEHASH = args.CodeHash,
                 CREATEDATUTC = args.NowUtc,
@@ -72,6 +73,36 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
             return emailVerificationToken;
         }
+
+        public EmailVerificationTokenDto GetLatestTokenStatusByAccountId(long accountId)
+        {
+            EmailVerificationTokenDto emailVerificationToken;
+
+            var tokenEntity = dataBaseContext.EMAIL_VERIFICATION
+                .Where(t => t.ACCOUNTID == accountId)
+                .OrderByDescending(t => t.CREATEDATUTC)
+                .FirstOrDefault();
+
+            if (tokenEntity == null)
+            {
+                emailVerificationToken = EmailVerificationTokenDto.CreateInvalid();
+            }
+            else
+            {
+                emailVerificationToken = new EmailVerificationTokenDto
+                {
+                    TokenId = tokenEntity.TOKENID,
+                    AccountId = tokenEntity.ACCOUNTID,
+                    CodeHash = tokenEntity.CODEHASH,
+                    CreatedAtUtc = tokenEntity.CREATEDATUTC,
+                    ExpiresUtc = tokenEntity.EXPIRESUTC,
+                    ConsumedUtc = tokenEntity.CONSUMEDUTC
+                };
+            }
+
+            return emailVerificationToken;
+        }
+
 
         public int IncrementFailedAttemptsAndMaybeExpire(IncrementFailedAttemptArgs args)
         {

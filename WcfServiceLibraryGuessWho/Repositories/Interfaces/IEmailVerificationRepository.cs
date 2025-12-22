@@ -10,6 +10,8 @@ namespace GuessWhoServices.Repositories.Interfaces
 
         EmailVerificationTokenDto GetLatestTokenByAccountId(long accountId, DateTime consumeDate);
 
+        EmailVerificationTokenDto GetLatestTokenStatusByAccountId(long accountId);
+
         int IncrementFailedAttemptsAndMaybeExpire(IncrementFailedAttemptArgs args);
 
         int ConsumeToken(Guid tokenId);

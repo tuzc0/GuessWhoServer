@@ -2,13 +2,13 @@
 
 namespace WcfServiceLibraryGuessWho.Coordinators.Parameters
 {
-    public class RegisterUserArgs
+    public sealed class RegisterUserArgs
     {
         public RegisterUserArgs(string email, string displayName, string password, DateTime nowUtc)
         {
-            Email = email;
-            DisplayName = displayName;
-            Password = password;
+            Email = email ?? string.Empty;
+            DisplayName = displayName ?? string.Empty;
+            Password = password ?? string.Empty;
             NowUtc = nowUtc;
         }
 

@@ -25,8 +25,7 @@ namespace ClassLibraryGuessWho.Data
         public string SECRETCHARACTERID { get; set; }
     
         public virtual CHARACTER CHARACTER { get; set; }
-        public virtual USER_PROFILE USER_PROFILE { get; set; }
         public virtual MATCH MATCH { get; set; }
-        public virtual MATCH MATCH1 { get; set; }
+        public virtual USER_PROFILE USER_PROFILE { get; set; }
     }
 }

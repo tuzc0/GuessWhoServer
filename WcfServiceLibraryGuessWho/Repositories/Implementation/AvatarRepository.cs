@@ -1,5 +1,6 @@
 ﻿using ClassLibraryGuessWho.Data;
 using ClassLibraryGuessWho.Data.DataAccess.Avatars;
+using ClassLibraryGuessWho.Data.Factories;
 using GuessWhoContracts.Dtos.Dto;
 using GuessWhoServices.Repositories.Interfaces;
 using System;
@@ -9,26 +10,26 @@ namespace GuessWhoServices.Repositories.Implementation
 {
     public class AvatarRepository : IAvatarRepository
     {
-        private readonly AvatarData avatarData; 
-        public AvatarRepository(AvatarData avatarData)
+        private readonly IGuessWhoDbContextFactory contextFactory;
+        public AvatarRepository(IGuessWhoDbContextFactory contextFactory)
         {
-            this.avatarData = avatarData ??
-                throw new ArgumentNullException(nameof(avatarData));
+            this.contextFactory = contextFactory ??
+                throw new ArgumentNullException(nameof(contextFactory));
         }
 
-        public AvatarRepository(GuessWhoDBEntities dataContext) : 
-            this( new AvatarData(dataContext))
+        private T Excute<T> (Func<IAvatarData, T> action)
         {
+            using (var context = contextFactory.Create())
+            {
+                var avatarData = new AvatarData(context);
+                return action(avatarData);
+            }
         }
 
-        public List<AvatarDto> GetActiveAvatars()
-        {
-            return avatarData.GetActiveAvatars();
-        }
+        public List<AvatarDto> GetActiveAvatars() => 
+            Excute(avatarData => avatarData.GetActiveAvatars());
 
-        public string GetDefaultAvatarId()
-        {
-            return avatarData.GetDefaultAvatarId();
-        }
+        public string GetDefaultAvatarId() => 
+            Excute(avatarData => avatarData.GetDefaultAvatarId());
     }
 }

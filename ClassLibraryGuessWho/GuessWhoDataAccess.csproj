@@ -68,13 +68,16 @@
     <Compile Include="Data\CHARACTER.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\DataAccess\Accounts\IUserAccountData.cs" />
     <Compile Include="Data\DataAccess\Accounts\Parameters\CreateAccountArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\Parameters\AccountSearchParameters.cs" />
     <Compile Include="Data\DataAccess\Accounts\Parameters\UpdateAccountArgs.cs" />
     <Compile Include="Data\DataAccess\Accounts\UserAccountData.cs" />
     <Compile Include="Data\DataAccess\Avatars\AvatarData.cs" />
+    <Compile Include="Data\DataAccess\Avatars\IAvatarData.cs" />
     <Compile Include="Data\DataAccess\Characters\CharacterData.cs" />
     <Compile Include="Data\DataAccess\Characters\CharacterDeckData.cs" />
+    <Compile Include="Data\DataAccess\EmailVerification\IEmailVerificationData.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\Parameters\CreateEmailTokenArgs.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationData.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\Parameters\ExpireTokensArgs.cs" />
@@ -94,6 +97,8 @@
     <Compile Include="Data\EMAIL_VERIFICATION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\Factories\GuessWhoDbContextFactory.cs" />
+    <Compile Include="Data\Factories\IGuessWhoDbContextFactory.cs" />
     <Compile Include="Data\FRIENDREQUESTSTATUS.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
@@ -143,7 +148,7 @@
     <Compile Include="Data\MODERATIONACTIONTYPE.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
-    <Compile Include="Data\MODERATIONSCOPe.cs">
+    <Compile Include="Data\MODERATIONSCOPE.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\MODERATION_ACTION.cs">
@@ -153,9 +158,6 @@
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\sp_helpdiagrams_Result.cs">
-      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Data\sysdiagrams.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\TOURNAMENT_4P.cs">

@@ -4,6 +4,6 @@
     {
         Classic = 1,
         Fast = 2,
-        Fourp = 3,
+        Tournament4Persons = 3,
     }
 }

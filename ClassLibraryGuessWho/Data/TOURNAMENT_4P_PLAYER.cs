@@ -18,7 +18,7 @@ namespace ClassLibraryGuessWho.Data
         public long USERID { get; set; }
         public byte SLOTNUMBER { get; set; }
     
-        public virtual USER_PROFILE USER_PROFILE { get; set; }
         public virtual TOURNAMENT_4P TOURNAMENT_4P { get; set; }
+        public virtual USER_PROFILE USER_PROFILE { get; set; }
     }
 }

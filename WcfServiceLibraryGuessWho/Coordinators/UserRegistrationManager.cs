@@ -6,13 +6,19 @@ using GuessWhoContracts.Dtos.Dto;
 using GuessWhoServices.Repositories.Interfaces;
 using System;
 using WcfServiceLibraryGuessWho.Communication.Email;
+using WcfServiceLibraryGuessWho.Coordinators.FaultsCatalogs;
+using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
 using WcfServiceLibraryGuessWho.Coordinators.Parameters;
 
 namespace WcfServiceLibraryGuessWho.Coordinators
 {
     public sealed class RegisterResult
     {
-        public RegisterResult(long accountId, long userId, string email, string displayName,
+        public RegisterResult(
+            long accountId, 
+            long userId, 
+            string email, 
+            string displayName,
             bool emailVerificationRequired)
         {
             AccountId = accountId;
@@ -29,20 +35,10 @@ namespace WcfServiceLibraryGuessWho.Coordinators
         public bool EmailVerificationRequired { get; }
     }
 
-    public sealed class UserRegistrationManager
+    public sealed class UserRegistrationManager : IUserRegistrationManager
     {
-        private const int VERIFICATION_CODE_EXPIRY_MINUTES = 10;
-
-        private const string ERROR_MESSAGE_ARGS_REQUIRED = "Registration data is required.";
-        private const string ERROR_MESSAGE_EMAIL_REQUIRED = "Email must not be empty.";
-        private const string ERROR_MESSAGE_EMAIL_ALREADY_EXISTS = "A user with this email already exists.";
-        private const string ERROR_MESSAGE_PASSWORD_REQUIRED = "Password must not be empty.";
-        private const string ERROR_MESSAGE_DISPLAYNAME_REQUIRED = "Display name must not be empty.";
-        private const string ERROR_MESSAGE_TOKEN_CREATION_FAILED = "Could not create email verification token.";
-        private const string ERROR_MESSAGE_NOWUTC_REQUIRED = "Registration timestamp is required.";
-
         private static readonly TimeSpan VerificationCodeLifeTime =
-            TimeSpan.FromMinutes(VERIFICATION_CODE_EXPIRY_MINUTES);
+            TimeSpan.FromMinutes(UserRegistrationFaults.VERIFICATION_CODE_EXPIRY_MINUTES);
 
         private readonly IUserAccountRepository accountRepository;
         private readonly IEmailVerificationRepository emailRepository;
@@ -69,8 +65,8 @@ namespace WcfServiceLibraryGuessWho.Coordinators
         {
             if (registerUserArgs == null)
             {
-                throw new ArgumentNullException(nameof(registerUserArgs), 
-                    ERROR_MESSAGE_ARGS_REQUIRED);
+                throw new ArgumentNullException(nameof(registerUserArgs),
+                    UserRegistrationFaults.ERROR_MESSAGE_ARGS_REQUIRED);
             }
 
             string email = EnsureEmailIsProvidedAndUnique(registerUserArgs.Email);
@@ -109,7 +105,8 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
             if (!tokenCreated)
             {
-                throw new InvalidOperationException(ERROR_MESSAGE_TOKEN_CREATION_FAILED);
+                throw new InvalidOperationException(
+                    UserRegistrationFaults.ERROR_MESSAGE_TOKEN_CREATION_FAILED);
             }
 
             emailSender.SendVerificationCode(email, codeResult.PlainCode);
@@ -128,12 +125,14 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
             if (string.IsNullOrWhiteSpace(normalizedEmail))
             {
-                throw new ArgumentException(ERROR_MESSAGE_EMAIL_REQUIRED, nameof(RegisterUserArgs.Email));
+                throw new ArgumentException(
+                    UserRegistrationFaults.ERROR_MESSAGE_EMAIL_REQUIRED, 
+                    nameof(RegisterUserArgs.Email));
             }
 
             if (accountRepository.EmailExist(normalizedEmail))
             {
-                throw new InvalidOperationException(ERROR_MESSAGE_EMAIL_ALREADY_EXISTS);
+                throw new InvalidOperationException(UserRegistrationFaults.ERROR_MESSAGE_EMAIL_ALREADY_EXISTS);
             }
 
             return normalizedEmail;
@@ -145,7 +144,9 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
             if (string.IsNullOrWhiteSpace(safePassword))
             {
-                throw new ArgumentException(ERROR_MESSAGE_PASSWORD_REQUIRED, nameof(RegisterUserArgs.Password));
+                throw new ArgumentException(
+                    UserRegistrationFaults.ERROR_MESSAGE_PASSWORD_REQUIRED, 
+                    nameof(RegisterUserArgs.Password));
             }
 
             return safePassword;
@@ -157,7 +158,9 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
             if (string.IsNullOrWhiteSpace(normalizedDisplayName))
             {
-                throw new ArgumentException(ERROR_MESSAGE_DISPLAYNAME_REQUIRED, nameof(RegisterUserArgs.DisplayName));
+                throw new ArgumentException(
+                    UserRegistrationFaults.ERROR_MESSAGE_DISPLAYNAME_REQUIRED, 
+                    nameof(RegisterUserArgs.DisplayName));
             }
 
             return normalizedDisplayName;
@@ -167,7 +170,9 @@ namespace WcfServiceLibraryGuessWho.Coordinators
         {
             if (nowUtc == default)
             {
-                throw new ArgumentException(ERROR_MESSAGE_NOWUTC_REQUIRED, nameof(RegisterUserArgs.NowUtc));
+                throw new ArgumentException(
+                    UserRegistrationFaults.ERROR_MESSAGE_NOWUTC_REQUIRED, 
+                    nameof(RegisterUserArgs.NowUtc));
             }
 
             return nowUtc;

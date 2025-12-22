@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 {
-    public sealed class UserAccountData
+    public sealed class UserAccountData : IUserAccountData
     {
         private readonly GuessWhoDBEntities dataContext; 
 

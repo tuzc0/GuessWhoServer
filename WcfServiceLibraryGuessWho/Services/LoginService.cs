@@ -1,5 +1,4 @@
-﻿using ClassLibraryGuessWho.Data;
-using ClassLibraryGuessWho.Data.DataAccess.Accounts;
+﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts;
 using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
 using ClassLibraryGuessWho.Data.DataAccess.Match;
 using ClassLibraryGuessWho.Data.Helpers;
@@ -73,13 +72,21 @@ namespace GuessWho.Services.WCF.Services
 
         public LoginService(UserAccountData userAccountData)
         {
-            userAccountData = userAccountData ?? 
+            this.userAccountData = userAccountData ?? 
                 throw new ArgumentNullException(nameof(userAccountData));
 
         }
 
         public LoginResponse LoginUser(LoginRequest request)
         {
+            if (request == null)
+            {
+                Logger.Warn("LoginUser called with null request.");
+                throw Faults.Create(
+                    FAULT_CODE_REQUEST_NULL,
+                    FAULT_MESSAGE_REQUEST_NULL);
+            }
+
             try
             {
                 string email = NormalizeEmail(request);
