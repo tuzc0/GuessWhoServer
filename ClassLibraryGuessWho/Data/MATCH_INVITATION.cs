@@ -23,6 +23,8 @@ namespace ClassLibraryGuessWho.Data
         public byte INVITATIONSTATUS { get; set; }
         public System.DateTime CREATEDATUTC { get; set; }
         public Nullable<System.DateTime> RESPONDEDATUTC { get; set; }
+        public Nullable<System.DateTime> EXPIRESATUTC { get; set; }
+        public byte STATUSID { get; set; }
     
         public virtual MATCH MATCH { get; set; }
         public virtual USER_PROFILE USER_PROFILE { get; set; }

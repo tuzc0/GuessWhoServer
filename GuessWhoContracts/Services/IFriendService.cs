@@ -1,5 +1,8 @@
-﻿using GuessWhoContracts.Dtos.RequestAndResponse;
-using GuessWhoContracts.Faults;
+﻿using GuessWhoContracts.Faults;
+using GuessWhoCore.Contracts.Faults;
+using GuessWhoCore.Contracts.Request;
+using GuessWhoCore.Contracts.Requests;
+using GuessWhoCore.Contracts.Response;
 using System.ServiceModel;
 
 namespace GuessWhoContracts.Services
@@ -17,15 +20,15 @@ namespace GuessWhoContracts.Services
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
-        BasicResponse AcceptFriendRequest(AcceptFriendRequestRequest request);
+        BasicResponse AcceptFriendRequest(FriendRequestOperationRequest request);
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
-        BasicResponse RejectFriendRequest(AcceptFriendRequestRequest request);
+        BasicResponse RejectFriendRequest(FriendRequestOperationRequest request);
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
-        BasicResponse CancelFriendRequest(AcceptFriendRequestRequest request);
+        BasicResponse CancelFriendRequest(FriendRequestOperationRequest request);
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]

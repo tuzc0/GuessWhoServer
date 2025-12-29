@@ -1,134 +1,114 @@
-﻿using GuessWhoContracts.Dtos.RequestAndResponse;
-using GuessWhoContracts.Faults;
-using GuessWhoContracts.Services;
-using GuessWhoContracts.Enums;
+﻿using GuessWhoContracts.Services;
+using GuessWhoCore.Contracts.Faults;
+using GuessWhoCore.Contracts.Request;
+using GuessWhoCore.Contracts.Requests;
+using GuessWhoCore.Contracts.Response;
+using GuessWhoServerDomain.Domain.Models.Sessions;
+using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
-using System.Data.Entity.Infrastructure;
 using System.ServiceModel;
+using WcfServiceLibraryGuessWho.Coordinators.Base;
 using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Coordinators.Parameters;
+using WcfServiceLibraryGuessWho.Coordinators.Parameters.InternalDtos;
 
 namespace GuessWho.Services.WCF.Services
 {
     [ServiceBehavior(IncludeExceptionDetailInFaults = false, InstanceContextMode = InstanceContextMode.PerCall)]
-    public sealed class LoginService : ILoginService
+    public sealed class LoginService : ServiceBase, ILoginService
     {
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(LoginService));
+        protected override ILog Logger { get; } =
+            LogManager.GetLogger(typeof(LoginService));
 
-        private const string FAULT_CODE_REQUEST_NULL = "LOGIN_REQUEST_NULL";
-        private const string FAULT_MESSAGE_REQUEST_NULL = "The request cannot be null.";
+        private const string LOG_CTX_LOGIN_USER = "LoginService.LoginUser";
+        private const string LOG_CTX_LOGOUT_USER = "LoginService.LogoutUser";
 
-        private const string FAULT_CODE_LOGIN_INVALID_INPUT = "LOGIN_INVALID_INPUT";
-        private const string FAULT_MESSAGE_LOGIN_INVALID_INPUT =
-            "Some login fields are invalid. Please check your information and try again.";
+        private const string EMPTY = "";
 
-        private const string FAULT_CODE_LOGIN_FAILED = "LOGIN_FAILED";
-        private const string FAULT_MESSAGE_LOGIN_FAILED =
-            "Your login could not be processed. Please check your credentials or try again later.";
+        private readonly ILoginCoordinator loginCoordinator;
 
-        private readonly ILoginCoordinator _loginCoordinator;
-        private readonly ILoginFaultMapper _loginFaultMapper;
-
-        public LoginService(
-            ILoginCoordinator loginCoordinator,
-            ILoginFaultMapper loginFaultMapper)
+        public LoginService(ILoginCoordinator loginCoordinator)
         {
-            _loginCoordinator = loginCoordinator ??
+            this.loginCoordinator = loginCoordinator ??
                 throw new ArgumentNullException(nameof(loginCoordinator));
-            _loginFaultMapper = loginFaultMapper ??
-                throw new ArgumentNullException(nameof(loginFaultMapper));
         }
 
         public LoginResponse LoginUser(LoginRequest request)
         {
-            if (request == null)
-            {
-                Logger.Warn("LoginUser request is null.");
-                throw Faults.Create(FAULT_CODE_REQUEST_NULL, FAULT_MESSAGE_REQUEST_NULL);
-            }
-
-            LoginArgs loginArgs = BuildLoginArgs(request);
-
-            try
-            {
-                var result = _loginCoordinator.LoginAndInitializeSession(loginArgs);
-
-                if (!result.IsSuccess)
+            return ExecuteService(
+                LOG_CTX_LOGIN_USER,
+                () =>
                 {
-                    Logger.Info($"Login failed for user {request.Email}. Status: {result.Status}");
+                    EnsureRequestNotNull(request);
+
+                    LoginArgs loginArgs = BuildLoginArgs(request);
+
+                    SessionLoginResult result = loginCoordinator.LoginAndInitializeSession(loginArgs);
+
+                    if (result == null || !result.IsSuccess)
+                    {
+                        Logger.InfoFormat(
+                            "{0}: login failed for email '{1}'.",
+                            LOG_CTX_LOGIN_USER,
+                            NormalizeEmail(request.Email));
+
+                        return new LoginResponse
+                        {
+                            ValidUser = false
+                        };
+                    }
 
                     return new LoginResponse
                     {
-                        ValidUser = false
+                        UserId = result.Profile.UserId,
+                        DisplayName = result.Profile.DisplayName,
+                        Email = result.Account.Email,
+                        ValidUser = true
                     };
-                }
-
-                return new LoginResponse
-                {
-                    UserId = result.Profile.UserId,
-                    DisplayName = result.Profile.DisplayName,
-                    Email = result.Account.Email,
-                    ValidUser = true
-                };
-            }
-            catch (ArgumentException ex)
-            {
-                Logger.Warn("LoginUser failed due to invalid input.", ex);
-                throw Faults.Create(FAULT_CODE_LOGIN_INVALID_INPUT, FAULT_MESSAGE_LOGIN_INVALID_INPUT, ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                Logger.Error("LoginUser failed due to invalid operation.", ex);
-                throw Faults.Create(FAULT_CODE_LOGIN_FAILED, FAULT_MESSAGE_LOGIN_FAILED, ex);
-            }
-            catch (FaultException)
-            {
-                throw;
-            }
-            catch (DbUpdateException ex)
-            {
-                throw _loginFaultMapper.MapLoginDbException(ex);
-            }
-            catch (Exception ex)
-            {
-                throw _loginFaultMapper.MapLoginException(ex);
-            }
+                });
         }
 
         public BasicResponse LogoutUser(LogoutRequest request)
         {
-            if (request == null)
+            return ExecuteService(
+                LOG_CTX_LOGOUT_USER,
+                () =>
+                {
+                    EnsureRequestNotNull(request);
+
+                    bool success = loginCoordinator.Logout(request.UserProfileId);
+
+                    return new BasicResponse
+                    {
+                        Success = success
+                    };
+                });
+        }
+
+        private static void EnsureRequestNotNull(object request)
+        {
+            if (request != null)
             {
-                Logger.Warn("LogoutUser request is null.");
-                throw Faults.Create(FAULT_CODE_REQUEST_NULL, FAULT_MESSAGE_REQUEST_NULL);
+                return;
             }
 
-            try
-            {
-                bool result = _loginCoordinator.Logout(request.UserProfileId);
-                return new BasicResponse { Success = result };
-            }
-            catch (FaultException)
-            {
-                throw;
-            }
-            catch (DbUpdateException ex)
-            {
-                throw _loginFaultMapper.MapLogoutDbException(ex);
-            }
-            catch (Exception ex)
-            {
-                throw _loginFaultMapper.MapLogoutException(ex);
-            }
+            throw FaultsFactory.Create(
+                LoginFaultKeys.CODE_REQUEST_NULL,
+                LoginFaultKeys.MSG_REQUEST_NULL,
+                LoginFaultKeys.FALLBACK_REQUEST_NULL);
         }
 
         private static LoginArgs BuildLoginArgs(LoginRequest request)
         {
-            string normalizedEmail = (request.Email ?? string.Empty).Trim().ToLowerInvariant();
-            string safePassword = request.Password ?? string.Empty;
+            string normalizedEmail = NormalizeEmail(request.Email);
+            string safePassword = request.Password ?? EMPTY;
 
             return new LoginArgs(normalizedEmail, safePassword);
+        }
+
+        private static string NormalizeEmail(string email)
+        {
+            return (email ?? EMPTY).Trim().ToLowerInvariant();
         }
     }
 }

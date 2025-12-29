@@ -1,5 +1,7 @@
 ﻿using GuessWhoContracts.Dtos.RequestAndResponse;
 using GuessWhoContracts.Faults;
+using GuessWhoCore.Contracts.Requests;
+using GuessWhoCore.Contracts.Response;
 using System.ServiceModel;
 
 namespace GuessWhoContracts.Services

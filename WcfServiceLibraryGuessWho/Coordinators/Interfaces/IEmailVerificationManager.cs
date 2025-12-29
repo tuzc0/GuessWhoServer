@@ -1,5 +1,5 @@
-﻿
-using GuessWhoContracts.Dtos.RequestAndResponse;
+﻿using GuessWhoCore.Contracts.Requests;
+using GuessWhoCore.Contracts.Response;
 
 namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces.EmailVerification
 {

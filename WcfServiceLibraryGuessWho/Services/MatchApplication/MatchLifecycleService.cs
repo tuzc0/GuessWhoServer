@@ -1,13 +1,9 @@
 ﻿using ClassLibraryGuessWho.Data.DataAccess.Match;
-using ClassLibraryGuessWho.Data.DataAccess.Match.Parameters;
 using ClassLibraryGuessWho.Data.Helpers;
-using GuessWhoContracts.Dtos.RequestAndResponse;
-using GuessWhoContracts.Enums;
-using GuessWhoContracts.Faults;
+using GuessWhoCore.Contracts.Requests;
 using log4net;
 using System;
 using System.Data.Entity.Infrastructure;
-using System.Data.SqlClient;
 using System.ServiceModel;
 using WcfServiceLibraryGuessWho.Services.MatchApplication;
 
@@ -78,7 +74,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
         {
             if (request == null)
             {
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_INVALID_REQUEST,
                     MESSAGE_REQUEST_NULL);
             }
@@ -103,7 +99,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.WarnFormat("StartMatch: match not found. MatchId={0}",
                             request.MatchId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_MATCH_NOT_FOUND,
                             MESSAGE_MATCH_NOT_FOUND);
 
@@ -112,7 +108,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.WarnFormat("StartMatch: match is not in lobby state. MatchId={0}",
                             request.MatchId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_MATCH_NOT_IN_LOBBY,
                             MESSAGE_MATCH_NOT_IN_LOBBY);
 
@@ -121,7 +117,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.InfoFormat("StartMatch: not enough players to start. MatchId={0}",
                             request.MatchId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_NOT_ENOUGH_PLAYERS,
                             MESSAGE_NOT_ENOUGH_PLAYERS);
 
@@ -130,7 +126,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.InfoFormat("StartMatch: some players are not ready. MatchId={0}",
                             request.MatchId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_PLAYERS_NOT_READY,
                             MESSAGE_PLAYERS_NOT_READY);
 
@@ -138,7 +134,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
 
                         Logger.ErrorFormat("StartMatch: unknown result. MatchId={0}, Result={1}",
                             request.MatchId, result);
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_UNKNOWN,
                             MESSAGE_UNKNOWN_START_ERROR);
                 }
@@ -161,7 +157,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
         {
             if (request == null)
             {
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_INVALID_REQUEST,
                     MESSAGE_REQUEST_NULL);
             }
@@ -192,7 +188,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.WarnFormat("EndMatch: match not found. MatchId={0}",
                             request.MatchId);
 
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_MATCH_NOT_FOUND,
                             MESSAGE_MATCH_NOT_FOUND);
 
@@ -201,7 +197,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.WarnFormat("EndMatch: match is not in progress. MatchId={0}",
                             request.MatchId);
 
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_MATCH_NOT_IN_PROGRESS,
                             MESSAGE_MATCH_NOT_IN_PROGRESS);
 
@@ -211,7 +207,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                             "MatchId={0}, WinnerUserId={1}",
                             request.MatchId, request.WinnerUserId);
 
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_WINNER_NOT_IN_MATCH,
                             MESSAGE_WINNER_NOT_IN_MATCH);
 
@@ -220,7 +216,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.ErrorFormat("EndMatch: unknown result. MatchId={0}, Result={1}",
                             request.MatchId, result);
 
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_UNKNOWN,
                             MESSAGE_UNKNOWN_END_ERROR);
                 }
@@ -243,7 +239,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
         {
             if (request == null)
             {
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_INVALID_REQUEST,
                     MESSAGE_CHOOSE_SECRET_REQUEST_NULL);
             }
@@ -282,7 +278,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.WarnFormat("ChooseSecretCharacter: match not found. MatchId={0}, UserId={1}",
                             request.MatchId, request.UserId);
                        
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_MATCH_NOT_FOUND,
                             MESSAGE_MATCH_NOT_FOUND);
 
@@ -291,7 +287,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                         Logger.WarnFormat("ChooseSecretCharacter: match is not in progress. MatchId={0}, UserId={1}",
                             request.MatchId, request.UserId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_MATCH_NOT_IN_PROGRESS,
                             MESSAGE_MATCH_NOT_IN_PROGRESS);
 
@@ -301,7 +297,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                             "MatchId={0}, UserId={1}",
                             request.MatchId, request.UserId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_PLAYER_NOT_IN_MATCH,
                             MESSAGE_PLAYER_NOT_IN_MATCH);
 
@@ -311,7 +307,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                             "MatchId={0}, UserId={1}",
                             request.MatchId, request.UserId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_PLAYER_ALREADY_LEFT,
                             MESSAGE_PLAYER_ALREADY_LEFT);
 
@@ -321,7 +317,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                             "MatchId={0}, UserId={1}, CharacterId={2}",
                             request.MatchId, request.UserId, request.CharacterId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_INVALID_CHARACTER,
                             MESSAGE_INVALID_CHARACTER);
 
@@ -331,7 +327,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                             "MatchId={0}, UserId={1}",
                             request.MatchId, request.UserId);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_SECRET_ALREADY_CHOSEN,
                             MESSAGE_SECRET_ALREADY_CHOSEN);
 
@@ -342,7 +338,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                             request.MatchId, request.UserId, request.CharacterId,
                             result);
                         
-                        throw Faults.Create(
+                        throw FaultsFactory.Create(
                             ERROR_UNKNOWN,
                             MESSAGE_UNKNOWN_CHOOSE_SECRET_ERROR);
                 }
@@ -365,7 +361,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
         {
             if (request == null)
             {
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_INVALID_REQUEST,
                     MESSAGE_REQUEST_NULL);
             }
@@ -389,7 +385,7 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                 Logger.Fatal(string.Format("GetMatchDeck: unexpected error. MatchId={0}",
                         request.MatchId), ex);
 
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_UNKNOWN,
                     "The match deck could not be obtained due to an unexpected error.");
             }
@@ -417,17 +413,17 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                 {
                     case SqlErrorKind.Timeout:
                         Logger.Fatal(LOG_DB_TIMEOUT_START, ex);
-                        throw Faults.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
+                        throw FaultsFactory.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
 
                     case SqlErrorKind.ConnectionFailure:
                     case SqlErrorKind.DatabaseNotFound:
                         Logger.Fatal(LOG_DB_CONNECTION_START, ex);
-                        throw Faults.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
+                        throw FaultsFactory.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
                 }
             }
 
             Logger.Fatal("Database update error in MatchLifecycleService.StartMatch.", ex);
-            throw Faults.Create(ERROR_DATABASE_UPDATE, MESSAGE_DATABASE_UPDATE);
+            throw FaultsFactory.Create(ERROR_DATABASE_UPDATE, MESSAGE_DATABASE_UPDATE);
         }
 
         private BasicResponse HandleInfrastructureExceptionForStartMatch(Exception ex)
@@ -440,17 +436,17 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                 {
                     case SqlErrorKind.Timeout:
                         Logger.Fatal(LOG_DB_TIMEOUT_START, ex);
-                        throw Faults.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
+                        throw FaultsFactory.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
 
                     case SqlErrorKind.ConnectionFailure:
                     case SqlErrorKind.DatabaseNotFound:
                         Logger.Fatal(LOG_DB_CONNECTION_START, ex);
-                        throw Faults.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
+                        throw FaultsFactory.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
                 }
             }
 
             Logger.Fatal(LOG_DB_UNEXPECTED_START, ex);
-            throw Faults.Create(ERROR_DATABASE_SQL, MESSAGE_DATABASE_SQL);
+            throw FaultsFactory.Create(ERROR_DATABASE_SQL, MESSAGE_DATABASE_SQL);
         }
 
         private BasicResponse HandleDatabaseExceptionForEndMatch(DbUpdateException ex)
@@ -463,17 +459,17 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                 {
                     case SqlErrorKind.Timeout:
                         Logger.Fatal(LOG_DB_TIMEOUT_END, ex);
-                        throw Faults.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
+                        throw FaultsFactory.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
 
                     case SqlErrorKind.ConnectionFailure:
                     case SqlErrorKind.DatabaseNotFound:
                         Logger.Fatal(LOG_DB_CONNECTION_END, ex);
-                        throw Faults.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
+                        throw FaultsFactory.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
                 }
             }
 
             Logger.Fatal("Database update error in MatchLifecycleService.EndMatch.", ex);
-            throw Faults.Create(ERROR_DATABASE_UPDATE, MESSAGE_DATABASE_UPDATE);
+            throw FaultsFactory.Create(ERROR_DATABASE_UPDATE, MESSAGE_DATABASE_UPDATE);
         }
 
         private BasicResponse HandleInfrastructureExceptionForEndMatch(Exception ex)
@@ -486,17 +482,17 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                 {
                     case SqlErrorKind.Timeout:
                         Logger.Fatal(LOG_DB_TIMEOUT_END, ex);
-                        throw Faults.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
+                        throw FaultsFactory.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
 
                     case SqlErrorKind.ConnectionFailure:
                     case SqlErrorKind.DatabaseNotFound:
                         Logger.Fatal(LOG_DB_CONNECTION_END, ex);
-                        throw Faults.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
+                        throw FaultsFactory.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
                 }
             }
 
             Logger.Fatal(LOG_DB_UNEXPECTED_END, ex);
-            throw Faults.Create(ERROR_DATABASE_SQL, MESSAGE_DATABASE_SQL);
+            throw FaultsFactory.Create(ERROR_DATABASE_SQL, MESSAGE_DATABASE_SQL);
         }
 
         private BasicResponse HandleDatabaseExceptionForChooseSecret(DbUpdateException ex)
@@ -509,17 +505,17 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                 {
                     case SqlErrorKind.Timeout:
                         Logger.Fatal(LOG_DB_TIMEOUT_CHOOSE, ex);
-                        throw Faults.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
+                        throw FaultsFactory.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
 
                     case SqlErrorKind.ConnectionFailure:
                     case SqlErrorKind.DatabaseNotFound:
                         Logger.Fatal(LOG_DB_CONNECTION_CHOOSE, ex);
-                        throw Faults.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
+                        throw FaultsFactory.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
                 }
             }
 
             Logger.Fatal("Database update error in MatchLifecycleService.ChooseSecretCharacter.", ex);
-            throw Faults.Create(ERROR_DATABASE_UPDATE, MESSAGE_DATABASE_UPDATE);
+            throw FaultsFactory.Create(ERROR_DATABASE_UPDATE, MESSAGE_DATABASE_UPDATE);
         }
 
         private BasicResponse HandleInfrastructureExceptionForChooseSecret(Exception ex)
@@ -532,17 +528,17 @@ namespace GuessWho.Services.WCF.Services.MatchApplication
                 {
                     case SqlErrorKind.Timeout:
                         Logger.Fatal(LOG_DB_TIMEOUT_CHOOSE, ex);
-                        throw Faults.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
+                        throw FaultsFactory.Create(ERROR_DATABASE_TIMEOUT, MESSAGE_DATABASE_TIMEOUT);
 
                     case SqlErrorKind.ConnectionFailure:
                     case SqlErrorKind.DatabaseNotFound:
                         Logger.Fatal(LOG_DB_CONNECTION_CHOOSE, ex);
-                        throw Faults.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
+                        throw FaultsFactory.Create(ERROR_DATABASE_CONNECTION, MESSAGE_DATABASE_CONNECTION);
                 }
             }
 
             Logger.Fatal(LOG_DB_UNEXPECTED_CHOOSE, ex);
-            throw Faults.Create(ERROR_DATABASE_SQL, MESSAGE_DATABASE_SQL);
+            throw FaultsFactory.Create(ERROR_DATABASE_SQL, MESSAGE_DATABASE_SQL);
         }
     }
 }

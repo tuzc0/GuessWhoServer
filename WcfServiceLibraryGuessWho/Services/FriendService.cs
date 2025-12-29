@@ -1,238 +1,266 @@
-﻿using ClassLibraryGuessWho.Data.DataAccess.Friends;
-using GuessWhoContracts.Dtos.RequestAndResponse;
-using GuessWhoContracts.Faults;
-using GuessWhoContracts.Services;
+﻿using GuessWhoContracts.Services;
+using GuessWhoCore.Contracts.Faults;
+using GuessWhoCore.Contracts.Request;
+using GuessWhoCore.Contracts.Requests;
+using GuessWhoCore.Contracts.Response;
+using GuessWhoServerDomain.Domain.Models.Friends;
+using GuessWhoServerDomain.Domain.Parameters.Friends;
+using GuessWhoServices.Services.ErrorHandling;
+using log4net;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
+using WcfServiceLibraryGuessWho.Coordinators.Base;
+using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
 
 namespace GuessWho.Services.WCF.Services
 {
-    [ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall)]
-    public class FriendService : IFriendService
+    [ServiceBehavior(IncludeExceptionDetailInFaults = false, InstanceContextMode = InstanceContextMode.PerCall)]
+    public sealed class FriendService : ServiceBase, IFriendService
     {
-        private readonly FriendshipData friendshipData = new FriendshipData();
+        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(FriendService));
 
-        public GetFriendsResponse GetFriends(GetFriendsRequest request)
+        private const string LOG_CTX_SEARCH = "FriendService.SearchProfiles";
+        private const string LOG_CTX_SEND = "FriendService.SendFriendRequest";
+        private const string LOG_CTX_ACCEPT = "FriendService.AcceptFriendRequest";
+        private const string LOG_CTX_REJECT = "FriendService.RejectFriendRequest";
+        private const string LOG_CTX_CANCEL = "FriendService.CancelFriendRequest";
+        private const string LOG_CTX_GET_FRIENDS = "FriendService.GetFriends";
+        private const string LOG_CTX_GET_PENDING = "FriendService.GetPendingRequests";
+
+        private const string EMPTY = "";
+        private const int MIN_VALID_ID = 1;
+
+        private readonly IFriendshipManager friendshipManager;
+
+        public FriendService(IFriendshipManager friendshipManager)
         {
-            EnsureRequestNotNull(request);
-
-            if (!long.TryParse(request.AccountId, out long accountId) || accountId <= 0)
-                throw Faults.Create("InvalidAccountId", "Account ID is invalid.");
-
-            try
-            {
-                var userId = friendshipData.ResolveUserIdFromAccountId(accountId);
-
-                var friends = friendshipData.GetFriends(userId);
-
-                return new GetFriendsResponse
-                {
-                    Friends = friends.ToList()
-                };
-            }
-            catch (Exception ex)
-            {
-                throw Faults.Create("GetFriendsError", "Error fetching friends: " + ex.Message);
-            }
+            this.friendshipManager = friendshipManager ??
+                throw new ArgumentNullException(nameof(friendshipManager));
         }
 
-        public GetPendingRequestsResponse GetPendingRequests(GetPendingFriendRequestsRequest request)
-        {
-            EnsureRequestNotNull(request);
-
-            if (!long.TryParse(request.AccountId, out long accountId) || accountId <= 0)
-                throw Faults.Create("InvalidAccountId", "Account ID is invalid.");
-
-            try
-            {
-                var userId = friendshipData.ResolveUserIdFromAccountId(accountId);
-                var requests = friendshipData.GetPendingRequests(userId);
-
-                return new GetPendingRequestsResponse
-                {
-                    Requests = requests.ToList()
-                };
-            }
-            catch (Exception ex)
-            {
-                throw Faults.Create("GetRequestsError", "Error fetching pending requests: " + ex.Message);
-            }
-        }
         public SearchProfilesResponse SearchProfiles(SearchProfileRequest request)
         {
-
-            EnsureRequestNotNull(request);
-
-            var displayName = (request.DisplayName ?? string.Empty).Trim();
-
-            if (string.IsNullOrWhiteSpace(displayName))
-            {
-                throw Faults.Create("InvalidDisplayName", "Display name cannot be empty.");
-            }
-
-            try
-            {
-                var profiles = friendshipData.SearchProfilesByDisplayName(displayName);
-                return new SearchProfilesResponse
+            return ExecuteService(
+                LOG_CTX_SEARCH,
+                () =>
                 {
-                    Profiles = profiles.ToList()
-                };
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw Faults.Create("SearchProfilesError", "An error occurred while searching for profiles: " + ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw Faults.Create("SearchProfilesError", "An unexpected error occurred while searching for profiles: " + ex.Message);
-            }
+                    EnsureRequestNotNull(request);
+
+                    IList<UserProfileSearchRecord> profiles =
+                        friendshipManager.SearchProfiles(request.DisplayName);
+
+                    return new SearchProfilesResponse
+                    {
+                        Profiles = MapProfiles(profiles)
+                    };
+                });
         }
 
         public SendFriendRequestResponse SendFriendRequest(SendFriendRequestRequest request)
         {
-
-            EnsureRequestNotNull(request);
-
-            if (request.FromAccountId <= 0 || request.ToUserId <= 0)
-            {
-                throw Faults.Create("InvalidAccountId", "Account IDs must be positive.");
-            }
-
-            try
-            {
-                var dateTimeNow = DateTime.UtcNow;
-                var fromUserId = friendshipData.ResolveUserIdFromAccountId(request.FromAccountId);
-
-                if (fromUserId == request.ToUserId)
+            return ExecuteService(
+                LOG_CTX_SEND,
+                () =>
                 {
-                    throw Faults.Create("InvalidFriendRequest", "Cannot send friend request to oneself.");
-                }
+                    EnsureRequestNotNull(request);
 
-                friendshipData.EnsureDestinationUserActive(request.ToUserId);
+                    DateTime nowUtc = DateTime.UtcNow;
 
-                if (friendshipData.AreAlreadyFriends(fromUserId, request.ToUserId))
-                {
+                    var result = friendshipManager.SendFriendRequest(
+                        request.FromAccountId,
+                        request.ToUserId,
+                        nowUtc);
+
+                    if (result == null)
+                    {
+                        return new SendFriendRequestResponse
+                        {
+                            Success = false,
+                            AutoAccepted = false,
+                            FriendRequestId = EMPTY
+                        };
+                    }
+
                     return new SendFriendRequestResponse
                     {
-                        Success = true,
-                        AutoAccepted = true,
-                        FriendRequestId = null
+                        Success = result.Success,
+                        AutoAccepted = result.AutoAccepted,
+                        FriendRequestId = result.FriendRequestId ?? EMPTY
                     };
-                }
+                });
+        }
 
-                var inverseRequestExisting = friendshipData.TryAcceptInversePending(fromUserId, request.ToUserId, dateTimeNow);
-
-                if (inverseRequestExisting != null)
+        public BasicResponse AcceptFriendRequest(FriendRequestOperationRequest request)
+        {
+            return ExecuteService(
+                LOG_CTX_ACCEPT,
+                () =>
                 {
-                    return inverseRequestExisting;
-                }
+                    EnsureRequestNotNull(request);
 
-                var existingRequest = friendshipData.TryReturnExistingPending(fromUserId, request.ToUserId);
+                    FriendRequestActionArgs args = BuildActionArgs(request);
 
-                if (existingRequest != null)
+                    bool success = friendshipManager.AcceptFriendRequest(args);
+
+                    return new BasicResponse
+                    {
+                        Success = success
+                    };
+                });
+        }
+
+        public BasicResponse RejectFriendRequest(FriendRequestOperationRequest request)
+        {
+            return ExecuteService(
+                LOG_CTX_REJECT,
+                () =>
                 {
-                    return existingRequest;
-                }
+                    EnsureRequestNotNull(request);
 
-                return friendshipData.CreateNewRequest(fromUserId, request.ToUserId, dateTimeNow);
-            }
-            catch (FaultException)
-            {
-                throw;
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw Faults.Create("FriendRequestError", ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw Faults.Create("SendFriendRequestError", "An unexpected error occurred while sending friend request: " + ex.Message);
-            }
+                    FriendRequestActionArgs args = BuildActionArgs(request);
+
+                    bool success = friendshipManager.RejectFriendRequest(args);
+
+                    return new BasicResponse
+                    {
+                        Success = success
+                    };
+                });
         }
 
-        public BasicResponse AcceptFriendRequest(AcceptFriendRequestRequest request)
+        public BasicResponse CancelFriendRequest(FriendRequestOperationRequest request)
         {
+            return ExecuteService(
+                LOG_CTX_CANCEL,
+                () =>
+                {
+                    EnsureRequestNotNull(request);
 
-            EnsureRequestNotNull(request);
-            var(accountId, friendRequestId) = validateIdsOrFault(request);
+                    FriendRequestActionArgs args = BuildActionArgs(request);
 
-            try
-            {
-                friendshipData.AcceptFriendRequest(accountId, friendRequestId, DateTime.UtcNow);
-                return new BasicResponse { Success = true };
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw Faults.Create("AcceptFriendRequestError", ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw Faults.Create("AcceptFriendRequestError", "An unexpected error occurred while accepting friend request: " + ex.Message);
-            }
+                    bool success = friendshipManager.CancelFriendRequest(args);
+
+                    return new BasicResponse
+                    {
+                        Success = success
+                    };
+                });
         }
 
-        public BasicResponse RejectFriendRequest(AcceptFriendRequestRequest request)
+        public GetFriendsResponse GetFriends(GetFriendsRequest request)
         {
+            return ExecuteService(
+                LOG_CTX_GET_FRIENDS,
+                () =>
+                {
+                    EnsureRequestNotNull(request);
 
-            EnsureRequestNotNull(request);
-            var (accountId, friendRequestId) = validateIdsOrFault(request);
+                    IList<UserProfileSearchRecord> friends =
+                        friendshipManager.GetFriends(request.AccountId);
 
-            try
-            {
-                friendshipData.RejectFriendRequest(accountId, friendRequestId, DateTime.UtcNow);
-                return new BasicResponse { Success = true };
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw Faults.Create("RejectFriendRequestError", ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw Faults.Create("RejectFriendRequestError", "An unexpected error occurred while rejecting friend request: " + ex.Message);
-            }
+                    return new GetFriendsResponse
+                    {
+                        Friends = MapProfiles(friends)
+                    };
+                });
         }
 
-        public BasicResponse CancelFriendRequest(AcceptFriendRequestRequest request)
+        public GetPendingRequestsResponse GetPendingRequests(GetPendingFriendRequestsRequest request)
         {
+            return ExecuteService(
+                LOG_CTX_GET_PENDING,
+                () =>
+                {
+                    EnsureRequestNotNull(request);
 
-            EnsureRequestNotNull(request);
-            var (accountId, friendRequestId) = validateIdsOrFault(request);
-            try
-            {
-                friendshipData.CancelFriendRequest(accountId, friendRequestId, DateTime.UtcNow);
-                return new BasicResponse { Success = true };
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw Faults.Create("CancelFriendRequestError", ex.Message);
-            }
-            catch (Exception ex)
-            {
-                throw Faults.Create("CancelFriendRequestError", "An unexpected error occurred while cancelling friend request: " + ex.Message);
-            }
+                    IList<FriendRequestRecord> records =
+                        friendshipManager.GetPendingRequests(request.AccountId);
+
+                    return new GetPendingRequestsResponse
+                    {
+                        Requests = MapFriendRequests(records)
+                    };
+                });
         }
 
-        private static void EnsureRequestNotNull<T>(T request)
+        private static void EnsureRequestNotNull(object request)
         {
-            if (request == null)
+            if (request != null)
             {
-                throw Faults.Create("InvalidRequest", "Request cannot be null.");
+                return;
             }
+
+            throw FaultsFactory.Create(
+                FriendFaultKeys.CODE_REQUEST_NULL,
+                FriendFaultKeys.MSG_REQUEST_NULL,
+                FriendFaultKeys.FALLBACK_REQUEST_NULL);
         }
 
-        private static (long AccountId, long friendRequestId) validateIdsOrFault(AcceptFriendRequestRequest request)
+        private static FriendRequestActionArgs BuildActionArgs(FriendRequestOperationRequest request)
         {
-            EnsureRequestNotNull(request);
+            long accountId = ParseIdOrThrow(
+                request.AccountId,
+                FriendFaultKeys.CODE_INVALID_ACCOUNT_ID,
+                FriendFaultKeys.MSG_INVALID_ACCOUNT_ID,
+                FriendFaultKeys.FALLBACK_INVALID_ACCOUNT_ID);
 
-            if (!long.TryParse(request.AccountId, out var accountId) || accountId <= 0)
-                throw Faults.Create("InvalidAccountId", "AccountId is invalid.");
+            long friendRequestId = ParseIdOrThrow(
+                request.FriendRequestId,
+                FriendFaultKeys.CODE_INVALID_IDS,
+                FriendFaultKeys.MSG_INVALID_IDS,
+                FriendFaultKeys.FALLBACK_INVALID_IDS);
 
-            if (!long.TryParse(request.FriendRequestId, out var friendRequestId) || friendRequestId <= 0)
-                throw Faults.Create("InvalidFriendRequestId", "FriendRequestId is invalid.");
+            DateTime nowUtc = DateTime.UtcNow;
 
-            return (accountId, friendRequestId);
+            return new FriendRequestActionArgs(accountId, friendRequestId, nowUtc);
+        }
 
+        private static long ParseIdOrThrow(string raw, string code, string msgKey, string fallback)
+        {
+            string trimmed = (raw ?? EMPTY).Trim();
+
+            if (!long.TryParse(trimmed, out long value) || value < MIN_VALID_ID)
+            {
+                throw FaultsFactory.Create(code, msgKey, fallback);
+            }
+
+            return value;
+        }
+
+        private static List<UserProfileSearchResult> MapProfiles(
+            IList<UserProfileSearchRecord> profiles)
+        {
+            if (profiles == null || profiles.Count == 0)
+            {
+                return new List<UserProfileSearchResult>();
+            }
+
+            return profiles.Select(p => new UserProfileSearchResult
+            {
+                UserId = p.UserId,
+                DisplayName = p.DisplayName ?? EMPTY,
+                AvatarId = p.AvatarId ?? EMPTY
+            }).ToList();
+        }
+
+        private static List<FriendRequest> MapFriendRequests(IList<FriendRequestRecord> records)
+        {
+            if (records == null || records.Count == 0)
+            {
+                return new List<FriendRequest>();
+            }
+
+            return records.Select(r => new FriendRequest
+            {
+                FriendRequestId = r.FriendRequestId,
+                RequesterUserId = r.RequesterUserId,
+                RequesterDisplayName = r.RequesterDisplayName ?? EMPTY,
+                AddresseeUserId = r.AddresseeUserId,
+                StatusId = r.StatusId,
+                CreatedAt = r.CreatedAtUtc
+            }).ToList();
         }
     }
 }

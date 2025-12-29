@@ -79,6 +79,15 @@
           <Property Name="USERIDLOW" Type="bigint" StoreGeneratedPattern="Computed" Nullable="false" />
           <Property Name="USERIDHIGH" Type="bigint" StoreGeneratedPattern="Computed" Nullable="false" />
         </EntityType>
+        <EntityType Name="GUEST_SESSION">
+          <Key>
+            <PropertyRef Name="GUESTTOKEN" />
+          </Key>
+          <Property Name="GUESTTOKEN" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="USERID" Type="bigint" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="EXPIRESATUTC" Type="datetime2" Precision="0" Nullable="false" />
+        </EntityType>
         <EntityType Name="MATCH">
           <Key>
             <PropertyRef Name="MATCHID" />
@@ -92,6 +101,7 @@
           <Property Name="WINNERUSERID" Type="bigint" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
           <Property Name="MODEID" Type="tinyint" Nullable="false" />
+          <Property Name="ISCODEJOINENABLED" Type="bit" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCH_DECK_CARD">
           <Key>
@@ -115,6 +125,8 @@
           <Property Name="INVITATIONSTATUS" Type="tinyint" Nullable="false" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
           <Property Name="RESPONDEDATUTC" Type="datetime2" Precision="7" />
+          <Property Name="EXPIRESATUTC" Type="datetime2" Precision="0" />
+          <Property Name="STATUSID" Type="tinyint" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCH_MODE">
           <Key>
@@ -226,6 +238,7 @@
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
           <Property Name="AVATARID" Type="varchar" MaxLength="16" />
           <Property Name="ROWVERSION" Type="timestamp" StoreGeneratedPattern="Computed" Nullable="false" />
+          <Property Name="ISGUEST" Type="bit" Nullable="false" />
         </EntityType>
         <Association Name="FK_ACCOUNT_USER_PROFILE">
           <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
@@ -308,6 +321,18 @@
             </Principal>
             <Dependent Role="FRIENDSHIP">
               <PropertyRef Name="USER2ID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_GUEST_SESSION_USER_PROFILE">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="GUEST_SESSION" Type="Self.GUEST_SESSION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="GUEST_SESSION">
+              <PropertyRef Name="USERID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -606,6 +631,7 @@
           <EntitySet Name="FRIEND_REQUEST" EntityType="Self.FRIEND_REQUEST" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="FRIENDREQUESTSTATUS" EntityType="Self.FRIENDREQUESTSTATUS" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="FRIENDSHIP" EntityType="Self.FRIENDSHIP" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="GUEST_SESSION" EntityType="Self.GUEST_SESSION" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH" EntityType="Self.MATCH" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH_DECK_CARD" EntityType="Self.MATCH_DECK_CARD" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH_INVITATION" EntityType="Self.MATCH_INVITATION" Schema="dbo" store:Type="Tables" />
@@ -647,6 +673,10 @@
           <AssociationSet Name="FK_FRIENDSHIP_USER2" Association="Self.FK_FRIENDSHIP_USER2">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="FRIENDSHIP" EntitySet="FRIENDSHIP" />
+          </AssociationSet>
+          <AssociationSet Name="FK_GUEST_SESSION_USER_PROFILE" Association="Self.FK_GUEST_SESSION_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="GUEST_SESSION" EntitySet="GUEST_SESSION" />
           </AssociationSet>
           <AssociationSet Name="FK_MATCH_DECK_CARD_CHARACTER" Association="Self.FK_MATCH_DECK_CARD_CHARACTER">
             <End Role="CHARACTER" EntitySet="CHARACTER" />
@@ -931,6 +961,11 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="TOURNAMENT_4P_PLAYER" EntitySet="TOURNAMENT_4P_PLAYER" />
           </AssociationSet>
+          <EntitySet Name="GUEST_SESSION" EntityType="GuessWhoDBModel.GUEST_SESSION" />
+          <AssociationSet Name="FK_GUEST_SESSION_USER_PROFILE" Association="GuessWhoDBModel.FK_GUEST_SESSION_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="GUEST_SESSION" EntitySet="GUEST_SESSION" />
+          </AssociationSet>
           </EntityContainer>
         <ComplexType Name="sp_helpdiagramdefinition_Result">
           <Property Type="Int32" Name="version" Nullable="true" />
@@ -1051,6 +1086,7 @@
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_MATCH_WINNERUSER" FromRole="MATCH" ToRole="USER_PROFILE" />
           <NavigationProperty Name="MODERATION_ACTION" Relationship="GuessWhoDBModel.FK_MODERATION_ACTION_MATCH" FromRole="MATCH" ToRole="MODERATION_ACTION" />
           <NavigationProperty Name="TOURNAMENT_4P_MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH" FromRole="MATCH" ToRole="TOURNAMENT_4P_MATCH" />
+          <Property Name="ISCODEJOINENABLED" Type="Boolean" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCH_DECK_CARD">
           <Key>
@@ -1079,6 +1115,8 @@
           <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_MATCH_INVITATION_MATCH" FromRole="MATCH_INVITATION" ToRole="MATCH" />
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_MATCH_INVITATION_INVITER" FromRole="MATCH_INVITATION" ToRole="USER_PROFILE" />
           <NavigationProperty Name="USER_PROFILE1" Relationship="GuessWhoDBModel.FK_MATCH_INVITATION_TARGETUSER" FromRole="MATCH_INVITATION" ToRole="USER_PROFILE" />
+          <Property Name="EXPIRESATUTC" Type="DateTime" Precision="0" />
+          <Property Name="STATUSID" Type="Byte" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCH_MODE">
           <Key>
@@ -1224,6 +1262,8 @@
           <NavigationProperty Name="MODERATION_ACTION1" Relationship="GuessWhoDBModel.FK_MODERATION_ACTION_TARGETUSER" FromRole="USER_PROFILE" ToRole="MODERATION_ACTION" />
           <NavigationProperty Name="TOURNAMENT_4P" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER" FromRole="USER_PROFILE" ToRole="TOURNAMENT_4P" />
           <NavigationProperty Name="TOURNAMENT_4P_PLAYER" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_USER" FromRole="USER_PROFILE" ToRole="TOURNAMENT_4P_PLAYER" />
+          <Property Name="ISGUEST" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="GUEST_SESSION" Relationship="GuessWhoDBModel.FK_GUEST_SESSION_USER_PROFILE" FromRole="USER_PROFILE" ToRole="GUEST_SESSION" />
         </EntityType>
         <Association Name="FK_ACCOUNT_USER_PROFILE">
           <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
@@ -1589,6 +1629,28 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="GUEST_SESSION">
+          <Key>
+            <PropertyRef Name="GUESTTOKEN" />
+          </Key>
+          <Property Name="GUESTTOKEN" Type="Guid" Nullable="false" />
+          <Property Name="USERID" Type="Int64" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="EXPIRESATUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_GUEST_SESSION_USER_PROFILE" FromRole="GUEST_SESSION" ToRole="USER_PROFILE" />
+        </EntityType>
+        <Association Name="FK_GUEST_SESSION_USER_PROFILE">
+          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.GUEST_SESSION" Role="GUEST_SESSION" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="GUEST_SESSION">
+              <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -1681,6 +1743,7 @@
           <EntitySetMapping Name="MATCH">
             <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH">
               <MappingFragment StoreEntitySet="MATCH">
+                <ScalarProperty Name="ISCODEJOINENABLED" ColumnName="ISCODEJOINENABLED" />
                 <ScalarProperty Name="MODEID" ColumnName="MODEID" />
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
                 <ScalarProperty Name="WINNERUSERID" ColumnName="WINNERUSERID" />
@@ -1705,6 +1768,8 @@
           <EntitySetMapping Name="MATCH_INVITATION">
             <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_INVITATION">
               <MappingFragment StoreEntitySet="MATCH_INVITATION">
+                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
+                <ScalarProperty Name="EXPIRESATUTC" ColumnName="EXPIRESATUTC" />
                 <ScalarProperty Name="RESPONDEDATUTC" ColumnName="RESPONDEDATUTC" />
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
                 <ScalarProperty Name="INVITATIONSTATUS" ColumnName="INVITATIONSTATUS" />
@@ -1828,12 +1893,23 @@
           <EntitySetMapping Name="USER_PROFILE">
             <EntityTypeMapping TypeName="GuessWhoDBModel.USER_PROFILE">
               <MappingFragment StoreEntitySet="USER_PROFILE">
+                <ScalarProperty Name="ISGUEST" ColumnName="ISGUEST" />
                 <ScalarProperty Name="ROWVERSION" ColumnName="ROWVERSION" />
                 <ScalarProperty Name="AVATARID" ColumnName="AVATARID" />
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
                 <ScalarProperty Name="ISACTIVE" ColumnName="ISACTIVE" />
                 <ScalarProperty Name="DISPLAYNAME" ColumnName="DISPLAYNAME" />
                 <ScalarProperty Name="USERID" ColumnName="USERID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="GUEST_SESSION">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.GUEST_SESSION">
+              <MappingFragment StoreEntitySet="GUEST_SESSION">
+                <ScalarProperty Name="EXPIRESATUTC" ColumnName="EXPIRESATUTC" />
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="USERID" ColumnName="USERID" />
+                <ScalarProperty Name="GUESTTOKEN" ColumnName="GUESTTOKEN" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

@@ -1,4 +1,4 @@
-﻿using GuessWhoContracts.Enums;
+﻿using GuessWhoDataAccess.Enums;
 using System;
 using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;

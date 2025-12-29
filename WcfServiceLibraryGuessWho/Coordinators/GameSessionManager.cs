@@ -1,27 +1,40 @@
-﻿using System;
-using GuessWhoServices.Repositories.Interfaces;
+﻿using GuessWhoCore.Contracts.Faults;
+using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+using log4net;
+using System;
+using System.ServiceModel;
+using WcfServiceLibraryGuessWho.Coordinators.Base;
 using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-
-namespace WcfServiceLibraryGuessWho.Coordinators
-{
-    public sealed class GameSessionManager : IGameSessionManager
-    {
-        private readonly IGameSessionRepository _sessionRepository;
-
-        public GameSessionManager(IGameSessionRepository sessionRepository)
-        {
-            _sessionRepository = sessionRepository ??
-                throw new ArgumentNullException(nameof(sessionRepository));
-        }
-
-        public bool TerminateActiveSessions(long userId)
-        {
-            if (userId <= 0)
+using WcfServiceLibraryGuessWho.Errors;
+namespace WcfServiceLibraryGuessWho.Coordinators { 
+    public sealed class GameSessionManager : ManagerBase, IGameSessionManager { 
+        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(GameSessionManager)); 
+        
+        private const string LOG_CTX_TERMINATE = "GameSessionManager.TerminateActiveSessions"; 
+        
+        private const int MIN_VALID_ID = 1;
+        
+        private readonly IGameSessionRepository sessionRepository; 
+        public GameSessionManager(IGameSessionRepository sessionRepository) 
+        { 
+            this.sessionRepository = sessionRepository ?? 
+                throw new ArgumentNullException(nameof(sessionRepository)); 
+        } 
+        
+        public bool TerminateActiveSessions(long userId) 
+        { 
+            return ExecuteService(LOG_CTX_TERMINATE, () => 
             {
-                return false;
-            }
-
-            return _sessionRepository.ForceLeaveActiveSessionsForUser(userId);
+                if (userId < MIN_VALID_ID) 
+                { return false; 
+                } 
+                return sessionRepository.ForceLeaveActiveSessionsForUser(userId); 
+            }); 
         }
-    }
+        
+        protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex) 
+        { 
+            return FaultTranslator.ToTechnicalFault(ex, Logger); 
+        } 
+    } 
 }

@@ -11,6 +11,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuessWhoServices", "WcfServ
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuessWhoContracts", "GuessWhoContracts\GuessWhoContracts.csproj", "{E883C093-7C48-425C-B0E6-6DBCBD7F5FB0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuessWhoCore", "GuessWhoCore\GuessWhoCore.csproj", "{E0C21307-032A-49C0-A33D-E6CA2F6C0E5E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuessWhoServerDomain", "GuessWhoServerDomain\GuessWhoServerDomain.csproj", "{2B0E43A3-9959-41CD-B55C-59CE9266D828}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{E883C093-7C48-425C-B0E6-6DBCBD7F5FB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E883C093-7C48-425C-B0E6-6DBCBD7F5FB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E883C093-7C48-425C-B0E6-6DBCBD7F5FB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0C21307-032A-49C0-A33D-E6CA2F6C0E5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0C21307-032A-49C0-A33D-E6CA2F6C0E5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0C21307-032A-49C0-A33D-E6CA2F6C0E5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0C21307-032A-49C0-A33D-E6CA2F6C0E5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B0E43A3-9959-41CD-B55C-59CE9266D828}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B0E43A3-9959-41CD-B55C-59CE9266D828}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B0E43A3-9959-41CD-B55C-59CE9266D828}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B0E43A3-9959-41CD-B55C-59CE9266D828}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

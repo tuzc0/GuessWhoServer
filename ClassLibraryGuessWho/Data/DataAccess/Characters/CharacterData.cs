@@ -1,5 +1,4 @@
-﻿using GuessWhoContracts.Dtos.Dto;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Characters

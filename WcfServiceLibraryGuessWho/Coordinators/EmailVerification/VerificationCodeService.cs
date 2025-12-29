@@ -1,14 +1,15 @@
-﻿using GuessWho.Services.Security;
-using GuessWhoContracts.Faults;
+﻿using GuessWhoCore.Contracts.Faults;
+using GuessWhoServer.Security;
+using GuessWhoServerDomain.Domain.Enums.Security;
+using GuessWhoServerDomain.Domain.Interfaces.Security;
+using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.Security.Cryptography;
-using WcfServiceLibraryGuessWho.Coordinators.FaultsCatalogs;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces.EmailVerification;
 
 namespace WcfServiceLibraryGuessWho.Coordinators.EmailVerification
 {
-    public class VerificationCodeService : IVerificationCodeService
+    public sealed class VerificationCodeService : IVerificationCodeService
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(VerificationCodeService));
 
@@ -23,31 +24,36 @@ namespace WcfServiceLibraryGuessWho.Coordinators.EmailVerification
             }
             catch (ArgumentNullException ex)
             {
-                Logger.Error("Crypto random generator unavailable (ArgumentNullException) while generating verification code.",
+                Logger.Error(
+                    "Crypto random generator unavailable (ArgumentNullException) while generating verification code.",
                     ex);
 
-                throw Faults.Create(
-                    EmailVerificationFaults.FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
-                    EmailVerificationFaults.FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                throw FaultsFactory.Create(
+                    EmailVerificationFaultKeys.CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    EmailVerificationFaultKeys.MSG_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    EmailVerificationFaultKeys.FALLBACK_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    ex);
+            }
+            catch (CryptographicException ex)
+            {
+                Logger.Error(
+                    "Crypto random generator unavailable (CryptographicException) while generating verification code.",
+                    ex);
+
+                throw FaultsFactory.Create(
+                    EmailVerificationFaultKeys.CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    EmailVerificationFaultKeys.MSG_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                    EmailVerificationFaultKeys.FALLBACK_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
                     ex);
             }
             catch (ArgumentOutOfRangeException ex)
             {
                 Logger.Error("Verification code generation failed (ArgumentOutOfRangeException).", ex);
 
-                throw Faults.Create(
-                    EmailVerificationFaults.FAULT_CODE_VERIFICATION_CODE_GENERATION_FAILED,
-                    EmailVerificationFaults.FAULT_MESSAGE_VERIFICATION_CODE_GENERATION_FAILED,
-                    ex);
-            }
-            catch (CryptographicException ex)
-            {
-                Logger.Error("Crypto random generator unavailable (CryptographicException) while generating verification code.",
-                    ex);
-
-                throw Faults.Create(
-                    EmailVerificationFaults.FAULT_CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
-                    EmailVerificationFaults.FAULT_MESSAGE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                throw FaultsFactory.Create(
+                    EmailVerificationFaultKeys.CODE_VERIFICATION_CODE_GENERATION_FAILED,
+                    EmailVerificationFaultKeys.MSG_VERIFICATION_CODE_GENERATION_FAILED,
+                    EmailVerificationFaultKeys.FALLBACK_VERIFICATION_CODE_GENERATION_FAILED,
                     ex);
             }
         }

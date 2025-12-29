@@ -1,102 +1,290 @@
-﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts.Parameters;
-using GuessWhoContracts.Dtos.Dto;
-using GuessWhoContracts.Enums;
+﻿using GuessWhoServerDomain.Domain.Enums;
+using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+using GuessWhoServerDomain.Domain.Models.Accounts;
+using GuessWhoServerDomain.Domain.Parameters.Accounts;
+using GuessWhoServerDomain.Domain.Results.Accounts;
 using System;
 using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 {
-    public sealed class UserAccountData : IUserAccountData
+    public sealed class UserAccountData : IUserAccountRepository
     {
-        private readonly GuessWhoDBEntities dataContext; 
+        private const bool DEFAULT_IS_EMAIL_VERIFIED = false;
+        private const int INVALID_ACCOUNT = -1;
+
+        private const string EMPTY = "";
+
+        private readonly GuessWhoDBEntities dataContext;
 
         public UserAccountData(GuessWhoDBEntities context)
         {
-            this.dataContext = context ?? throw new ArgumentNullException(nameof(context));
+            dataContext = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         public bool EmailExists(string email)
         {
-            bool emailExists = false;
-          
-            emailExists = dataContext.ACCOUNT.Any(ua => ua.EMAIL == email);
-      
-            return emailExists;
-        }
+            string normalizedEmail = NormalizeEmailOrEmpty(email);
 
-        public (AccountDto account, UserProfileDto profile) CreateAccount(CreateAccountArgs args)
-        {
-            using (var transaction = dataContext.Database.BeginTransaction())
+            if (string.IsNullOrWhiteSpace(normalizedEmail))
             {
-                var profileEntity = new USER_PROFILE
-                {
-                    DISPLAYNAME = args.DisplayName,
-                    ISACTIVE = true,
-                    CREATEDATUTC = args.CreationDate
-                };
-
-                dataContext.USER_PROFILE.Add(profileEntity);
-                dataContext.SaveChanges();
-
-                var accountEntity = new ACCOUNT
-                {
-                    USERID = profileEntity.USERID,
-                    EMAIL = args.Email,
-                    PASSWORD = args.Password,
-                    ISEMAILVERIFIED = false,
-                    CREATEDATUTC = args.CreationDate,
-                    UPDATEDATUTC = args.CreationDate
-                };
-
-                dataContext.ACCOUNT.Add(accountEntity);
-                dataContext.SaveChanges();
-
-                transaction.Commit();
-
-                var accountDto = ToAccountDto(accountEntity);
-                var profileDto = ToUserProfileDto(profileEntity);
-
-                return (accountDto, profileDto);
+                return false;
             }
+
+            return dataContext.ACCOUNT.Any(a => a.EMAIL == normalizedEmail && !a.ISDELETED);
         }
 
-        public AccountDto GetAccountByIdAccount(long accountId)
+        public CreatedAccountResult CreateAccount(CreateAccountArgs createAccountArgs)
         {
-            var accountEntity = dataContext.ACCOUNT
-                    .SingleOrDefault(a => a.ACCOUNTID == accountId);
+            if (createAccountArgs == null)
+            {
+                throw new ArgumentNullException(nameof(createAccountArgs));
+            }
+
+            var profileEntity = new USER_PROFILE
+            {
+                DISPLAYNAME = createAccountArgs.DisplayName,
+                CREATEDATUTC = createAccountArgs.CreationDate,
+                AVATARID = createAccountArgs.AvatarId
+            };
+
+            var accountEntity = new ACCOUNT
+            {
+                EMAIL = NormalizeEmailOrEmpty(createAccountArgs.Email),
+                PASSWORD = createAccountArgs.PasswordHash ?? Array.Empty<byte>(),
+                ISEMAILVERIFIED = DEFAULT_IS_EMAIL_VERIFIED,
+                CREATEDATUTC = createAccountArgs.CreationDate,
+                UPDATEDATUTC = createAccountArgs.CreationDate,
+
+                USER_PROFILE = profileEntity
+            };
+
+            dataContext.ACCOUNT.Add(accountEntity);
+            dataContext.SaveChanges();
+
+            AccountRecord account = AccountRecordMapper.ToAccountRecord(accountEntity);
+            UserProfileRecord profile = AccountRecordMapper.ToUserProfileRecord(profileEntity);
+
+            return CreatedAccountResult.Ok(account, profile);
+        }
+
+        public AccountRecord GetAccountByIdAccount(long accountId)
+        {
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == accountId);
+
+            return AccountRecordMapper.ToAccountRecord(accountEntity);
+        }
+
+        public AccountWithProfileResult GetAccountWithProfileByUserId(long userId)
+        {
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.USERID == userId && !a.ISDELETED);
 
             if (accountEntity == null)
             {
-                return AccountDto.CreateInvalid();
+                return AccountWithProfileResult.NotFound();
             }
 
-            return ToAccountDto(accountEntity);
+            USER_PROFILE profileEntity = FindUserProfile(accountEntity.USERID);
+
+            if (profileEntity == null)
+            {
+                return AccountWithProfileResult.NotFound();
+            }
+
+            return MapFoundAccountWithProfile(accountEntity, profileEntity);
         }
 
         public bool MarkEmailVerified(long accountId, DateTime nowUtc)
         {
-            bool isUpdated = false;
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == accountId);
 
-            var accountEntity = dataContext.ACCOUNT
-                    .SingleOrDefault(a => a.ACCOUNTID == accountId);
-
-            if (accountEntity != null)
+            if (accountEntity == null)
             {
-                accountEntity.ISEMAILVERIFIED = true;
-                accountEntity.UPDATEDATUTC = nowUtc;
-
-                dataContext.SaveChanges();
-                isUpdated = true;
+                return false;
             }
 
-            return isUpdated;
+            accountEntity.ISEMAILVERIFIED = true;
+            accountEntity.UPDATEDATUTC = nowUtc;
+
+            return SaveChangesSucceeded();
+        }
+
+        public long GetAccountIdByEmail(string email)
+        {
+            string normalizedEmail = NormalizeEmailOrEmpty(email);
+
+            if (string.IsNullOrWhiteSpace(normalizedEmail))
+            {
+                return INVALID_ACCOUNT;
+            }
+
+            ACCOUNT accountEntity = dataContext.ACCOUNT.FirstOrDefault(a => a.EMAIL == normalizedEmail && !a.ISDELETED);
+
+            return accountEntity != null ? accountEntity.ACCOUNTID : INVALID_ACCOUNT;
+        }
+
+        public bool UpdatePasswordOnly(UpdatePasswordArgs passwordUpdateArgs)
+        {
+            if (passwordUpdateArgs == null)
+            {
+                throw new ArgumentNullException(nameof(passwordUpdateArgs));
+            }
+
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == passwordUpdateArgs.AccountId);
+
+            if (accountEntity == null)
+            {
+                return false;
+            }
+
+            accountEntity.PASSWORD = passwordUpdateArgs.NewPasswordHash ?? Array.Empty<byte>();
+            accountEntity.UPDATEDATUTC = passwordUpdateArgs.UpdatedAtUtc;
+
+            return SaveChangesSucceeded();
+        }
+
+        public UpdatedAccountResult UpdateDisplayNameAndPassword(UpdateAccountArgs updateAccountArgs)
+        {
+            if (updateAccountArgs == null)
+            {
+                throw new ArgumentNullException(nameof(updateAccountArgs));
+            }
+
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == updateAccountArgs.AccountId);
+
+            if (accountEntity ==null || !IsAccountActive(accountEntity))
+            {
+                return UpdatedAccountResult.Fail();
+            }
+
+            USER_PROFILE userProfileEntity = FindUserProfile(accountEntity.USERID);
+
+            if (userProfileEntity == null)
+            {
+                return UpdatedAccountResult.Fail();
+            }
+
+            userProfileEntity.DISPLAYNAME = updateAccountArgs.NewDisplayName;
+            userProfileEntity.AVATARID = updateAccountArgs.NewAvatarId;
+
+            if (HasNewPassword(updateAccountArgs.NewPasswordHash))
+            {
+                accountEntity.PASSWORD = updateAccountArgs.NewPasswordHash;
+            }
+
+            accountEntity.UPDATEDATUTC = updateAccountArgs.UpdatedAtUtc;
+
+            if (!SaveChangesSucceeded())
+            {
+                return UpdatedAccountResult.Fail();
+            }
+
+            AccountRecord account = AccountRecordMapper.ToAccountRecord(accountEntity);
+            UserProfileRecord profile = AccountRecordMapper.ToUserProfileRecord(userProfileEntity);
+
+            return UpdatedAccountResult.Ok(account, profile);
+        }
+
+        public AccountProfileRecordResult GetAccountWithProfileForLogin(AccountSearchParameters accountSearchParameters, DateTime nowUtc)
+        {
+            if (accountSearchParameters == null)
+            {
+                throw new ArgumentNullException(nameof(accountSearchParameters));
+            }
+
+            ACCOUNT accountEntity = FindAccountForLogin(accountSearchParameters);
+
+            if (accountEntity == null || accountEntity.ISDELETED)
+            {
+                return AccountProfileRecordResult.Fail(AccountProfileStatus.NotFoundOrDeleted);
+            }
+
+            if (IsAccountLocked(accountEntity, nowUtc))
+            {
+                return AccountProfileRecordResult.Fail(AccountProfileStatus.Locked);
+            }
+
+            USER_PROFILE profileEntity = FindUserProfile(accountEntity.USERID);
+
+            if (profileEntity == null)
+            {
+                return AccountProfileRecordResult.Fail(AccountProfileStatus.ProfileNotFound);
+            }
+
+            AccountRecord account = AccountRecordMapper.ToAccountRecord(accountEntity);
+            UserProfileRecord profile = AccountRecordMapper.ToUserProfileRecord(profileEntity);
+
+            return AccountProfileRecordResult.Ok(account, profile);
+        }
+
+        public AccountWithProfileResult TryGetAccountWithProfileForUpdate(AccountSearchParameters accountSearchParameters)
+        {
+            if (accountSearchParameters == null)
+            {
+                throw new ArgumentNullException(nameof(accountSearchParameters));
+            }
+
+            ACCOUNT accountEntity = FindAccountForUpdate(accountSearchParameters);
+
+            if (!IsAccountActive(accountEntity))
+            {
+                return AccountWithProfileResult.NotFound();
+            }
+
+            USER_PROFILE profileEntity = FindUserProfile(accountEntity.USERID);
+
+            if (!IsProfileValidForUpdate(profileEntity))
+            {
+                return AccountWithProfileResult.NotFound();
+            }
+
+            return MapFoundAccountWithProfile(accountEntity, profileEntity);
+        }
+
+        public bool UpdateLastLoginUtc(AccountSearchParameters accountSearchParameters, DateTime nowUtc)
+        {
+            if (accountSearchParameters == null)
+            {
+                throw new ArgumentNullException(nameof(accountSearchParameters));
+            }
+
+            string normalizedEmail = NormalizeEmailOrEmpty(accountSearchParameters.Email);
+
+            if (string.IsNullOrWhiteSpace(normalizedEmail))
+            {
+                return false;
+            }
+
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.EMAIL == normalizedEmail && !a.ISDELETED);
+            if (accountEntity == null)
+            {
+                return false;
+            }
+
+            accountEntity.LASTLOGINUTC = nowUtc;
+            accountEntity.UPDATEDATUTC = nowUtc;
+
+            return SaveChangesSucceeded();
+        }
+
+        public bool DeleteAccount(long userId, DateTime nowUtc)
+        {
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.USERID == userId && !a.ISDELETED);
+            if (accountEntity == null)
+            {
+                return false;
+            }
+
+            accountEntity.ISDELETED = true;
+            accountEntity.DELETEDATUTC = nowUtc;
+            accountEntity.UPDATEDATUTC = nowUtc;
+
+            return SaveChangesSucceeded();
         }
 
         public bool MarkUserProfileActive(long userId)
         {
-            var profileEntity = dataContext.USER_PROFILE
-                    .SingleOrDefault(p => p.USERID == userId);
-
+            USER_PROFILE profileEntity = FindUserProfile(userId);
             if (profileEntity == null)
             {
                 return false;
@@ -109,14 +297,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
             profileEntity.ISACTIVE = true;
 
-            return dataContext.SaveChanges() > 0;
+            return SaveChangesSucceeded();
         }
 
         public bool MarkUserProfileInactive(long userId)
         {
-            var profileEntity = dataContext.USER_PROFILE
-                    .SingleOrDefault(p => p.USERID == userId);
-
+            USER_PROFILE profileEntity = FindUserProfile(userId);
             if (profileEntity == null)
             {
                 return false;
@@ -129,307 +315,84 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
             profileEntity.ISACTIVE = false;
 
-            dataContext.SaveChanges();
-            return true;
+            return SaveChangesSucceeded();
         }
 
-        public AccountProfileResult GetAccountWithProfileForLogin(AccountSearchParameters args)
+        private ACCOUNT FindAccountForLogin(AccountSearchParameters accountSearchArgs)
         {
-            if (args == null)
+            string normalizedEmail = NormalizeEmailOrEmpty(accountSearchArgs.Email);
+
+            if (!string.IsNullOrWhiteSpace(normalizedEmail))
             {
-                throw new ArgumentNullException(nameof(args));
+                return dataContext.ACCOUNT.SingleOrDefault(a => a.EMAIL == normalizedEmail);
             }
 
-            var accountEntity = FindAccountForLogin(dataContext, args);
-
-            if (accountEntity == null || accountEntity.ISDELETED)
+            if (accountSearchArgs.UserId > 0)
             {
-                return AccountProfileResult.Fail(AccountProfileStatus.NotFoundOrDeleted);
-            }
-
-            if (accountEntity.LOCKEDUNTILUTC.HasValue
-                && accountEntity.LOCKEDUNTILUTC.Value > DateTime.UtcNow)
-            {
-                return AccountProfileResult.Fail(AccountProfileStatus.Locked);
-            }
-
-            var profileEntity = FindUserProfile(dataContext, accountEntity.USERID);
-
-            if (profileEntity == null)
-            {
-                return AccountProfileResult.Fail(AccountProfileStatus.ProfileNotFound);
-            }
-
-            if (profileEntity.ISACTIVE)
-            {
-                return AccountProfileResult.Fail(AccountProfileStatus.ProfileAlreadyActive);
-            }
-
-            var account = ToAccountDto(accountEntity);
-            var profile = ToUserProfileDto(profileEntity);
-
-            return AccountProfileResult.Ok(account, profile);
-        }
-
-        public (AccountDto account, UserProfileDto profile) 
-            TryGetAccountWithProfileForUpdate(AccountSearchParameters args)
-        {
-            if (args == null)
-            {
-                throw new ArgumentNullException(nameof(args));
-            }
-
-            var accountEntity = FindAccountForUpdate(dataContext, args);
-
-            if (!IsAccountValidForUpdate(accountEntity))
-            {
-                return CreateInvalidAccountWithProfileResult();
-            }
-
-            var profileEntity = FindUserProfile(dataContext, accountEntity.USERID);
-
-            if (!IsProfileValidForUpdate(profileEntity))
-            {
-                return CreateInvalidAccountWithProfileResult();
-            }
-
-            var account = ToAccountDto(accountEntity);
-            var profile = ToUserProfileDto(profileEntity);
-
-            return (account, profile);
-        }
-
-        public bool UpdateLastLoginUtc(AccountSearchParameters args)
-        {
-            if (args == null)
-            {
-                throw new ArgumentNullException(nameof(args));
-            }
-
-            bool isUpdated = false;
-
-            var accountEntity = dataContext.ACCOUNT
-                    .SingleOrDefault(a => a.EMAIL == args.Email && !a.ISDELETED);
-
-            if (accountEntity != null)
-            {
-                accountEntity.LASTLOGINUTC = DateTime.UtcNow;
-
-                dataContext.SaveChanges();
-                isUpdated = true;
-            }
-
-            return isUpdated;
-        }
-
-        public bool DeleteAccount(long userId)
-        {
-            var accountEntity = dataContext.ACCOUNT
-                    .SingleOrDefault(a => a.USERID == userId && !a.ISDELETED);
-
-            if (accountEntity == null)
-            {
-                return false;
-            }
-
-            var nowUtc = DateTime.UtcNow;
-
-            accountEntity.ISDELETED = true;
-            accountEntity.DELETEDATUTC = nowUtc;
-            accountEntity.UPDATEDATUTC = nowUtc;
-
-            dataContext.SaveChanges();
-            return true;
-        }
-
-        public (AccountDto account, UserProfileDto profile) UpdateDisplayNameAndPassword(UpdateAccountArgs args)
-        {
-            using (var transaction = dataContext.Database.BeginTransaction())
-            {
-                var accountEntity = dataContext.ACCOUNT
-                    .SingleOrDefault(a => a.USERID == args.UserId)
-                    ?? throw new InvalidOperationException("Account not found.");
-
-                var userProfileEntity = dataContext.USER_PROFILE
-                    .SingleOrDefault(p => p.USERID == accountEntity.USERID)
-                    ?? throw new InvalidOperationException("User profile not found.");
-
-                userProfileEntity.DISPLAYNAME = args.NewDisplayName;
-                userProfileEntity.AVATARID = args.NewAvatarId;
-                accountEntity.PASSWORD = args.NewPassword;
-                accountEntity.UPDATEDATUTC = args.UpdatedAtUtc;
-
-                dataContext.SaveChanges();
-                transaction.Commit();
-
-                var accountDto = ToAccountDto(accountEntity);
-                var profileDto = ToUserProfileDto(userProfileEntity);
-
-                return (accountDto, profileDto);
-            }
-        }
-
-        public (AccountDto account, UserProfileDto profile) GetAccountWithProfileByIdAccount(long userId)
-        {
-            var accountEntity = dataContext.ACCOUNT
-                    .SingleOrDefault(a => a.USERID == userId);
-
-            AccountDto account;
-            UserProfileDto profile;
-
-            if (accountEntity == null)
-            {
-                account = AccountDto.CreateInvalid();
-                profile = UserProfileDto.CreateInvalid();
-                return (account, profile);
-            }
-
-            account = ToAccountDto(accountEntity);
-
-            var profileEntity = dataContext.USER_PROFILE
-                .SingleOrDefault(a => a.USERID == accountEntity.USERID);
-
-            if (profileEntity == null)
-            {
-                profile = UserProfileDto.CreateInvalid();
-            }
-            else
-            {
-                profile = ToUserProfileDto(profileEntity);
-            }
-
-            return (account, profile);
-        }
-
-        private static AccountDto ToAccountDto(ACCOUNT entity)
-        {
-            return new AccountDto
-            {
-                AccountId = entity.ACCOUNTID,
-                UserId = entity.USERID,
-                Email = entity.EMAIL,
-                PasswordHash = entity.PASSWORD,
-                IsEmailVerified = entity.ISEMAILVERIFIED,
-                CreatedAtUtc = entity.CREATEDATUTC,
-                UpdatedAtUtc = entity.UPDATEDATUTC,
-                LastLoginUtc = entity.LASTLOGINUTC
-            };
-        }
-
-        private static UserProfileDto ToUserProfileDto(USER_PROFILE entity)
-        {
-            return new UserProfileDto
-            {
-                UserId = entity.USERID,
-                DisplayName = entity.DISPLAYNAME,
-                IsActive = entity.ISACTIVE,
-                CreatedAtUtc = entity.CREATEDATUTC,
-                AvatarId = entity.AVATARID
-            };
-        }
-
-        public long GetAccountIdByEmail(string email)
-        {
-            var account = dataContext.ACCOUNT
-                    .FirstOrDefault(a => a.EMAIL == email && !a.ISDELETED);
-
-            return account != null ? account.ACCOUNTID : 0;
-        }
-
-        public bool UpdatePasswordOnly(long accountId, byte[] newPasswordHash)
-        {
-            var account = dataContext.ACCOUNT
-                    .SingleOrDefault(a => a.ACCOUNTID == accountId);
-
-            if (account == null)
-            {
-                return false;
-            }
-
-            account.PASSWORD = newPasswordHash;
-            account.UPDATEDATUTC = DateTime.UtcNow;
-
-            dataContext.SaveChanges();
-            return true;
-        }
-
-        private static (AccountDto account, UserProfileDto profile) CreateInvalidAccountWithProfileResult()
-        {
-            return (AccountDto.CreateInvalid(), UserProfileDto.CreateInvalid());
-        }
-
-        private static ACCOUNT FindAccountForLogin(
-            GuessWhoDBEntities context,
-            AccountSearchParameters args)
-        {
-            if (!string.IsNullOrWhiteSpace(args.Email))
-            {
-                return context.ACCOUNT
-                    .SingleOrDefault(a => a.EMAIL == args.Email);
-            }
-
-            if (args.UserId > 0)
-            {
-                return context.ACCOUNT
-                    .SingleOrDefault(a => a.USERID == args.UserId);
+                return dataContext.ACCOUNT.SingleOrDefault(a => a.USERID == accountSearchArgs.UserId);
             }
 
             return null;
         }
 
-        private static ACCOUNT FindAccountForUpdate(GuessWhoDBEntities context,
-            AccountSearchParameters args)
+        private ACCOUNT FindAccountForUpdate(AccountSearchParameters accountSearchArgs)
         {
-            if (!string.IsNullOrWhiteSpace(args.Email))
+            string normalizedEmail = NormalizeEmailOrEmpty(accountSearchArgs.Email);
+
+            if (!string.IsNullOrWhiteSpace(normalizedEmail))
             {
-                return context.ACCOUNT
-                    .SingleOrDefault(a => a.EMAIL == args.Email && !a.ISDELETED);
+                return dataContext.ACCOUNT.SingleOrDefault(a => a.EMAIL == normalizedEmail && !a.ISDELETED);
             }
 
-            if (args.UserId > 0)
+            if (accountSearchArgs.UserId > 0)
             {
-                return context.ACCOUNT
-                    .SingleOrDefault(a => a.USERID == args.UserId && !a.ISDELETED);
+                return dataContext.ACCOUNT.SingleOrDefault(a => a.USERID == accountSearchArgs.UserId && !a.ISDELETED);
             }
 
             return null;
         }
 
-        private static bool IsAccountValidForUpdate(ACCOUNT accountEntity)
+        private USER_PROFILE FindUserProfile(long userId)
         {
-            if (accountEntity == null)
-            {
-                return false;
-            }
-
-            if (accountEntity.ISDELETED)
-            {
-                return false;
-            }
-
-            return true;
+            return dataContext.USER_PROFILE.SingleOrDefault(p => p.USERID == userId);
         }
 
-        private static USER_PROFILE FindUserProfile(GuessWhoDBEntities context,
-            long userId)
+        private static bool IsAccountActive(ACCOUNT accountEntity)
         {
-            return context.USER_PROFILE
-                .SingleOrDefault(p => p.USERID == userId);
+            return accountEntity != null && !accountEntity.ISDELETED;
+        }
+
+        private static bool IsAccountLocked(ACCOUNT accountEntity, DateTime nowUtc)
+        {
+            return accountEntity.LOCKEDUNTILUTC.HasValue && accountEntity.LOCKEDUNTILUTC.Value > nowUtc;
         }
 
         private static bool IsProfileValidForUpdate(USER_PROFILE profileEntity)
         {
-            if (profileEntity == null)
-            {
-                return false;
-            }
+            return profileEntity != null && profileEntity.ISACTIVE;
+        }
 
-            if (!profileEntity.ISACTIVE)
-            {
-                return false;
-            }
+        private static bool HasNewPassword(byte[] newPasswordHash)
+        {
+            return newPasswordHash != null && newPasswordHash.Length > 0;
+        }
 
-            return true;
+        private static string NormalizeEmailOrEmpty(string email)
+        {
+            return (email ?? EMPTY).Trim().ToLowerInvariant();
+        }
+
+        private bool SaveChangesSucceeded()
+        {
+            return dataContext.SaveChanges() > 0;
+        }
+
+        private static AccountWithProfileResult MapFoundAccountWithProfile(ACCOUNT accountEntity, USER_PROFILE profileEntity)
+        {
+            AccountRecord account = AccountRecordMapper.ToAccountRecord(accountEntity);
+            UserProfileRecord profile = AccountRecordMapper.ToUserProfileRecord(profileEntity);
+
+            return AccountWithProfileResult.Found(account, profile);
         }
     }
 }

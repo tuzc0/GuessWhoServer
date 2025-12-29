@@ -48,82 +48,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Dtos\Dto\AccountDto.cs" />
-    <Compile Include="Dtos\Dto\AccountProfileResult.cs" />
-    <Compile Include="Dtos\Dto\AvatarDto.cs" />
-    <Compile Include="Dtos\Dto\CharacterDeckDto.cs" />
-    <Compile Include="Dtos\Dto\CharacterDto.cs" />
-    <Compile Include="Dtos\Dto\DatabaseFaultMappingOptions.cs" />
-    <Compile Include="Dtos\Dto\EmailVerificationResendLimitsDto.cs" />
-    <Compile Include="Dtos\Dto\EmailVerificationTokenDto.cs" />
-    <Compile Include="Dtos\Dto\LobbyNotificationDto.cs" />
-    <Compile Include="Dtos\RequestAndResponse\LobbyPlayerDto.cs" />
-    <Compile Include="Dtos\Dto\MatchDto.cs" />
-    <Compile Include="Dtos\Dto\TournamentDto.cs" />
-    <Compile Include="Dtos\Dto\TournamentPlayerDto.cs" />
-    <Compile Include="Dtos\Dto\UserProfileDto.cs" />
-    <Compile Include="Dtos\Dto\UserSessionLoginResult.cs" />
-    <Compile Include="Dtos\RequestAndResponse\AcceptFriendRequestRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\BasicResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\ChooseSecretCharacterRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\ConfigurationMatchRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\CreateMatchRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\CreateMatchResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\CreateTournamentRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\CreateTournamentResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\DeleteProfileRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\EndMatchRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\FriendRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\GetFriendsRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\GetFriendsResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\GetMatchDeckRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\LogoutRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\MatchDeckResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\GetPendingFriendRequestsRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\GetPendingFriendRequestsResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\JoinMatchRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\JoinMatchResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\KickPlayerRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\LeaveMatchRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\ListOpenMatchesRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\ListOpenMatchesResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\LoginRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\LoginResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\GetProfileRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\GetProfileResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\PasswordRecoveryRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\PasswordRecoveryResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\RegisterRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\RegisterResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\ResendVerificationRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\SearchProfilesRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\SearchProfilesResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\SendFriendRequestRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\SendFriendRequestResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\SetPlayerReadyStatusRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\StartMatchRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\UpdatePasswordRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\UpdateProfileRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\UpdateProfileResponse.cs" />
-    <Compile Include="Dtos\RequestAndResponse\UserProfileSearchResult.cs" />
-    <Compile Include="Dtos\RequestAndResponse\VerifyEmailRequest.cs" />
-    <Compile Include="Dtos\RequestAndResponse\VerifyEmailResponse.cs" />
-    <Compile Include="Enums\AccountProfileStatus.cs" />
-    <Compile Include="Enums\ChooseSecretCharacterResult.cs" />
-    <Compile Include="Enums\EndMatchResult.cs" />
-    <Compile Include="Enums\FriendRequestStatus.cs" />
-    <Compile Include="Enums\JointMatchResult.cs" />
-    <Compile Include="Enums\KickPlayerResult.cs" />
-    <Compile Include="Enums\LeaveMatchResult.cs" />
-    <Compile Include="Enums\MarkReadyResult.cs" />
-    <Compile Include="Enums\MatchMode.cs" />
-    <Compile Include="Enums\MatchStatus.cs" />
-    <Compile Include="Enums\MatchVisibility.cs" />
-    <Compile Include="Enums\SqlErrorKind.cs" />
-    <Compile Include="Enums\StartMatchResult.cs" />
-    <Compile Include="Enums\UserSessionLoginStatus.cs" />
-    <Compile Include="Faults\Faults.cs" />
-    <Compile Include="Faults\ServiceFault.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\IChatService.cs" />
     <Compile Include="Services\IChatServiceCallback.cs" />
@@ -131,12 +55,17 @@
     <Compile Include="Services\ILoginService.cs" />
     <Compile Include="Services\IMatchCallback.cs" />
     <Compile Include="Services\IMatchService.cs" />
-    <Compile Include="Services\ITournamentService.cs" />
     <Compile Include="Services\IUpdateProfileService.cs" />
     <Compile Include="Services\IUserService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GuessWhoCore\GuessWhoCore.csproj">
+      <Project>{e0c21307-032a-49c0-a33d-e6ca2f6c0e5e}</Project>
+      <Name>GuessWhoCore</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

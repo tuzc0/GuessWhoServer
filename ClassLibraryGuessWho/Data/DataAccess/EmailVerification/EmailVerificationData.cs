@@ -1,180 +1,193 @@
-﻿using ClassLibraryGuessWho.Data.DataAccess.EmailVerification.Parameters;
-using GuessWhoContracts.Dtos.Dto;
+﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+using GuessWhoServerDomain.Domain.Models.EmailVerification;
+using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
+using GuessWhoServerDomain.Domain.Results;
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 {
-    public sealed class EmailVerificationData : IEmailVerificationData
+    public sealed class EmailVerificationData : IEmailVerificationRepository
     {
-        private const int MIN_AFFECTED_ROWS = 1;
-        private const int RESEND_COOLDOWN_SECONDS = 60;
-        private const int RESEND_HOURLY_MAX_TOKENS = 5;
+        private const int HOURS_BACK_FOR_LIMIT = 1;
 
-        private readonly GuessWhoDBEntities dataBaseContext;
+        private const string SQL_INCREMENT_FAILED_ATTEMPTS_AND_MAYBE_EXPIRE =
+            @"UPDATE dbo.EMAIL_VERIFICATION
+              SET FAILEDATTEMPTS = FAILEDATTEMPTS + 1,
+                  EXPIRESUTC = CASE WHEN FAILEDATTEMPTS + 1 >= @p0 THEN @p1 ELSE EXPIRESUTC END
+              WHERE TOKENID = @p2 AND CONSUMEDUTC IS NULL AND EXPIRESUTC >= @p1";
+
+        private const string SQL_CONSUME_TOKEN =
+            @"UPDATE dbo.EMAIL_VERIFICATION
+              SET CONSUMEDUTC = SYSUTCDATETIME()
+              WHERE TOKENID = @p0 AND CONSUMEDUTC IS NULL";
+
+        private const string SQL_EXPIRE_ACTIVE_TOKENS =
+            @"UPDATE dbo.EMAIL_VERIFICATION
+              SET EXPIRESUTC = @p0
+              WHERE ACCOUNTID = @p1
+                AND CONSUMEDUTC IS NULL
+                AND EXPIRESUTC > @p0";
+
+        private readonly GuessWhoDBEntities dataContext;
 
         public EmailVerificationData(GuessWhoDBEntities context)
         {
-            dataBaseContext = context ?? throw new ArgumentNullException(nameof(context));
+            dataContext = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public bool AddVerificationToken(CreateEmailTokenArgs args)
+        public bool AddVerificationToken(CreateEmailTokenArgs emailTokenArgs)
         {
-            if (args == null)
+            if (emailTokenArgs == null)
             {
-                throw new ArgumentNullException(nameof(args));
+                throw new ArgumentNullException(nameof(emailTokenArgs));
             }
 
             var tokenEntity = new EMAIL_VERIFICATION
             {
                 TOKENID = Guid.NewGuid(),
-                ACCOUNTID = args.AccountId,
-                CODEHASH = args.CodeHash,
-                CREATEDATUTC = args.NowUtc,
-                EXPIRESUTC = args.NowUtc.Add(args.LifeSpan),
+                ACCOUNTID = emailTokenArgs.AccountId,
+                CODEHASH = emailTokenArgs.CodeHash,
+                CREATEDATUTC = emailTokenArgs.NowUtc,
+                EXPIRESUTC = emailTokenArgs.NowUtc.Add(emailTokenArgs.LifeSpan),
                 CONSUMEDUTC = null
             };
 
-            dataBaseContext.EMAIL_VERIFICATION.Add(tokenEntity);
+            dataContext.EMAIL_VERIFICATION.Add(tokenEntity);
 
-            int affectedRows = dataBaseContext.SaveChanges();
-            bool isCreated = affectedRows >= MIN_AFFECTED_ROWS;
-
-            return isCreated;
+            return true;
         }
 
-        public EmailVerificationTokenDto GetLatestTokenByAccountId(long accountId, DateTime consumeDate)
+        public EmailVerificationTokenRecord GetLatestActiveTokenByAccountId(long accountId, DateTime nowUtc)
         {
-            EmailVerificationTokenDto emailVerificationToken;
+            EMAIL_VERIFICATION tokenEntity = GetLatestTokenEntity(accountId,
+                t => t.EXPIRESUTC >= nowUtc && t.CONSUMEDUTC == null);
 
-            var tokenEntity = dataBaseContext.EMAIL_VERIFICATION
-                    .Where(t => t.ACCOUNTID == accountId &&
-                                t.EXPIRESUTC >= consumeDate &&
-                                t.CONSUMEDUTC == null)
-                    .OrderByDescending(t => t.CREATEDATUTC)
-                    .FirstOrDefault();
-
-            if (tokenEntity == null)
-            {
-                emailVerificationToken = EmailVerificationTokenDto.CreateInvalid();
-            }
-            else
-            {
-                emailVerificationToken = new EmailVerificationTokenDto
-                {
-                    TokenId = tokenEntity.TOKENID,
-                    AccountId = tokenEntity.ACCOUNTID,
-                    CodeHash = tokenEntity.CODEHASH,
-                    CreatedAtUtc = tokenEntity.CREATEDATUTC,
-                    ExpiresUtc = tokenEntity.EXPIRESUTC,
-                    ConsumedUtc = tokenEntity.CONSUMEDUTC
-                };
-            }
-
-            return emailVerificationToken;
+            return EmailVerificationTokenRecordMapper.ToRecord(tokenEntity);
         }
 
-        public EmailVerificationTokenDto GetLatestTokenStatusByAccountId(long accountId)
+        public EmailVerificationTokenRecord GetLatestTokenStatusByAccountId(long accountId)
         {
-            EmailVerificationTokenDto emailVerificationToken;
+            EMAIL_VERIFICATION tokenEntity = GetLatestTokenEntity(accountId, predicate: null);
 
-            var tokenEntity = dataBaseContext.EMAIL_VERIFICATION
-                .Where(t => t.ACCOUNTID == accountId)
-                .OrderByDescending(t => t.CREATEDATUTC)
-                .FirstOrDefault();
-
-            if (tokenEntity == null)
-            {
-                emailVerificationToken = EmailVerificationTokenDto.CreateInvalid();
-            }
-            else
-            {
-                emailVerificationToken = new EmailVerificationTokenDto
-                {
-                    TokenId = tokenEntity.TOKENID,
-                    AccountId = tokenEntity.ACCOUNTID,
-                    CodeHash = tokenEntity.CODEHASH,
-                    CreatedAtUtc = tokenEntity.CREATEDATUTC,
-                    ExpiresUtc = tokenEntity.EXPIRESUTC,
-                    ConsumedUtc = tokenEntity.CONSUMEDUTC
-                };
-            }
-
-            return emailVerificationToken;
+            return EmailVerificationTokenRecordMapper.ToRecord(tokenEntity);
         }
 
-
-        public int IncrementFailedAttemptsAndMaybeExpire(IncrementFailedAttemptArgs args)
+        public int IncrementFailedAttemptsAndMaybeExpire(IncrementFailedAttemptArgs failedAttemptArgs)
         {
-            if (args == null)
+            if (failedAttemptArgs == null)
             {
-                throw new ArgumentNullException(nameof(args));
+                throw new ArgumentNullException(nameof(failedAttemptArgs));
             }
 
-            return dataBaseContext.Database.ExecuteSqlCommand(
-                   @"UPDATE dbo.EMAIL_VERIFICATION
-                      SET FAILEDATTEMPTS = FAILEDATTEMPTS + 1,
-                          EXPIRESUTC = CASE WHEN FAILEDATTEMPTS + 1 >= @p0 THEN @p1 ELSE EXPIRESUTC END
-                      WHERE TOKENID = @p2 AND CONSUMEDUTC IS NULL AND EXPIRESUTC >= @p1",
-                   args.MaxAttempts, args.NowUtc, args.TokenId);
+            return dataContext.Database.ExecuteSqlCommand(
+                SQL_INCREMENT_FAILED_ATTEMPTS_AND_MAYBE_EXPIRE,
+                failedAttemptArgs.MaxAttempts,
+                failedAttemptArgs.NowUtc,
+                failedAttemptArgs.TokenId);
         }
 
         public int ConsumeToken(Guid tokenId)
         {
-            return dataBaseContext.Database.ExecuteSqlCommand(
-                    @"UPDATE dbo.EMAIL_VERIFICATION
-                      SET CONSUMEDUTC = SYSUTCDATETIME()
-                      WHERE TOKENID = @p0 AND CONSUMEDUTC IS NULL",
-                    tokenId);
+            return dataContext.Database.ExecuteSqlCommand(
+                SQL_CONSUME_TOKEN, tokenId);
         }
 
-        public EmailVerificationResendLimitsDto GetEmailVerificationResendLimits(ResendLimitsQuery query)
+        public EmailVerificationResendLimitsResult GetEmailVerificationResendLimits(ResendLimitsQuery limitsQuery)
         {
-            if (query == null)
+            if (limitsQuery == null)
             {
-                throw new ArgumentNullException(nameof(query));
+                throw new ArgumentNullException(nameof(limitsQuery));
             }
 
-            DateTime? lastTokenCreatedAtUtc = dataBaseContext.EMAIL_VERIFICATION
-                    .Where(t => t.ACCOUNTID == query.AccountId)
-                    .OrderByDescending(t => t.CREATEDATUTC)
-                    .Select(t => (DateTime?)t.CREATEDATUTC)
-                    .FirstOrDefault();
+            int cooldownSeconds = GetCooldownSeconds(limitsQuery);
+            int hourlyMaxTokens = GetHourlyMaxTokens(limitsQuery);
 
-            DateTime oneHourAgoUtc = query.DateUtc.AddHours(-1);
+            DateTime? lastTokenCreatedAtUtc = GetLastTokenCreatedAtUtc(limitsQuery.AccountId);
 
-            int tokensSentInLastHour = dataBaseContext.EMAIL_VERIFICATION
-                .Count(t => t.ACCOUNTID == query.AccountId && t.CREATEDATUTC >= oneHourAgoUtc);
+            DateTime windowStartUtc = limitsQuery.DateUtc.AddHours(-HOURS_BACK_FOR_LIMIT);
 
-            bool isPerMinuteCooldownActive =
-                lastTokenCreatedAtUtc.HasValue &&
-                (query.DateUtc - lastTokenCreatedAtUtc.Value).TotalSeconds < RESEND_COOLDOWN_SECONDS;
+            int tokensSentInWindow = CountTokensCreatedSince(limitsQuery.AccountId, windowStartUtc);
 
-            bool isWithinHourlyLimit = tokensSentInLastHour < RESEND_HOURLY_MAX_TOKENS;
+            bool isPerMinuteCooldownActive = IsCooldownActive(
+                lastTokenCreatedAtUtc,
+                limitsQuery.DateUtc,
+                cooldownSeconds);
 
-            return new EmailVerificationResendLimitsDto
+            bool isWithinHourlyLimit = tokensSentInWindow < hourlyMaxTokens;
+
+            return new EmailVerificationResendLimitsResult
             {
                 IsPerMinuteCooldownActive = isPerMinuteCooldownActive,
                 IsWithinHourlyLimit = isWithinHourlyLimit,
                 LastTokenCreatedAtUtc = lastTokenCreatedAtUtc,
-                TokensSentInLastHour = tokensSentInLastHour
+                TokensSentInLastHour = tokensSentInWindow
             };
         }
 
-        public void ExpireActiveTokens(ExpireTokensArgs args)
+        public void ExpireActiveTokens(ExpireTokensArgs expireTokensArgs)
         {
-            if (args == null)
+            if (expireTokensArgs == null)
             {
-                throw new ArgumentNullException(nameof(args));
+                throw new ArgumentNullException(nameof(expireTokensArgs));
             }
 
-            dataBaseContext.Database.ExecuteSqlCommand(
-                    @"UPDATE dbo.EMAIL_VERIFICATION
-                      SET EXPIRESUTC = @p0
-                      WHERE ACCOUNTID = @p1
-                        AND CONSUMEDUTC IS NULL
-                        AND EXPIRESUTC > @p0",
-                    args.NewExpirationUtc, args.AccountId);
+            dataContext.Database.ExecuteSqlCommand(
+                SQL_EXPIRE_ACTIVE_TOKENS,
+                expireTokensArgs.NewExpirationUtc,
+                expireTokensArgs.AccountId);
+        }
+
+        private EMAIL_VERIFICATION GetLatestTokenEntity(long accountId,
+            Expression<Func<EMAIL_VERIFICATION, bool>> predicate)
+        {
+            IQueryable<EMAIL_VERIFICATION> query = dataContext.EMAIL_VERIFICATION
+                .Where(t => t.ACCOUNTID == accountId);
+
+            if (predicate != null)
+            {
+                query = query.Where(predicate);
+            }
+
+            return query
+                .OrderByDescending(t => t.CREATEDATUTC)
+                .FirstOrDefault();
+        }
+
+        private DateTime? GetLastTokenCreatedAtUtc(long accountId)
+        {
+            return dataContext.EMAIL_VERIFICATION
+                .Where(t => t.ACCOUNTID == accountId)
+                .OrderByDescending(t => t.CREATEDATUTC)
+                .Select(t => (DateTime?)t.CREATEDATUTC)
+                .FirstOrDefault();
+        }
+
+        private int CountTokensCreatedSince(long accountId, DateTime sinceUtc)
+        {
+            return dataContext.EMAIL_VERIFICATION.Count(
+                t => t.ACCOUNTID == accountId && t.CREATEDATUTC >= sinceUtc);
+        }
+
+        private static bool IsCooldownActive(DateTime? lastTokenCreatedAtUtc, DateTime nowUtc, int cooldownSeconds)
+        {
+            if (!lastTokenCreatedAtUtc.HasValue)
+            {
+                return false;
+            }
+
+            return (nowUtc - lastTokenCreatedAtUtc.Value).TotalSeconds < cooldownSeconds;
+        }
+
+        private static int GetCooldownSeconds(ResendLimitsQuery limitsQuery)
+        {
+            return limitsQuery.CooldownSeconds;
+        }
+
+        private static int GetHourlyMaxTokens(ResendLimitsQuery limitsQuery)
+        {
+            return limitsQuery.HourlyMaxTokens;
         }
     }
 }

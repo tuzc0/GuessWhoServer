@@ -1,4 +1,4 @@
-﻿using GuessWhoContracts.Dtos.RequestAndResponse;
+﻿using GuessWhoCore.Contracts.Requests;
 
 namespace GuessWho.Services.WCF.Services.MatchApplication
 {

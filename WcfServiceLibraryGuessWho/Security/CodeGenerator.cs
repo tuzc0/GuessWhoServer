@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace GuessWho.Services.Security
+namespace GuessWhoServer.Security
 {
     public static class CodeGenerator
     {
@@ -53,17 +53,4 @@ namespace GuessWho.Services.Security
             return (int)(minInclusive + (value % range));
         }
     }
-
-    public sealed class VerificationCodeResult
-    {
-        public string PlainCode { get; }
-        public byte[] HashCode { get; }
-
-        public VerificationCodeResult(string plainCode, byte[] hashCode)
-        {
-            PlainCode = plainCode ?? throw new ArgumentNullException(nameof(plainCode));
-            HashCode = hashCode ?? throw new ArgumentNullException(nameof(hashCode));
-        }
-    }
-
 }

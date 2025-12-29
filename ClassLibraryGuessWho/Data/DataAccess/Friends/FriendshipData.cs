@@ -1,366 +1,345 @@
-﻿using GuessWhoContracts.Dtos.RequestAndResponse;
-using GuessWhoContracts.Enums;
+﻿using GuessWhoServerDomain.Domain.Enums.Friends;
+using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+using GuessWhoServerDomain.Domain.Models.Friends;
+using GuessWhoServerDomain.Domain.Parameters.Friends;
+using GuessWhoServerDomain.Domain.Results.Friends;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Data.Entity;
-using System.Data.Entity.Core;
+using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 {
-    public sealed class FriendshipData
+    public sealed class FriendshipData : IFriendshipRepository
     {
+        private const int MAX_PROFILE_SEARCH_RESULTS = 10;
+        private const int MIN_VALID_ID = 1;
 
-        public IList<UserProfileSearchResult> SearchProfilesByDisplayName(string displayName)
+        private const byte FRIEND_REQUEST_STATUS_PENDING = (byte)FriendRequestStatus.Pending;
+        private const byte FRIEND_REQUEST_STATUS_ACCEPTED = (byte)FriendRequestStatus.Accepted;
+        private const byte FRIEND_REQUEST_STATUS_REJECTED = (byte)FriendRequestStatus.Rejected;
+        private const byte FRIEND_REQUEST_STATUS_CANCELED = (byte)FriendRequestStatus.Canceled;
+
+        private readonly GuessWhoDBEntities dataContext;
+
+        public FriendshipData(GuessWhoDBEntities dataContext)
         {
-            int maxResults = 10;
-            IList<UserProfileSearchResult> profiles;
+            this.dataContext = dataContext ?? throw new ArgumentNullException(nameof(dataContext));
+        }
 
-            using (var dataBaseContext = new GuessWhoDBEntities())
+        public IList<UserProfileSearchRecord> SearchProfilesByDisplayName(string displayName)
+        {
+            string trimmed = (displayName ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(trimmed))
             {
-
-                profiles = dataBaseContext.USER_PROFILE
-                    .AsNoTracking()
-                    .Where(p => p.DISPLAYNAME.Contains(displayName) && p.ISACTIVE)
-                    .OrderBy(p => p.DISPLAYNAME)
-                    .Take(maxResults)
-                    .Select(p => new UserProfileSearchResult
-                    {
-                        UserId = p.USERID,
-                        DisplayName = p.DISPLAYNAME,
-                        AvatarUrl = p.AVATAR.AVATARID
-                    })
-                    .ToList();
+                return new List<UserProfileSearchRecord>();
             }
 
-            return profiles;
+            return (from p in dataContext.USER_PROFILE.AsNoTracking()
+                    join a in dataContext.ACCOUNT.AsNoTracking()
+                    on p.USERID equals a.USERID
+                    where p.ISACTIVE &&
+                      !a.ISDELETED &&
+                      p.DISPLAYNAME.Contains(trimmed)
+                    orderby p.DISPLAYNAME
+                    select new UserProfileSearchRecord(
+                        p.USERID,
+                        p.DISPLAYNAME,
+                        p.AVATAR.AVATARID)
+                    )
+                    .Take(MAX_PROFILE_SEARCH_RESULTS)
+                    .ToList();
         }
 
         public bool AreAlreadyFriends(long userId1, long userId2)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                return dataBaseContext.FRIENDSHIP.Any(f =>
-                    (f.USER1ID == userId1 && f.USER2ID == userId2) ||
-                    (f.USER1ID == userId2 && f.USER2ID == userId1));
-            }
+            long userIdLow = Math.Min(userId1, userId2);
+            long userIdHigh = Math.Max(userId1, userId2);
+
+            return dataContext.FRIENDSHIP.Any(f => f.USERIDLOW == userIdLow && f.USERIDHIGH == userIdHigh);
         }
 
-        public SendFriendRequestResponse TryAcceptInversePending(long fromUserId, long toUserId, DateTime timestampUtc)
+        public FriendRequestDataResult TryAcceptInversePending(long fromUserId, long toUserId, DateTime timestampUtc)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                var inversePendingRequest = dataBaseContext.FRIEND_REQUEST.SingleOrDefault(fr =>
+            FRIEND_REQUEST inversePendingRequest = dataContext.FRIEND_REQUEST
+                .SingleOrDefault(fr =>
                     fr.REQUESTERUSERID == toUserId &&
                     fr.ADDRESSEEUSERID == fromUserId &&
-                    fr.STATUSID == (byte)FriendRequestStatus.Pending);
+                    fr.STATUSID == FRIEND_REQUEST_STATUS_PENDING);
 
-                if (inversePendingRequest == null)
-                {
-                    return null;
-                }
-
-                checked
-                {
-                    long userIdLow = Math.Min(fromUserId, toUserId);
-                    long userIdHigh = Math.Max(fromUserId, toUserId);
-
-                    using (var transaction = dataBaseContext.Database.BeginTransaction())
-                    {
-                        try
-                        {
-                            inversePendingRequest.STATUSID = (byte)FriendRequestStatus.Accepted;
-                            inversePendingRequest.RESPONDEDATUTC = timestampUtc;
-
-                            dataBaseContext.FRIENDSHIP.Add(new FRIENDSHIP
-                            {
-                                USER1ID = inversePendingRequest.REQUESTERUSERID,
-                                USER2ID = inversePendingRequest.ADDRESSEEUSERID,
-                                USERIDLOW = userIdLow,
-                                USERIDHIGH = userIdHigh,
-                                CREATEDATUTC = timestampUtc
-                            });
-
-                            dataBaseContext.SaveChanges();
-                            transaction.Commit();
-                        }
-                        catch
-                        {
-                            transaction.Rollback();
-                            throw;
-                        }
-                    }
-                }
-
-                return new SendFriendRequestResponse
-                {
-                    Success = true,
-                    AutoAccepted = true,
-                    FriendRequestId = inversePendingRequest.FRIENDREQUESTID.ToString()
-                };
+            if (inversePendingRequest == null)
+            {
+                return FriendRequestDataResult.NotFound();
             }
+
+            EnsureFriendshipExists(
+                inversePendingRequest.REQUESTERUSERID,
+                inversePendingRequest.ADDRESSEEUSERID,
+                timestampUtc);
+
+            inversePendingRequest.STATUSID = FRIEND_REQUEST_STATUS_ACCEPTED;
+            inversePendingRequest.RESPONDEDATUTC = timestampUtc;
+
+            dataContext.SaveChanges();
+
+            return FriendRequestDataResult.AutoAccepted(inversePendingRequest.FRIENDREQUESTID);
         }
 
-        public SendFriendRequestResponse TryReturnExistingPending(long fromUserId, long toUserId)
+        public FriendRequestDataResult TryReturnExistingPending(long fromUserId, long toUserId)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
+            FRIEND_REQUEST existingRequest = dataContext.FRIEND_REQUEST
+                .SingleOrDefault(fr =>
+                    fr.REQUESTERUSERID == fromUserId &&
+                    fr.ADDRESSEEUSERID == toUserId &&
+                    fr.STATUSID == FRIEND_REQUEST_STATUS_PENDING);
+
+            if (existingRequest == null)
             {
-                var existingRequest = dataBaseContext.FRIEND_REQUEST
-                    .SingleOrDefault(fr => fr.REQUESTERUSERID == fromUserId &&
-                    fr.ADDRESSEEUSERID == toUserId && fr.STATUSID == (byte)FriendRequestStatus.Pending);
-
-                if (existingRequest == null)
-                {
-
-                    return null;
-                }
-
-                return new SendFriendRequestResponse
-                {
-                    Success = false,
-                    AutoAccepted = false,
-                    FriendRequestId = existingRequest.FRIENDREQUESTID.ToString()
-                };
+                return FriendRequestDataResult.NotFound();
             }
+
+            return FriendRequestDataResult.ExistingPending(existingRequest.FRIENDREQUESTID);
         }
 
-        public SendFriendRequestResponse CreateNewRequest(long fromUserId, long toUserId, DateTime timestampUtc)
+        public FriendRequestDataResult CreateNewRequest(long fromUserId, long toUserId, DateTime timestampUtc)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            using (var transaction = dataBaseContext.Database.BeginTransaction())
+            var newRequest = new FRIEND_REQUEST
             {
-                var newRequest = new FRIEND_REQUEST
-                {
-                    REQUESTERUSERID = fromUserId,
-                    ADDRESSEEUSERID = toUserId,
-                    STATUSID = (byte)FriendRequestStatus.Pending,
-                    CREATEDATUTC = timestampUtc
-                };
+                REQUESTERUSERID = fromUserId,
+                ADDRESSEEUSERID = toUserId,
+                STATUSID = FRIEND_REQUEST_STATUS_PENDING,
+                CREATEDATUTC = timestampUtc
+            };
 
-                dataBaseContext.FRIEND_REQUEST.Add(newRequest);
-                dataBaseContext.SaveChanges();
-                transaction.Commit();
+            dataContext.FRIEND_REQUEST.Add(newRequest);
+            dataContext.SaveChanges();
 
-                return new SendFriendRequestResponse
-                {
-                    Success = true,
-                    AutoAccepted = false,
-                    FriendRequestId = newRequest.FRIENDREQUESTID.ToString()
-                };
-            }
+            return FriendRequestDataResult.Created(newRequest.FRIENDREQUESTID);
         }
 
-        public void AcceptFriendRequest(long accountId, long friendRequestId, DateTime timestampUtc)
+        public FriendRequestDataResult AcceptFriendRequest(FriendRequestActionArgs args)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            using (var transaction = dataBaseContext.Database.BeginTransaction())
+            FRIEND_REQUEST request = dataContext.FRIEND_REQUEST
+                .SingleOrDefault(fr => fr.FRIENDREQUESTID == args.FriendRequestId);
+
+            if (request == null)
             {
-                var meUserId = ResolveUserIdFromAccountId(accountId);
-
-                var request = dataBaseContext.FRIEND_REQUEST.SingleOrDefault(fr => fr.FRIENDREQUESTID == friendRequestId)
-                             ?? throw new InvalidOperationException("Friend request not found.");
-
-                if (request.STATUSID != (byte)FriendRequestStatus.Pending)
-                {
-                    throw new InvalidOperationException("Friend request is not pending.");
-                }
-
-                if (request.ADDRESSEEUSERID != meUserId)
-                {
-                    throw new InvalidOperationException("Not authorized to accept this request.");
-                }
-
-                var low = Math.Min(request.REQUESTERUSERID, request.ADDRESSEEUSERID);
-                var high = Math.Max(request.REQUESTERUSERID, request.ADDRESSEEUSERID);
-                var already = dataBaseContext.FRIENDSHIP.Any(f => f.USERIDLOW == low && f.USERIDHIGH == high);
-
-                if (!already)
-                {
-                    dataBaseContext.FRIENDSHIP.Add(new FRIENDSHIP
-                    {
-                        USER1ID = request.REQUESTERUSERID,
-                        USER2ID = request.ADDRESSEEUSERID,
-                        USERIDLOW = low,
-                        USERIDHIGH = high,
-                        CREATEDATUTC = timestampUtc
-                    });
-                }
-
-                request.STATUSID = (byte)FriendRequestStatus.Accepted;
-                request.RESPONDEDATUTC = timestampUtc;
-
-                dataBaseContext.SaveChanges();
-                transaction.Commit();
+                return FriendRequestDataResult.NotFound();
             }
+
+            if (request.STATUSID != FRIEND_REQUEST_STATUS_PENDING)
+            {
+                return FriendRequestDataResult.NotPending();
+            }
+
+            long meUserId = TryResolveUserIdFromAccountId(args.AccountId);
+
+            if (request.ADDRESSEEUSERID != meUserId)
+            {
+                return FriendRequestDataResult.NotAuthorized();
+            }
+
+            EnsureFriendshipExists(request.REQUESTERUSERID, request.ADDRESSEEUSERID, args.NowUtc);
+
+            request.STATUSID = FRIEND_REQUEST_STATUS_ACCEPTED;
+            request.RESPONDEDATUTC = args.NowUtc;
+
+            dataContext.SaveChanges();
+
+            return FriendRequestDataResult.Accepted(args.FriendRequestId);
         }
 
-        public void RejectFriendRequest(long accountId, long friendRequestId, DateTime timestampUtc)
+        public FriendRequestDataResult RejectFriendRequest(FriendRequestActionArgs args)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
+            FRIEND_REQUEST request = dataContext.FRIEND_REQUEST
+                .SingleOrDefault(fr => fr.FRIENDREQUESTID == args.FriendRequestId);
+
+            if (request == null)
             {
-                var meUserId = ResolveUserIdFromAccountId(accountId);
-
-                var request = dataBaseContext.FRIEND_REQUEST.SingleOrDefault(fr => fr.FRIENDREQUESTID == friendRequestId)
-                              ?? throw new InvalidOperationException("Friend request not found.");
-
-                if (request.STATUSID != (byte)FriendRequestStatus.Pending)
-                {
-                    throw new InvalidOperationException("Friend request is not pending.");
-                }
-
-                if (request.ADDRESSEEUSERID != meUserId)
-                {
-                    throw new InvalidOperationException("Not authorized to reject this request.");
-                }
-
-                request.STATUSID = (byte)FriendRequestStatus.Rejected;
-                request.RESPONDEDATUTC = timestampUtc;
-
-                dataBaseContext.SaveChanges();
+                return FriendRequestDataResult.NotFound();
             }
+
+            if (request.STATUSID != FRIEND_REQUEST_STATUS_PENDING)
+            {
+                return FriendRequestDataResult.NotPending();
+            }
+
+            long meUserId = TryResolveUserIdFromAccountId(args.AccountId);
+
+            if (request.ADDRESSEEUSERID != meUserId)
+            {
+                return FriendRequestDataResult.NotAuthorized();
+            }
+
+            request.STATUSID = FRIEND_REQUEST_STATUS_REJECTED;
+            request.RESPONDEDATUTC = args.NowUtc;
+
+            dataContext.SaveChanges();
+
+            return FriendRequestDataResult.Rejected(args.FriendRequestId);
         }
 
-        public void CancelFriendRequest(long accountId, long friendRequestId, DateTime timestampUtc)
+        public FriendRequestDataResult CancelFriendRequest(FriendRequestActionArgs args)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
+            FRIEND_REQUEST request = dataContext.FRIEND_REQUEST
+                .SingleOrDefault(fr => fr.FRIENDREQUESTID == args.FriendRequestId);
+
+            if (request == null)
             {
-                var meUserId = ResolveUserIdFromAccountId(accountId);
-
-                var request = dataBaseContext.FRIEND_REQUEST.SingleOrDefault(fr => fr.FRIENDREQUESTID == friendRequestId)
-                              ?? throw new InvalidOperationException("Friend request not found.");
-
-                if (request.STATUSID != (byte)FriendRequestStatus.Pending)
-                {
-                    throw new InvalidOperationException("Friend request is not pending.");
-                }
-
-                if (request.REQUESTERUSERID != meUserId)
-                {
-                    throw new InvalidOperationException("Not authorized to cancel this request.");
-                }
-
-                request.STATUSID = (byte)FriendRequestStatus.Canceled;
-                request.RESPONDEDATUTC = timestampUtc;
-
-                dataBaseContext.SaveChanges();
+                return FriendRequestDataResult.NotFound();
             }
+
+            if (request.STATUSID != FRIEND_REQUEST_STATUS_PENDING)
+            {
+                return FriendRequestDataResult.NotPending();
+            }
+
+            long meUserId = TryResolveUserIdFromAccountId(args.AccountId);
+
+            if (request.REQUESTERUSERID != meUserId)
+            {
+                return FriendRequestDataResult.NotAuthorized();
+            }
+
+            request.STATUSID = FRIEND_REQUEST_STATUS_CANCELED;
+            request.RESPONDEDATUTC = args.NowUtc;
+
+            dataContext.SaveChanges();
+
+            return FriendRequestDataResult.Canceled(args.FriendRequestId);
         }
 
-        public long ResolveUserIdFromAccountId(long accountId)
+        public long TryResolveUserIdFromAccountId(long accountId)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                var userId = dataBaseContext.ACCOUNT
-                    .Where(a => a.ACCOUNTID == accountId)
-                    .Select(a => a.USERID)
-                    .SingleOrDefault();
-
-                if (userId <= 0)
-                {
-                    throw new InvalidOperationException("Account does not exist.");
-                }
-
-                return userId;
-            }
+            return (from a in dataContext.ACCOUNT.AsNoTracking()
+                    join p in dataContext.USER_PROFILE.AsNoTracking()
+                    on a.USERID equals p.USERID
+                    where a.ACCOUNTID == accountId &&
+                      !a.ISDELETED &&
+                      p.ISACTIVE
+                    select a.USERID
+                    ).SingleOrDefault();
         }
 
-        public void EnsureDestinationUserActive(long userId)
+        public bool IsUserProfileActive(long userId)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                var isActive = dataBaseContext.USER_PROFILE
-                    .Where(p => p.USERID == userId)
-                    .Select(p => p.ISACTIVE)
-                    .SingleOrDefault();
-
-                if (!isActive)
-                {
-                    throw new InvalidOperationException("Destination user is not active.");
-                }
-            }
+            return dataContext.USER_PROFILE
+                .AsNoTracking()
+                .Where(p => p.USERID == userId)
+                .Select(p => p.ISACTIVE)
+                .SingleOrDefault();
         }
 
-        public IList<UserProfileSearchResult> GetFriends(long userId)
+        public IList<UserProfileSearchRecord> GetFriends(long userId)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                var friendsWhereIAmFirst = dataBaseContext.FRIENDSHIP
-                    .Where(f => f.USER1ID == userId)
-                    .Select(f => f.USER_PROFILE1);
+            IQueryable<UserProfileSearchRecord> friendsWhereIAmFirst = 
+                from f in dataContext.FRIENDSHIP.AsNoTracking()
+                where f.USER1ID == userId
+                join p in dataContext.USER_PROFILE.AsNoTracking()
+                    on f.USER2ID equals p.USERID
+                join a in dataContext.ACCOUNT.AsNoTracking()
+                    on p.USERID equals a.USERID
+                where p.ISACTIVE && !a.ISDELETED
+                select new UserProfileSearchRecord(
+                    p.USERID,
+                    p.DISPLAYNAME,
+                    p.AVATAR.AVATARID);
 
-                var friendsWhereIAmSecond = dataBaseContext.FRIENDSHIP
-                    .Where(f => f.USER2ID == userId)
-                    .Select(f => f.USER_PROFILE);
-
-                var allFriends = friendsWhereIAmFirst
-                    .Union(friendsWhereIAmSecond)
-                    .Select(p => new UserProfileSearchResult
-                    {
-                        UserId = p.USERID,
-                        DisplayName = p.DISPLAYNAME,
-                        AvatarUrl = p.AVATAR.AVATARID
-                    })
-                    .ToList();
-
-                return allFriends;
-            }
-        }
-
-        public IList<FriendRequest> GetPendingRequests(long userId)
-        {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                var query = dataBaseContext.FRIEND_REQUEST
-                    .Where(fr => fr.ADDRESSEEUSERID == userId && fr.STATUSID == (byte)FriendRequestStatus.Pending);
-
-                var pendingRequests = query.ToList();
-
-                var requests = pendingRequests.Select(fr => new FriendRequest
-                {
-                    FriendRequestId = fr.FRIENDREQUESTID,
-                    RequesterUserId = fr.REQUESTERUSERID,
-                    AddresseeUserId = fr.ADDRESSEEUSERID,
-
-                    RequesterDisplayName = dataBaseContext.USER_PROFILE
-                                                            .Where(p => p.USERID == fr.REQUESTERUSERID)
-                                                            .Select(p => p.DISPLAYNAME)
-                                                            .SingleOrDefault(),
-
-                    Status = "Pending",
-                    CreatedAt = fr.CREATEDATUTC
-                })
+            IQueryable<UserProfileSearchRecord> friendsWhereIAmSecond =
+                from f in dataContext.FRIENDSHIP.AsNoTracking()
+                where f.USER2ID == userId
+                join p in dataContext.USER_PROFILE.AsNoTracking()
+                    on f.USER1ID equals p.USERID
+                join a in dataContext.ACCOUNT.AsNoTracking()
+                    on p.USERID equals a.USERID
+                where p.ISACTIVE && !a.ISDELETED
+                select new UserProfileSearchRecord(
+                    p.USERID,
+                    p.DISPLAYNAME,
+                    p.AVATAR.AVATARID);
+            
+            return friendsWhereIAmFirst
+                .Concat(friendsWhereIAmSecond)
                 .ToList();
-
-                return requests;
-            }
         }
 
-        public IList<FriendRequest> GetSentRequests(long userId)
+        public IList<FriendRequestRecord> GetPendingRequests(long userId)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
+            if (userId < MIN_VALID_ID)
             {
-                var query = dataBaseContext.FRIEND_REQUEST
-                    .Where(fr => fr.REQUESTERUSERID == userId && fr.STATUSID == (byte)FriendRequestStatus.Pending);
-
-                var sentRequests = query.ToList();
-
-                var requests = sentRequests.Select(fr => new FriendRequest
-                {
-                    FriendRequestId = fr.FRIENDREQUESTID,
-                    RequesterUserId = fr.REQUESTERUSERID,
-                    AddresseeUserId = fr.ADDRESSEEUSERID,
-                    RequesterDisplayName = dataBaseContext.USER_PROFILE
-                                                            .Where(p => p.USERID == fr.ADDRESSEEUSERID)
-                                                            .Select(p => p.DISPLAYNAME)
-                                                            .SingleOrDefault(),
-
-                    Status = "Pending",
-                    CreatedAt = fr.CREATEDATUTC
-                })
-                .ToList();
-
-                return requests;
+                return new List<FriendRequestRecord>();
             }
+
+            return (
+                from fr in dataContext.FRIEND_REQUEST.AsNoTracking()
+                join p in dataContext.USER_PROFILE.AsNoTracking()
+                    on fr.REQUESTERUSERID equals p.USERID
+                join a in dataContext.ACCOUNT.AsNoTracking()
+                    on p.USERID equals a.USERID
+                where fr.ADDRESSEEUSERID == userId
+                      && fr.STATUSID == FRIEND_REQUEST_STATUS_PENDING
+                      && !a.ISDELETED
+                      && p.ISACTIVE
+                select new FriendRequestRecord(
+                    fr.FRIENDREQUESTID,
+                    fr.REQUESTERUSERID,
+                    fr.ADDRESSEEUSERID,
+                    p.DISPLAYNAME,
+                    fr.STATUSID,
+                    fr.CREATEDATUTC
+                )
+            ).ToList();
+        }
+
+        public IList<FriendRequestRecord> GetSentRequests(long userId)
+        {
+            if (userId < MIN_VALID_ID)
+            {
+                return new List<FriendRequestRecord>();
+            }
+
+            return (
+                from fr in dataContext.FRIEND_REQUEST.AsNoTracking()
+                join p in dataContext.USER_PROFILE.AsNoTracking()
+                    on fr.ADDRESSEEUSERID equals p.USERID
+                join a in dataContext.ACCOUNT.AsNoTracking()
+                    on p.USERID equals a.USERID
+                where fr.REQUESTERUSERID == userId
+                      && fr.STATUSID == FRIEND_REQUEST_STATUS_PENDING
+                      && !a.ISDELETED
+                      && p.ISACTIVE
+                select new FriendRequestRecord(
+                    fr.FRIENDREQUESTID,
+                    fr.REQUESTERUSERID,
+                    fr.ADDRESSEEUSERID,
+                    p.DISPLAYNAME,
+                    fr.STATUSID,
+                    fr.CREATEDATUTC
+                )
+            ).ToList();
+        }
+
+        private void EnsureFriendshipExists(long user1Id, long user2Id, DateTime createdAtUtc)
+        {
+            long low = Math.Min(user1Id, user2Id);
+            long high = Math.Max(user1Id, user2Id);
+
+            bool exists = dataContext.FRIENDSHIP.Any(f => f.USERIDLOW == low && f.USERIDHIGH == high);
+
+            if (exists)
+            {
+                return;
+            }
+
+            dataContext.FRIENDSHIP.Add(new FRIENDSHIP
+            {
+                USER1ID = user1Id,
+                USER2ID = user2Id,
+                USERIDLOW = low,
+                USERIDHIGH = high,
+                CREATEDATUTC = createdAtUtc
+            });
         }
     }
 }

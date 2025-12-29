@@ -62,6 +62,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Infraestructure\Settings\UserSecuritySettingsLoader.cs" />
     <Compile Include="Infraestructure\Wcf\DelegateInstanceProvider.cs" />
     <Compile Include="Infraestructure\Wcf\DelegateServiceBehavior.cs" />
     <Compile Include="Program.cs" />
@@ -87,6 +88,10 @@
     <ProjectReference Include="..\GuessWhoContracts\GuessWhoContracts.csproj">
       <Project>{e883c093-7c48-425c-b0e6-6dbcbd7f5fb0}</Project>
       <Name>GuessWhoContracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GuessWhoServerDomain\GuessWhoServerDomain.csproj">
+      <Project>{2b0e43a3-9959-41cd-b55c-59ce9266d828}</Project>
+      <Name>GuessWhoServerDomain</Name>
     </ProjectReference>
     <ProjectReference Include="..\WcfServiceLibraryGuessWho\GuessWhoServices.csproj">
       <Project>{be89004b-a0af-4a7b-a4c9-a712eab8b994}</Project>

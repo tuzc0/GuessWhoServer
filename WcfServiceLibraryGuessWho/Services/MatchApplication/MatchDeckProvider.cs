@@ -1,6 +1,4 @@
 ﻿using ClassLibraryGuessWho.Data.DataAccess.Characters;
-using GuessWhoContracts.Dtos.Dto;
-using GuessWhoContracts.Faults;
 using log4net;
 using System;
 using System.Data.Entity.Infrastructure;
@@ -49,7 +47,7 @@ namespace WcfServiceLibraryGuessWho.Services.MatchApplication
         {
             if (matchId <= INVALID_MATCH_ID)
             {
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_INVALID_MATCH_ID,
                     MESSAGE_INVALID_MATCH_ID);
             }
@@ -62,7 +60,7 @@ namespace WcfServiceLibraryGuessWho.Services.MatchApplication
                 {
                     Logger.WarnFormat("CreateDeck: no characters available to generate deck. MatchId={0}",
                         matchId);
-                    throw Faults.Create(
+                    throw FaultsFactory.Create(
                         ERROR_DECK_GENERATION,
                         MESSAGE_DECK_GENERATION_FAILED);
                 }
@@ -107,7 +105,7 @@ namespace WcfServiceLibraryGuessWho.Services.MatchApplication
                         "CreateDeck: SaveCharacterDeck returned false. MatchId={0}",
                         matchId);
 
-                    throw Faults.Create(
+                    throw FaultsFactory.Create(
                         ERROR_DECK_PERSISTENCE,
                         MESSAGE_DECK_PERSISTENCE_FAILED);
                 }
@@ -131,7 +129,7 @@ namespace WcfServiceLibraryGuessWho.Services.MatchApplication
                         matchId),
                     exception);
 
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_UNKNOWN,
                     MESSAGE_UNKNOWN_ERROR);
             }
@@ -141,7 +139,7 @@ namespace WcfServiceLibraryGuessWho.Services.MatchApplication
         {
             if (matchId <= INVALID_MATCH_ID)
             {
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_INVALID_MATCH_ID,
                     MESSAGE_INVALID_MATCH_ID);
             }
@@ -171,7 +169,7 @@ namespace WcfServiceLibraryGuessWho.Services.MatchApplication
             {
                 Logger.Fatal(string.Format("GetMatchDeck: unexpected error. MatchId={0}",
                         matchId), exception);
-                throw Faults.Create(
+                throw FaultsFactory.Create(
                     ERROR_UNKNOWN,
                     MESSAGE_UNKNOWN_ERROR);
             }

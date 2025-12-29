@@ -33,6 +33,7 @@ namespace ClassLibraryGuessWho.Data
         public Nullable<long> WINNERUSERID { get; set; }
         public System.DateTime CREATEDATUTC { get; set; }
         public byte MODEID { get; set; }
+        public bool ISCODEJOINENABLED { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH_DECK_CARD> MATCH_DECK_CARD { get; set; }

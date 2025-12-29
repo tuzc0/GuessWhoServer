@@ -114,53 +114,57 @@
       <Private>True</Private>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Transactions" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Communication\Email\EmailSendException.cs" />
-    <Compile Include="Communication\Email\IVerificationEmailSender.cs" />
-    <Compile Include="Communication\Email\VerificationEmailSender.cs" />
+    <Compile Include="Communication\Email\Builders\Context\FriendRequestEmailContext.cs" />
+    <Compile Include="Communication\Email\Builders\EmailMessage.cs" />
+    <Compile Include="Communication\Email\Builders\FriendRequestEmailBuilder.cs" />
+    <Compile Include="Communication\Email\Builders\IEmailMessageBuilder.cs" />
+    <Compile Include="Communication\Email\Builders\Context\MatchInvitationEmailContext.cs" />
+    <Compile Include="Communication\Email\Builders\MatchInvitationEmailBuilder.cs" />
+    <Compile Include="Communication\Email\Builders\VerificationCodeEmailBuilder.cs" />
+    <Compile Include="Communication\Email\Builders\Context\VerificationCodeEmailContext.cs" />
+    <Compile Include="Communication\Email\EmailFaultTranslator.cs" />
+    <Compile Include="Communication\Email\Helpers\EmailSafeMessages.cs" />
+    <Compile Include="Communication\Email\EmailSendResult.cs" />
+    <Compile Include="Communication\Email\Helpers\EmailInternalCodes.cs" />
+    <Compile Include="Communication\Email\Helpers\EmailVerification.cs" />
+    <Compile Include="Communication\Email\Helpers\SmtpExceptionMapper.cs" />
+    <Compile Include="Communication\Email\IEmailSender.cs" />
+    <Compile Include="Communication\Email\SmtpEmailSender.cs" />
+    <Compile Include="Coordinators\Base\ManagerBase.cs" />
+    <Compile Include="Coordinators\Base\ServiceBase.cs" />
     <Compile Include="Coordinators\EmailVerificationManager.cs" />
+    <Compile Include="Coordinators\EmailVerification\EmailVerificationDomainService.cs" />
     <Compile Include="Coordinators\EmailVerification\VerificationCodeService.cs" />
-    <Compile Include="Coordinators\EmailVerification\VerificationEmailDispatcher.cs" />
-    <Compile Include="Coordinators\FaultsCatalogs\EmailVerificationFaults.cs" />
-    <Compile Include="Coordinators\FaultsCatalogs\LoginServiceFaults.cs" />
-    <Compile Include="Coordinators\FaultsCatalogs\Mappers\LoginFaultMapper.cs" />
-    <Compile Include="Coordinators\FaultsCatalogs\PasswordRecoveryFaults.cs" />
-    <Compile Include="Coordinators\FaultsCatalogs\UserFaultMapper.cs" />
-    <Compile Include="Coordinators\FaultsCatalogs\UserRegistrationFaults.cs" />
-    <Compile Include="Coordinators\FaultsCatalogs\UserServiceFaults.cs" />
+    <Compile Include="Coordinators\FriendshipManager.cs" />
     <Compile Include="Coordinators\GameSessionManager.cs" />
-    <Compile Include="Coordinators\Interfaces\FaultsMappers\ILoginFaultMapper.cs" />
     <Compile Include="Coordinators\Interfaces\IEmailVerificationManager.cs" />
-    <Compile Include="Coordinators\Interfaces\EmailVerification\IVerificationEmailDispatcher.cs" />
+    <Compile Include="Coordinators\Interfaces\IFriendshipManager.cs" />
     <Compile Include="Coordinators\Interfaces\IGameSessionManager.cs" />
     <Compile Include="Coordinators\Interfaces\ILoginCoordinator.cs" />
     <Compile Include="Coordinators\Interfaces\ILoginManager.cs" />
     <Compile Include="Coordinators\Interfaces\IPasswordRecoveryManager.cs" />
-    <Compile Include="Coordinators\Interfaces\FaultsMappers\IUserFaultMapper.cs" />
+    <Compile Include="Coordinators\Interfaces\IUpdateProfileManager.cs" />
     <Compile Include="Coordinators\Interfaces\IUserRegistrationManager.cs" />
-    <Compile Include="Coordinators\Interfaces\EmailVerification\IVerificationCodeService.cs" />
     <Compile Include="Coordinators\LoginCoordinator.cs" />
     <Compile Include="Coordinators\LoginManager.cs" />
-    <Compile Include="Coordinators\Parameters\LoginArgs.cs" />
-    <Compile Include="Coordinators\Parameters\RegisterUserArgs.cs" />
+    <Compile Include="Coordinators\InternalDtos\LoginArgs.cs" />
+    <Compile Include="Coordinators\InternalDtos\RegisterUserArgs.cs" />
     <Compile Include="Coordinators\PasswordRecoveryManager.cs" />
+    <Compile Include="Coordinators\UpdateProfileManager.cs" />
     <Compile Include="Coordinators\UserRegistrationManager.cs" />
+    <Compile Include="Errors\FaultTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Repositories\Implementation\AvatarRepository.cs" />
-    <Compile Include="Repositories\Implementation\EmailVerificationRepository.cs" />
-    <Compile Include="Repositories\Implementation\GameSessionRepository.cs" />
-    <Compile Include="Repositories\Implementation\UserAccountRepository.cs" />
-    <Compile Include="Repositories\Interfaces\IAvatarRepository.cs" />
-    <Compile Include="Repositories\Interfaces\IEmailVerificationRepository.cs" />
-    <Compile Include="Repositories\Interfaces\IGameSessionRepository.cs" />
-    <Compile Include="Repositories\Interfaces\IUserAccountRepository.cs" />
-    <Compile Include="Security\PasswordHasher.cs" />
+    <Compile Include="Security\Pbkdf2Sha256PasswordHashing.cs" />
     <Compile Include="Security\CodeGenerator.cs" />
-    <Compile Include="Services\Faults\DatabaseFaultMapper.cs" />
+    <Compile Include="Security\PasswordHash.cs" />
+    <Compile Include="Services\Configuration\SmtpSettings.cs" />
+    <Compile Include="Services\ErrorHandling\FaultsFactory.cs" />
     <Compile Include="Services\FriendService.cs" />
     <Compile Include="Services\ChatService.cs" />
     <Compile Include="Services\LoginService.cs" />
@@ -175,7 +179,6 @@
     <Compile Include="Services\MatchApplication\MatchDeckProvider.cs" />
     <Compile Include="Services\MatchApplication\MatchLifecycleService.cs" />
     <Compile Include="Services\MatchService.cs" />
-    <Compile Include="Services\Settings\UserSecuritySettings.cs" />
     <Compile Include="Services\Settings\UserSecuritySettingsLoader.cs" />
     <Compile Include="Services\UpdateProfileService.cs" />
     <Compile Include="Services\UserService.cs" />
@@ -195,6 +198,14 @@
     <ProjectReference Include="..\GuessWhoContracts\GuessWhoContracts.csproj">
       <Project>{e883c093-7c48-425c-b0e6-6dbcbd7f5fb0}</Project>
       <Name>GuessWhoContracts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GuessWhoCore\GuessWhoCore.csproj">
+      <Project>{e0c21307-032a-49c0-a33d-e6ca2f6c0e5e}</Project>
+      <Name>GuessWhoCore</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\GuessWhoServerDomain\GuessWhoServerDomain.csproj">
+      <Project>{2b0e43a3-9959-41cd-b55c-59ce9266d828}</Project>
+      <Name>GuessWhoServerDomain</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

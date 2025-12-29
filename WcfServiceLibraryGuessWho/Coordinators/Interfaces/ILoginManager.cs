@@ -1,10 +1,10 @@
-﻿using WcfServiceLibraryGuessWho.Coordinators.Parameters;
-using GuessWhoContracts.Dtos.Dto; 
+﻿using GuessWhoServerDomain.Domain.Models.Sessions;
+using WcfServiceLibraryGuessWho.Coordinators.Parameters.InternalDtos;
 
 namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
 {
     public interface ILoginManager
     {
-        UserSessionLoginResult Login(LoginArgs loginArgs);
+        SessionLoginResult Login(LoginArgs loginArgs);
     }
 }

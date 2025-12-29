@@ -30,6 +30,7 @@ namespace ClassLibraryGuessWho.Data
             this.MODERATION_ACTION1 = new HashSet<MODERATION_ACTION>();
             this.TOURNAMENT_4P = new HashSet<TOURNAMENT_4P>();
             this.TOURNAMENT_4P_PLAYER = new HashSet<TOURNAMENT_4P_PLAYER>();
+            this.GUEST_SESSION = new HashSet<GUEST_SESSION>();
         }
     
         public long USERID { get; set; }
@@ -38,6 +39,7 @@ namespace ClassLibraryGuessWho.Data
         public System.DateTime CREATEDATUTC { get; set; }
         public string AVATARID { get; set; }
         public byte[] ROWVERSION { get; set; }
+        public bool ISGUEST { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<ACCOUNT> ACCOUNT { get; set; }
@@ -66,5 +68,7 @@ namespace ClassLibraryGuessWho.Data
         public virtual ICollection<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<TOURNAMENT_4P_PLAYER> TOURNAMENT_4P_PLAYER { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<GUEST_SESSION> GUEST_SESSION { get; set; }
     }
 }

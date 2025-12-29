@@ -1,4 +1,4 @@
-﻿using GuessWhoContracts.Dtos.Dto;
+﻿using GuessWhoCore.Contracts.Response;
 using System.ServiceModel;
 
 namespace GuessWhoContracts.Services

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{2B0E43A3-9959-41CD-B55C-59CE9266D828}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>GuessWhoServerDomain</RootNamespace>
+    <AssemblyName>GuessWhoServerDomain</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Domain\Enums\Friends\FriendRequestDataStatus.cs" />
+    <Compile Include="Domain\Enums\Friends\FriendRequestStatus.cs" />
+    <Compile Include="Domain\Enums\Match\JoinMatchOutcomeCode.cs" />
+    <Compile Include="Domain\Enums\Security\VerificationCodeResult.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IAvatarRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IEmailVerificationRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IFriendshipRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IGameSessionRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IUserAccountRepository.cs" />
+    <Compile Include="Domain\Interfaces\Security\IEmailVerificationDomainService.cs" />
+    <Compile Include="Domain\Interfaces\Security\IPasswordHasher.cs" />
+    <Compile Include="Domain\Interfaces\Security\IVerificationCodeService.cs" />
+    <Compile Include="Domain\Models\Accounts\AccountRecord.cs" />
+    <Compile Include="Domain\Models\Accounts\ProfileSnapshot.cs" />
+    <Compile Include="Domain\Models\Accounts\UpdateProfileSnapshot.cs" />
+    <Compile Include="Domain\Models\Accounts\UserProfileRecord.cs" />
+    <Compile Include="Domain\Models\Avatars\AvatarRecord.cs" />
+    <Compile Include="Domain\Models\EmailVerification\EmailVerificationTokenRecord.cs" />
+    <Compile Include="Domain\Models\Friends\FriendRequestRecord.cs" />
+    <Compile Include="Domain\Models\Friends\UserProfileSearchRecord.cs" />
+    <Compile Include="Domain\Models\Match\MatchSnapshot.cs" />
+    <Compile Include="Domain\Models\Session\SessionLoginResult.cs" />
+    <Compile Include="Domain\Parameters\Accounts\AccountSearchParameters.cs" />
+    <Compile Include="Domain\Parameters\Accounts\UpdatePasswordArgs.cs" />
+    <Compile Include="Domain\Parameters\Accounts\UpdateProfileArgs.cs" />
+    <Compile Include="Domain\Parameters\EmailVerification\ValidateTokenMatchArgs.cs" />
+    <Compile Include="Domain\Parameters\Friends\FriendRequestActionArgs.cs" />
+    <Compile Include="Domain\Parameters\Matches\ChooseSecretCharacterArgs.cs" />
+    <Compile Include="Domain\Parameters\Accounts\CreateAccountArgs.cs" />
+    <Compile Include="Domain\Parameters\Accounts\Email\CreateEmailTokenArgs.cs" />
+    <Compile Include="Domain\Parameters\Matches\CreateMatchArgs.cs" />
+    <Compile Include="Domain\Parameters\Matches\CreateTournamentMatchArgs.cs" />
+    <Compile Include="Domain\Enums\AccountProfileStatus.cs" />
+    <Compile Include="Domain\Results\Accounts\AccountProfileRecordResult.cs" />
+    <Compile Include="Domain\Results\Accounts\AccountWithProfileResult.cs" />
+    <Compile Include="Domain\Results\Accounts\CreatedAccountResult.cs" />
+    <Compile Include="Domain\Results\Accounts\EmailVerificationResendLimitsResult.cs" />
+    <Compile Include="Domain\Parameters\Matches\EndMatchArgs.cs" />
+    <Compile Include="Domain\Parameters\Accounts\Email\ExpireTokensArgs.cs" />
+    <Compile Include="Domain\Parameters\Accounts\Email\IncrementFailedAttemptArgs.cs" />
+    <Compile Include="Domain\Parameters\Matches\JoinMatchArgs.cs" />
+    <Compile Include="Domain\Parameters\Matches\KickPlayerArgs.cs" />
+    <Compile Include="Domain\Parameters\Matches\MatchPlayerArgs.cs" />
+    <Compile Include="Domain\Parameters\Accounts\Email\ResendLimitsQuery.cs" />
+    <Compile Include="Domain\Parameters\Accounts\UpdateAccountArgs.cs" />
+    <Compile Include="Domain\Results\Accounts\UpdateAccountResult.cs" />
+    <Compile Include="Domain\Results\Friends\FriendRequestDataResult.cs" />
+    <Compile Include="Domain\Results\Friends\SendFriendRequestDataResult.cs" />
+    <Compile Include="Domain\Results\Sessions\AccountWithProfileForLoginResult.cs" />
+    <Compile Include="Domain\Settings\UserSecuritySettings.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\GuessWhoCore\GuessWhoCore.csproj">
+      <Project>{e0c21307-032a-49c0-a33d-e6ca2f6c0e5e}</Project>
+      <Name>GuessWhoCore</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

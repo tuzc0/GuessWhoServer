@@ -1,4 +1,4 @@
-﻿using WcfServiceLibraryGuessWho.Coordinators.Parameters;
+﻿using WcfServiceLibraryGuessWho.Coordinators.InternalDtos;
 
 namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
 {

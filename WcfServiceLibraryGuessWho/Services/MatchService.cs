@@ -1,12 +1,9 @@
-﻿using ClassLibraryGuessWho.Data.DataAccess.Characters;
-using ClassLibraryGuessWho.Data.DataAccess.Match;
-using GuessWho.Services.WCF.Services.MatchApplication;
-using GuessWhoContracts.Dtos.RequestAndResponse;
+﻿using GuessWho.Services.WCF.Services.MatchApplication;
 using GuessWhoContracts.Services;
-using log4net;
+using GuessWhoCore.Contracts.Requests;
+using GuessWhoCore.Contracts.Response;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Services.MatchApplication;
 
 namespace GuessWho.Services.WCF.Services
 {

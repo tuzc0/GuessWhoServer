@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
+﻿namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
 {
     public interface IGameSessionManager
     {
