@@ -1,12 +1,11 @@
-﻿using GuessWhoContracts.Dtos.RequestAndResponse;
-using GuessWhoContracts.Faults;
+﻿using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
 using System.ServiceModel;
 
 namespace GuessWhoContracts.Services
 {
-    [ServiceContract(CallbackContract = typeof(IMatchCallback))]
+    [ServiceContract(SessionMode = SessionMode.Required, CallbackContract = typeof(IMatchCallback))]
     public interface IMatchService
     {
         [OperationContract]

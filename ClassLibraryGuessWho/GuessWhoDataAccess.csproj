@@ -70,6 +70,11 @@
     </Compile>
     <Compile Include="Data\DataAccess\Accounts\AccountRecordMapper.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationTokenRecordMapper.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.Access.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.Characters.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.Discovery.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.Tournament.cs" />
     <Compile Include="Data\Factories\GuessWhoUnitOfWork.cs" />
     <Compile Include="Data\Factories\GuessWhoUnitOfWorkFactory.cs" />
     <Compile Include="Data\Factories\IGuessWhoUnitOfWork.cs" />
@@ -80,7 +85,7 @@
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationData.cs" />
     <Compile Include="Data\DataAccess\Friends\FriendshipData.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Helpers.cs" />
-    <Compile Include="Data\DataAccess\Matches\MatchData.Lobby.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.LobbyState.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Lifecycle.cs" />
     <Compile Include="Data\EMAIL_VERIFICATION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
@@ -163,7 +168,6 @@
     <Compile Include="Data\USER_PROFILE.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
-    <Compile Include="Enums\SqlErrorKind.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

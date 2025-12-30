@@ -10,6 +10,7 @@
     <RootNamespace>GuessWhoServerDomain</RootNamespace>
     <AssemblyName>GuessWhoServerDomain</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <LangVersion>10.0</LangVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
@@ -43,12 +44,22 @@
   <ItemGroup>
     <Compile Include="Domain\Enums\Friends\FriendRequestDataStatus.cs" />
     <Compile Include="Domain\Enums\Friends\FriendRequestStatus.cs" />
+    <Compile Include="Domain\Enums\Match\ChangeSecretCharacterResultCode.cs" />
+    <Compile Include="Domain\Enums\Match\ChooseSecretCharacterResultCode.cs" />
+    <Compile Include="Domain\Enums\Match\EndMatchResultCode.cs" />
+    <Compile Include="Domain\Enums\Match\JoinMatchResultCode.cs" />
+    <Compile Include="Domain\Enums\Match\KickPlayerResultCode.cs" />
+    <Compile Include="Domain\Enums\Match\LeaveMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Match\JoinMatchOutcomeCode.cs" />
+    <Compile Include="Domain\Enums\Match\MarkReadyResultCode.cs" />
+    <Compile Include="Domain\Enums\Match\SetMatchPrivateResultCode.cs" />
+    <Compile Include="Domain\Enums\Match\StartMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Security\VerificationCodeResult.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IAvatarRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IEmailVerificationRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IFriendshipRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IGameSessionRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IMatchRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IUserAccountRepository.cs" />
     <Compile Include="Domain\Interfaces\Security\IEmailVerificationDomainService.cs" />
     <Compile Include="Domain\Interfaces\Security\IPasswordHasher.cs" />
@@ -61,6 +72,7 @@
     <Compile Include="Domain\Models\EmailVerification\EmailVerificationTokenRecord.cs" />
     <Compile Include="Domain\Models\Friends\FriendRequestRecord.cs" />
     <Compile Include="Domain\Models\Friends\UserProfileSearchRecord.cs" />
+    <Compile Include="Domain\Models\Match\LobbyPlayerSnapshot.cs" />
     <Compile Include="Domain\Models\Match\MatchSnapshot.cs" />
     <Compile Include="Domain\Models\Session\SessionLoginResult.cs" />
     <Compile Include="Domain\Parameters\Accounts\AccountSearchParameters.cs" />
@@ -68,6 +80,7 @@
     <Compile Include="Domain\Parameters\Accounts\UpdateProfileArgs.cs" />
     <Compile Include="Domain\Parameters\EmailVerification\ValidateTokenMatchArgs.cs" />
     <Compile Include="Domain\Parameters\Friends\FriendRequestActionArgs.cs" />
+    <Compile Include="Domain\Parameters\Matches\ChangeSecretCharacterArgs.cs" />
     <Compile Include="Domain\Parameters\Matches\ChooseSecretCharacterArgs.cs" />
     <Compile Include="Domain\Parameters\Accounts\CreateAccountArgs.cs" />
     <Compile Include="Domain\Parameters\Accounts\Email\CreateEmailTokenArgs.cs" />
@@ -89,9 +102,19 @@
     <Compile Include="Domain\Results\Accounts\UpdateAccountResult.cs" />
     <Compile Include="Domain\Results\Friends\FriendRequestDataResult.cs" />
     <Compile Include="Domain\Results\Friends\SendFriendRequestDataResult.cs" />
+    <Compile Include="Domain\Results\Match\ChangeSecretCharacterResult.cs" />
+    <Compile Include="Domain\Results\Match\ChooseSecretCharacterResult.cs" />
+    <Compile Include="Domain\Results\Match\EndMatchResult.cs" />
+    <Compile Include="Domain\Results\Match\JoinMatchResult.cs" />
+    <Compile Include="Domain\Results\Match\KickPlayerResult.cs" />
+    <Compile Include="Domain\Results\Match\LeaveMatchResult.cs" />
+    <Compile Include="Domain\Results\Match\MarkReadyResult.cs" />
+    <Compile Include="Domain\Results\Match\SetMatchPrivateResult.cs" />
+    <Compile Include="Domain\Results\Match\StartMatchResult.cs" />
     <Compile Include="Domain\Results\Sessions\AccountWithProfileForLoginResult.cs" />
     <Compile Include="Domain\Settings\UserSecuritySettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\IsExternalInit.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>

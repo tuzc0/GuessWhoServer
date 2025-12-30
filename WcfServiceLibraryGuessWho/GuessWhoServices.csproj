@@ -159,6 +159,8 @@
     <Compile Include="Coordinators\UpdateProfileManager.cs" />
     <Compile Include="Coordinators\UserRegistrationManager.cs" />
     <Compile Include="Errors\FaultTranslator.cs" />
+    <Compile Include="Infrastructure\ILobbySubscriptionStore.cs" />
+    <Compile Include="Infrastructure\LobbySubscriptionStore.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\Pbkdf2Sha256PasswordHashing.cs" />
     <Compile Include="Security\CodeGenerator.cs" />
