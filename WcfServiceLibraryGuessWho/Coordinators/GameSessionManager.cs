@@ -1,40 +1,67 @@
-﻿using GuessWhoCore.Contracts.Faults;
-using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+﻿using ClassLibraryGuessWho.Data.Factories;
+using GuessWhoCore.Contracts.Faults;
+using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
 using WcfServiceLibraryGuessWho.Coordinators.Base;
 using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
 using WcfServiceLibraryGuessWho.Errors;
-namespace WcfServiceLibraryGuessWho.Coordinators { 
-    public sealed class GameSessionManager : ManagerBase, IGameSessionManager { 
-        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(GameSessionManager)); 
-        
-        private const string LOG_CTX_TERMINATE = "GameSessionManager.TerminateActiveSessions"; 
-        
+
+namespace WcfServiceLibraryGuessWho.Coordinators
+{
+    public sealed class GameSessionManager : ManagerBase, IGameSessionManager
+    {
+        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(GameSessionManager));
+
+        private const string LOG_CTX_TERMINATE = "GameSessionManager.TerminateActiveSessions";
+
         private const int MIN_VALID_ID = 1;
-        
-        private readonly IGameSessionRepository sessionRepository; 
-        public GameSessionManager(IGameSessionRepository sessionRepository) 
-        { 
-            this.sessionRepository = sessionRepository ?? 
-                throw new ArgumentNullException(nameof(sessionRepository)); 
-        } 
-        
-        public bool TerminateActiveSessions(long userId) 
-        { 
-            return ExecuteService(LOG_CTX_TERMINATE, () => 
-            {
-                if (userId < MIN_VALID_ID) 
-                { return false; 
-                } 
-                return sessionRepository.ForceLeaveActiveSessionsForUser(userId); 
-            }); 
+
+        private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
+
+        public GameSessionManager(IGuessWhoUnitOfWorkFactory unitOfWorkFactory)
+        {
+            this.unitOfWorkFactory = unitOfWorkFactory ??
+                throw new ArgumentNullException(nameof(unitOfWorkFactory));
         }
-        
-        protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex) 
-        { 
-            return FaultTranslator.ToTechnicalFault(ex, Logger); 
-        } 
-    } 
+
+        public bool TerminateActiveSessions(long userId)
+        {
+            return ExecuteService(
+                LOG_CTX_TERMINATE,
+                () =>
+                {
+                    EnsureValidUserIdOrThrow(userId);
+
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
+                    using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+
+                    bool terminated = unitOfWork.Matches.ForceLeaveAllMatchesForUser(userId);
+
+                    unitOfWork.Flush();
+                    transaction.Commit();
+
+                    return terminated;
+                });
+        }
+
+        private static void EnsureValidUserIdOrThrow(long userId)
+        {
+            if (userId >= MIN_VALID_ID)
+            {
+                return;
+            }
+
+            throw FaultsFactory.Create(
+                GameSessionFaultKeys.CODE_USER_ID_INVALID,
+                GameSessionFaultKeys.MSG_USER_ID_INVALID,
+                GameSessionFaultKeys.FALLBACK_USER_ID_INVALID);
+        }
+
+        protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)
+        {
+            return FaultTranslator.ToTechnicalFault(ex, Logger);
+        }
+    }
 }

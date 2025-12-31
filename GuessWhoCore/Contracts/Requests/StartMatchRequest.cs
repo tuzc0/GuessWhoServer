@@ -6,5 +6,6 @@ namespace GuessWhoCore.Contracts.Requests
     public class StartMatchRequest
     {
         [DataMember(IsRequired = true)] public long MatchId { get; set; }
+        [DataMember(IsRequired = true)] public long UserId { get; set; }
     }
 }

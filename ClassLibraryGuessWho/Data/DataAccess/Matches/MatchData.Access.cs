@@ -4,9 +4,10 @@ using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity.Infrastructure;
+using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 {
@@ -24,17 +25,18 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                                                             AND MP.USERID = @UserId
                                                             AND MP.LEFTATUTC IS NOT NULL
                                                             AND NOT EXISTS (
-                                                                SELECT 1 
+                                                                SELECT 1
                                                                 FROM MATCH_PLAYER MP_OCCUPIER
                                                                 WHERE MP_OCCUPIER.MATCHID = MP.MATCHID
                                                                     AND MP_OCCUPIER.SLOTNUMBER = MP.SLOTNUMBER
                                                                     AND MP_OCCUPIER.LEFTATUTC IS NULL
                                                                     AND MP_OCCUPIER.USERID != MP.USERID);";
 
-        private const string SQL_JOIN_BY_CODE_ATOMIC = @";WITH ActivePlayers AS(SELECT MP.MATCHID, MP.SLOTNUMBER
+        private const string SQL_JOIN_BY_CODE_ATOMIC = @";WITH ActivePlayers AS(
+                                                            SELECT MP.MATCHID, MP.SLOTNUMBER
                                                             FROM MATCH_PLAYER MP
                                                             WHERE MP.MATCHID = @MatchId
-                                                            AND MP.LEFTATUTC IS NULL),
+                                                                AND MP.LEFTATUTC IS NULL),
                                                             SlotPick AS(
                                                                SELECT
                                                                CASE
@@ -113,6 +115,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             public int ActiveCount { get; set; }
             public int DistinctSlots { get; set; }
             public bool IsAlreadyActiveInMatch { get; set; }
+            public bool IsMatchCodeCorrect { get; set; } 
         }
 
         public JoinMatchResult AddPlayerToMatchByCode(JoinMatchArgs matchArgs)
@@ -215,7 +218,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
                 return JoinAttemptOutcome.Failed();
             }
-            catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueConstraintViolation(ex))
+            catch (SqlException ex) when (SqlExceptionInspector.IsUniqueConstraintViolation(ex))
             {
                 return JoinAttemptOutcome.GuestSlotTaken();
             }
@@ -223,10 +226,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
         private int ExecuteRejoinByCode(JoinMatchArgs matchArgs, DateTime utcNow)
         {
+            string matchCode = NormalizeMatchCode(matchArgs.MatchCode); 
+
             return dataContext.Database.ExecuteSqlCommand(
                 SQL_REJOIN_BY_CODE_ATOMIC,
                 new SqlParameter("@MatchId", matchArgs.MatchId),
-                new SqlParameter("@MatchCode", matchArgs.MatchCode),
+                new SqlParameter("@MatchCode", matchCode), 
                 new SqlParameter("@UserId", matchArgs.UserProfileId),
                 new SqlParameter("@NowUtc", utcNow),
                 new SqlParameter("@MatchStatusLobby", MatchStatusIds.LOBBY));
@@ -234,10 +239,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
         private int ExecuteJoinByCode(JoinMatchArgs matchArgs, DateTime utcNow)
         {
+            string matchCode = NormalizeMatchCode(matchArgs.MatchCode); 
+
             return dataContext.Database.ExecuteSqlCommand(
                 SQL_JOIN_BY_CODE_ATOMIC,
                 new SqlParameter("@MatchId", matchArgs.MatchId),
-                new SqlParameter("@MatchCode", matchArgs.MatchCode),
+                new SqlParameter("@MatchCode", matchCode), 
                 new SqlParameter("@UserId", matchArgs.UserProfileId),
                 new SqlParameter("@NowUtc", utcNow),
                 new SqlParameter("@MatchStatusLobby", MatchStatusIds.LOBBY),
@@ -248,6 +255,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
         private JoinMatchDiagnostic LoadJoinDiagnostic(JoinMatchArgs matchArgs)
         {
+            string matchCode = NormalizeMatchCode(matchArgs.MatchCode); 
+
             return
                 (from matchEntity in dataContext.MATCH.AsNoTracking()
                  where matchEntity.MATCHID == matchArgs.MatchId
@@ -267,7 +276,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                      IsAlreadyActiveInMatch = dataContext.MATCH_PLAYER.Any(p =>
                          p.MATCHID == matchArgs.MatchId &&
                          p.USERID == matchArgs.UserProfileId &&
-                         p.LEFTATUTC == null)
+                         p.LEFTATUTC == null),
+                     IsMatchCodeCorrect = matchEntity.MATCHCODE == matchCode 
                  })
                 .SingleOrDefault();
         }
@@ -275,6 +285,11 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
         private JoinMatchResult BuildJoinResultFromDiagnostic(JoinMatchArgs matchArgs, JoinMatchDiagnostic diagnostic)
         {
             if (diagnostic == null)
+            {
+                return JoinMatchResult.Fail(JoinMatchResultCode.MatchNotFound, matchArgs.MatchId);
+            }
+
+            if (!diagnostic.IsMatchCodeCorrect) 
             {
                 return JoinMatchResult.Fail(JoinMatchResultCode.MatchNotFound, matchArgs.MatchId);
             }
@@ -304,7 +319,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
             if (hasSlotInconsistency)
             {
-                return JoinMatchResult.Fail(JoinMatchResultCode.MatchNotJoinable, matchArgs.MatchId);
+                return JoinMatchResult.Fail(JoinMatchResultCode.OperationConflict, matchArgs.MatchId);
             }
 
             return JoinMatchResult.Fail(JoinMatchResultCode.MatchNotJoinable, matchArgs.MatchId);
@@ -361,7 +376,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                     return JoinMatchResult.Success(matchId);
                 }
             }
-            catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueConstraintViolation(ex))
+            catch (SqlException ex) when (SqlExceptionInspector.IsUniqueConstraintViolation(ex))
             {
                 return JoinMatchResult.Fail(JoinMatchResultCode.GuestSlotTaken, matchId);
             }
@@ -436,7 +451,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             }
 
             MATCH matchEntity = dataContext.MATCH
-                .Include("MATCH_PLAYER")
+                .Include(m => m.MATCH_PLAYER)
                 .SingleOrDefault(m => m.MATCHID == playerArgs.MatchId);
 
             if (matchEntity == null)
@@ -474,8 +489,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 }
             }
 
-            dataContext.SaveChanges();
-
             return LeaveMatchResult.Success();
         }
 
@@ -492,7 +505,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             }
 
             MATCH matchEntity = dataContext.MATCH
-                .Include("MATCH_PLAYER")
+                .Include(m => m.MATCH_PLAYER)
                 .SingleOrDefault(m => m.MATCHID == playerArgs.MatchId);
 
             if (matchEntity == null)
@@ -541,8 +554,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             DateTime utcNow = DateTime.UtcNow;
 
             MarkPlayerAsLeft(targetPlayerEntity, utcNow);
-
-            dataContext.SaveChanges();
 
             return KickPlayerResult.Success();
         }

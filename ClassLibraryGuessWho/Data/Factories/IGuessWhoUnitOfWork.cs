@@ -9,9 +9,12 @@ namespace ClassLibraryGuessWho.Data.Factories
 
         IUserAccountRepository UserAccounts { get; }
         IEmailVerificationRepository EmailVerification { get; }
-
+        IAvatarRepository Avatars { get; }
+        ICharacterRepository Characters { get; }
+        IMatchDeckRepository MatchDecks { get; }
+        IFriendshipRepository Friendships { get; }
+        IMatchRepository Matches { get; }
         IGuessWhoDbTransaction BeginTransaction();
-
         void Flush();
     }
 

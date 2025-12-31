@@ -1,13 +1,4 @@
-﻿using System;
-using System.Data.Entity.Infrastructure;;
-using System.Linq;
-using ClassLibraryGuessWho.Data.DataAccess.Match;
-using ClassLibraryGuessWho.Data.Helpers;
-using GuessWhoCore.Contracts.Requests;
-using GuessWhoServerDomain.Domain.Parameters.Matches;
-using log4net;
-
-namespace GuessWho.Services.WCF.Services.MatchApplication
+﻿namespace GuessWho.Services.WCF.Services.MatchApplication
 {
     public sealed class LobbyCoordinator : ILobbyCoordinator
     {

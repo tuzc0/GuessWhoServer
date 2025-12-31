@@ -1,4 +1,5 @@
-﻿using GuessWhoServerDomain.Domain.Enums;
+﻿using ClassLibraryGuessWho.Data.Factories;
+using GuessWhoServerDomain.Domain.Enums;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
@@ -12,6 +13,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
     {
         private const bool DEFAULT_IS_EMAIL_VERIFIED = false;
         private const int INVALID_ACCOUNT = -1;
+
+        private const long MIN_VALID_ENTITY_ID = 1;
 
         private const string EMPTY = "";
 
@@ -55,11 +58,11 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                 ISEMAILVERIFIED = DEFAULT_IS_EMAIL_VERIFIED,
                 CREATEDATUTC = createAccountArgs.CreationDate,
                 UPDATEDATUTC = createAccountArgs.CreationDate,
-
                 USER_PROFILE = profileEntity
             };
 
             dataContext.ACCOUNT.Add(accountEntity);
+
             dataContext.SaveChanges();
 
             AccountRecord account = AccountRecordMapper.ToAccountRecord(accountEntity);
@@ -70,8 +73,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
         public AccountRecord GetAccountByIdAccount(long accountId)
         {
-            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == accountId);
-
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == accountId && !a.ISDELETED);
             return AccountRecordMapper.ToAccountRecord(accountEntity);
         }
 
@@ -96,17 +98,23 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
         public bool MarkEmailVerified(long accountId, DateTime nowUtc)
         {
-            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == accountId);
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == accountId && !a.ISDELETED);
 
             if (accountEntity == null)
             {
                 return false;
             }
 
+            if (accountEntity.ISEMAILVERIFIED)
+            {
+                accountEntity.UPDATEDATUTC = nowUtc;
+                return true;
+            }
+
             accountEntity.ISEMAILVERIFIED = true;
             accountEntity.UPDATEDATUTC = nowUtc;
 
-            return SaveChangesSucceeded();
+            return true;
         }
 
         public long GetAccountIdByEmail(string email)
@@ -130,7 +138,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                 throw new ArgumentNullException(nameof(passwordUpdateArgs));
             }
 
-            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == passwordUpdateArgs.AccountId);
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(
+                a => a.ACCOUNTID == passwordUpdateArgs.AccountId && !a.ISDELETED);
 
             if (accountEntity == null)
             {
@@ -140,7 +149,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             accountEntity.PASSWORD = passwordUpdateArgs.NewPasswordHash ?? Array.Empty<byte>();
             accountEntity.UPDATEDATUTC = passwordUpdateArgs.UpdatedAtUtc;
 
-            return SaveChangesSucceeded();
+            return true;
         }
 
         public UpdatedAccountResult UpdateDisplayNameAndPassword(UpdateAccountArgs updateAccountArgs)
@@ -150,9 +159,10 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                 throw new ArgumentNullException(nameof(updateAccountArgs));
             }
 
-            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.ACCOUNTID == updateAccountArgs.AccountId);
+            ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(
+                a => a.ACCOUNTID == updateAccountArgs.AccountId && !a.ISDELETED);
 
-            if (accountEntity ==null || !IsAccountActive(accountEntity))
+            if (accountEntity == null)
             {
                 return UpdatedAccountResult.Fail();
             }
@@ -173,11 +183,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             }
 
             accountEntity.UPDATEDATUTC = updateAccountArgs.UpdatedAtUtc;
-
-            if (!SaveChangesSucceeded())
-            {
-                return UpdatedAccountResult.Fail();
-            }
 
             AccountRecord account = AccountRecordMapper.ToAccountRecord(accountEntity);
             UserProfileRecord profile = AccountRecordMapper.ToUserProfileRecord(userProfileEntity);
@@ -256,6 +261,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             }
 
             ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.EMAIL == normalizedEmail && !a.ISDELETED);
+
             if (accountEntity == null)
             {
                 return false;
@@ -264,12 +270,13 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             accountEntity.LASTLOGINUTC = nowUtc;
             accountEntity.UPDATEDATUTC = nowUtc;
 
-            return SaveChangesSucceeded();
+            return true;
         }
 
         public bool DeleteAccount(long userId, DateTime nowUtc)
         {
             ACCOUNT accountEntity = dataContext.ACCOUNT.SingleOrDefault(a => a.USERID == userId && !a.ISDELETED);
+
             if (accountEntity == null)
             {
                 return false;
@@ -279,12 +286,13 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
             accountEntity.DELETEDATUTC = nowUtc;
             accountEntity.UPDATEDATUTC = nowUtc;
 
-            return SaveChangesSucceeded();
+            return true;
         }
 
         public bool MarkUserProfileActive(long userId)
         {
             USER_PROFILE profileEntity = FindUserProfile(userId);
+
             if (profileEntity == null)
             {
                 return false;
@@ -297,12 +305,13 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
             profileEntity.ISACTIVE = true;
 
-            return SaveChangesSucceeded();
+            return true;
         }
 
         public bool MarkUserProfileInactive(long userId)
         {
             USER_PROFILE profileEntity = FindUserProfile(userId);
+
             if (profileEntity == null)
             {
                 return false;
@@ -315,7 +324,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
 
             profileEntity.ISACTIVE = false;
 
-            return SaveChangesSucceeded();
+            return true;
         }
 
         private ACCOUNT FindAccountForLogin(AccountSearchParameters accountSearchArgs)
@@ -327,7 +336,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                 return dataContext.ACCOUNT.SingleOrDefault(a => a.EMAIL == normalizedEmail);
             }
 
-            if (accountSearchArgs.UserId > 0)
+            if (accountSearchArgs.UserId >= MIN_VALID_ENTITY_ID)
             {
                 return dataContext.ACCOUNT.SingleOrDefault(a => a.USERID == accountSearchArgs.UserId);
             }
@@ -344,7 +353,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
                 return dataContext.ACCOUNT.SingleOrDefault(a => a.EMAIL == normalizedEmail && !a.ISDELETED);
             }
 
-            if (accountSearchArgs.UserId > 0)
+            if (accountSearchArgs.UserId >= MIN_VALID_ENTITY_ID)
             {
                 return dataContext.ACCOUNT.SingleOrDefault(a => a.USERID == accountSearchArgs.UserId && !a.ISDELETED);
             }
@@ -380,11 +389,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
         private static string NormalizeEmailOrEmpty(string email)
         {
             return (email ?? EMPTY).Trim().ToLowerInvariant();
-        }
-
-        private bool SaveChangesSucceeded()
-        {
-            return dataContext.SaveChanges() > 0;
         }
 
         private static AccountWithProfileResult MapFoundAccountWithProfile(ACCOUNT accountEntity, USER_PROFILE profileEntity)

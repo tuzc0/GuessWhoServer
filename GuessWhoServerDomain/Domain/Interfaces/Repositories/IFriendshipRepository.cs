@@ -16,7 +16,7 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
 
         FriendRequestDataResult TryReturnExistingPending(long fromUserId, long toUserId);
 
-        FriendRequestDataResult CreateNewRequest(long fromUserId, long toUserId, DateTime timestampUtc);
+        IFriendRequestIdProvider CreateNewRequest(long fromUserId, long toUserId, DateTime timestampUtc);
 
         FriendRequestDataResult AcceptFriendRequest(FriendRequestActionArgs args);
 

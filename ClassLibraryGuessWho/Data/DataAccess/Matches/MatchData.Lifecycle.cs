@@ -5,32 +5,39 @@ using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Data.Entity;
-using System.Linq;
 using System.Data.Entity.Infrastructure;
+using System.Data.SqlClient;
+using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 {
     public sealed partial class MatchData
     {
-        private const string SQL_START_MATCH_ATOMIC = @"UPDATE M SET M.STATUSID = @MatchStatusActive, M.STARTTIME = @NowUtc
-                                                      FROM MATCH M
-                                                      WHERE M.MATCHID = @MatchId
-                                                      AND M.STATUSID = @MatchStatusLobby
-                                                      AND M.STARTTIME IS NULL
-                                                      AND M.ENDTIME IS NULL
-                                                      AND EXISTS (
-                                                        SELECT 1
-                                                        FROM MATCH_PLAYER MP
-                                                        WHERE MP.MATCHID = M.MATCHID
-                                                        AND MP.LEFTATUTC IS NULL
-                                                        GROUP BY MP.MATCHID
-                                                        HAVING COUNT(*) = @ExpectedPlayers
-                                                            AND SUM(CASE WHEN MP.ISREADY = 1 THEN 1 ELSE 0 END) = @ExpectedPlayers
-                                                            AND COUNT(DISTINCT MP.SLOTNUMBER) = @ExpectedPlayers
-                                                            AND MIN(MP.SLOTNUMBER) = @HostSlotNumber
-                                                            AND MAX(MP.SLOTNUMBER) = @GuestSlotNumber);";
+        private const string SQL_START_MATCH_ATOMIC = @"UPDATE M 
+                                                SET M.STATUSID = @MatchStatusActive, 
+                                                    M.STARTTIME = @NowUtc
+                                                FROM MATCH M
+                                                INNER JOIN MATCH_PLAYER HostMP 
+                                                    ON M.MATCHID = HostMP.MATCHID
+                                                WHERE M.MATCHID = @MatchId
+                                                AND HostMP.USERID = @HostUserId
+                                                AND HostMP.ISHOST = 1
+                                                AND HostMP.LEFTATUTC IS NULL
+                                                AND M.STATUSID = @MatchStatusLobby
+                                                AND M.STARTTIME IS NULL
+                                                AND M.ENDTIME IS NULL
+                                                AND EXISTS (
+                                                    SELECT 1
+                                                    FROM MATCH_PLAYER MP
+                                                    WHERE MP.MATCHID = M.MATCHID
+                                                    AND MP.LEFTATUTC IS NULL
+                                                    GROUP BY MP.MATCHID
+                                                    HAVING COUNT(*) = @ExpectedPlayers
+                                                        AND SUM(CASE WHEN MP.ISREADY = 1 THEN 1 ELSE 0 END) = @ExpectedPlayers
+                                                        AND COUNT(DISTINCT MP.SLOTNUMBER) = @ExpectedPlayers
+                                                        AND MIN(MP.SLOTNUMBER) = @HostSlotNumber
+                                                        AND MAX(MP.SLOTNUMBER) = @GuestSlotNumber);";
 
         public MatchSnapshot CreateMatchClassic(CreateMatchArgs matchArgs)
         {
@@ -44,21 +51,22 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 return MatchSnapshot.CreateInvalid();
             }
 
+            MATCH matchEntity = null; 
+            MATCH_PLAYER hostEntity = null; 
+
             try
             {
-                var matchEntity = new MATCH
+                matchEntity = new MATCH
                 {
-                    VISIBILITYID = matchArgs.Visibility,
-                    STATUSID = matchArgs.MatchStatus,
-                    MODEID = matchArgs.Mode,
+                    VISIBILITYID = (byte)matchArgs.Visibility,
+                    STATUSID = (byte)matchArgs.MatchStatus,
+                    MODEID = (byte)matchArgs.Mode,
                     MATCHCODE = matchArgs.MatchCode,
                     CREATEDATUTC = matchArgs.CreateDate,
                     ISCODEJOINENABLED = true
                 };
 
-                dataContext.MATCH.Add(matchEntity);
-
-                dataContext.MATCH_PLAYER.Add(new MATCH_PLAYER
+                hostEntity = new MATCH_PLAYER
                 {
                     MATCH = matchEntity,
                     USERID = matchArgs.UserProfileId,
@@ -66,9 +74,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                     ISHOST = true,
                     ISREADY = true,
                     JOINEDATUTC = matchArgs.CreateDate
-                });
+                };
 
-                dataContext.SaveChanges();
+                dataContext.MATCH.Add(matchEntity);
+                dataContext.MATCH_PLAYER.Add(hostEntity);
+
+                dataContext.SaveChanges(); 
 
                 return new MatchSnapshot(
                     matchEntity.MATCHID,
@@ -80,6 +91,9 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             }
             catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueConstraintViolation(ex))
             {
+                DetachIfTracked(hostEntity);
+                DetachIfTracked(matchEntity);
+
                 return MatchSnapshot.CreateInvalid();
             }
         }
@@ -94,9 +108,9 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             public bool HasGuestSlot { get; set; }
         }
 
-        public StartMatchResult StartMatch(long matchId)
+        public StartMatchResult StartMatch(long matchId, long hostUserId)
         {
-            if (matchId <= 0)
+            if (matchId <= 0 || hostUserId <= 0)
             {
                 return StartMatchResult.Fail(StartMatchResultCode.MatchNotFound);
             }
@@ -106,6 +120,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             int affectedRows = dataContext.Database.ExecuteSqlCommand(
                 SQL_START_MATCH_ATOMIC,
                 new SqlParameter("@MatchId", matchId),
+                new SqlParameter("@HostUserId", hostUserId),
                 new SqlParameter("@NowUtc", nowUtc),
                 new SqlParameter("@MatchStatusLobby", MatchStatusIds.LOBBY),
                 new SqlParameter("@MatchStatusActive", MatchStatusIds.ACTIVE),
@@ -124,25 +139,18 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                                                {
                                                    MatchStatusId = matchEntity.STATUSID,
                                                    ActivePlayersCount = dataContext.MATCH_PLAYER.Count(p =>
-                                                   p.MATCHID == matchId &&
-                                                   p.LEFTATUTC == null),
+                                                       p.MATCHID == matchId && p.LEFTATUTC == null),
                                                    DistinctSlotCount = dataContext.MATCH_PLAYER
-                                                   .Where(p => p.MATCHID == matchId && p.LEFTATUTC == null)
-                                                   .Select(p => p.SLOTNUMBER)
-                                                   .Distinct()
-                                                   .Count(),
+                                                       .Where(p => p.MATCHID == matchId && p.LEFTATUTC == null)
+                                                       .Select(p => p.SLOTNUMBER)
+                                                       .Distinct()
+                                                       .Count(),
                                                    NotReadyCount = dataContext.MATCH_PLAYER.Count(p =>
-                                                   p.MATCHID == matchId &&
-                                                   p.LEFTATUTC == null &&
-                                                   !p.ISREADY),
+                                                       p.MATCHID == matchId && p.LEFTATUTC == null && !p.ISREADY),
                                                    HasHostSlot = dataContext.MATCH_PLAYER.Any(p =>
-                                                   p.MATCHID == matchId &&
-                                                   p.LEFTATUTC == null &&
-                                                   p.SLOTNUMBER == HOST_SLOT_NUMBER),
+                                                       p.MATCHID == matchId && p.LEFTATUTC == null && p.SLOTNUMBER == HOST_SLOT_NUMBER),
                                                    HasGuestSlot = dataContext.MATCH_PLAYER.Any(p =>
-                                                   p.MATCHID == matchId &&
-                                                   p.LEFTATUTC == null &&
-                                                   p.SLOTNUMBER == GUEST_SLOT_NUMBER)
+                                                       p.MATCHID == matchId && p.LEFTATUTC == null && p.SLOTNUMBER == GUEST_SLOT_NUMBER)
                                                }).SingleOrDefault();
 
             if (diagnostic == null)
@@ -171,7 +179,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 return StartMatchResult.Fail(StartMatchResultCode.PlayersNotReady);
             }
 
-            return StartMatchResult.Fail(StartMatchResultCode.TechnicalError);
+            return StartMatchResult.Fail(StartMatchResultCode.ConcurrentUpdate);
         }
 
         public EndMatchResult EndMatch(EndMatchArgs matchArgs)
@@ -286,13 +294,9 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             Dictionary<long, List<MATCH_PLAYER>> activePlayersByMatchId =
                 LoadActivePlayersByMatchId(matchIdsToCancel);
 
-            HashSet<long> cancelledMatchIds = new HashSet<long>();
+            var forceLeaveContext = new ForceLeaveContext(activePlayersByMatchId, utcNow); 
 
-            ApplyForceLeaveRules(
-                activeEntriesWithMatch,
-                activePlayersByMatchId,
-                cancelledMatchIds,
-                utcNow);
+            ApplyForceLeaveRules(forceLeaveContext, activeEntriesWithMatch); 
 
             dataContext.SaveChanges();
 
@@ -301,11 +305,12 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
         private List<PlayerWithMatch> LoadActiveEntriesWithMatches(long userId)
         {
-            return(from matchPlayerEntity in dataContext.MATCH_PLAYER
-                   join matchEntity in dataContext.MATCH on matchPlayerEntity.MATCHID equals matchEntity.MATCHID into matchJoin
-                   from matchOrNull in matchJoin.DefaultIfEmpty()
-                   where matchPlayerEntity.USERID == userId && matchPlayerEntity.LEFTATUTC == null
-                   select new PlayerWithMatch(matchPlayerEntity, matchOrNull))
+            return (from matchPlayerEntity in dataContext.MATCH_PLAYER
+                    join matchEntity in dataContext.MATCH
+                        on matchPlayerEntity.MATCHID equals matchEntity.MATCHID into matchJoin
+                    from matchOrNull in matchJoin.DefaultIfEmpty()
+                    where matchPlayerEntity.USERID == userId && matchPlayerEntity.LEFTATUTC == null
+                    select new PlayerWithMatch(matchPlayerEntity, matchOrNull))
                    .ToList();
         }
 
@@ -344,50 +349,60 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 .ToDictionary(group => group.Key, group => group.ToList());
         }
 
-        private void ApplyForceLeaveRules(IReadOnlyList<PlayerWithMatch> activeEntriesWithMatch,
-            IReadOnlyDictionary<long, List<MATCH_PLAYER>> activePlayersByMatchId, ISet<long> cancelledMatchIds,
-            DateTime utcNow)
+        private sealed class ForceLeaveContext 
         {
-            if (activeEntriesWithMatch == null)
+            public ForceLeaveContext(
+                IReadOnlyDictionary<long, List<MATCH_PLAYER>> activePlayersByMatchId,
+                DateTime utcNow)
             {
-                throw new ArgumentNullException(nameof(activeEntriesWithMatch));
+                ActivePlayersByMatchId = activePlayersByMatchId ??
+                    throw new ArgumentNullException(nameof(activePlayersByMatchId));
+
+                CancelledMatchIds = new HashSet<long>();
+                UtcNow = utcNow;
             }
 
-            if (activePlayersByMatchId == null)
+            public IReadOnlyDictionary<long, List<MATCH_PLAYER>> ActivePlayersByMatchId { get; }
+            public ISet<long> CancelledMatchIds { get; }
+            public DateTime UtcNow { get; }
+        }
+
+        private void ApplyForceLeaveRules(ForceLeaveContext context, IReadOnlyList<PlayerWithMatch> entries) 
+        {
+            if (context == null)
             {
-                throw new ArgumentNullException(nameof(activePlayersByMatchId));
+                throw new ArgumentNullException(nameof(context));
             }
 
-            if (cancelledMatchIds == null)
+            if (entries == null)
             {
-                throw new ArgumentNullException(nameof(cancelledMatchIds));
+                throw new ArgumentNullException(nameof(entries));
             }
 
-            foreach (PlayerWithMatch entry in activeEntriesWithMatch)
+            foreach (PlayerWithMatch entry in entries)
             {
-                ApplyForceLeaveRulesToEntry(entry, activePlayersByMatchId, cancelledMatchIds, utcNow);
+                ApplyForceLeaveRulesToEntry(context, entry); 
             }
         }
 
-        private void ApplyForceLeaveRulesToEntry(PlayerWithMatch entry, IReadOnlyDictionary<long, List<MATCH_PLAYER>> activePlayersByMatchId,
-            ISet<long> cancelledMatchIds, DateTime utcNow)
+        private void ApplyForceLeaveRulesToEntry(ForceLeaveContext context, PlayerWithMatch entry) 
         {
             MATCH_PLAYER playerEntry = entry.Player;
             MATCH matchEntity = entry.Match;
 
             if (matchEntity == null)
             {
-                MarkPlayerAsLeft(playerEntry, utcNow);
+                MarkPlayerAsLeft(playerEntry, context.UtcNow);
                 return;
             }
 
             if (ShouldCancelMatchBecauseHostLeft(playerEntry, matchEntity))
             {
-                CancelMatchAndMarkPlayersLeft(matchEntity, playerEntry, activePlayersByMatchId, cancelledMatchIds, utcNow);
+                CancelMatchAndMarkPlayersLeft(context, matchEntity, playerEntry); 
                 return;
             }
 
-            MarkPlayerLeftIfMatchNotCancelled(matchEntity.MATCHID, playerEntry, cancelledMatchIds, utcNow);
+            MarkPlayerLeftIfMatchNotCancelled(context, matchEntity.MATCHID, playerEntry); 
         }
 
         private static bool ShouldCancelMatchBecauseHostLeft(MATCH_PLAYER playerEntry, MATCH matchEntity)
@@ -395,39 +410,36 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             return playerEntry.ISHOST && !IsCompletedMatch(matchEntity);
         }
 
-        private void CancelMatchAndMarkPlayersLeft(MATCH matchEntity, MATCH_PLAYER hostPlayerEntry,
-            IReadOnlyDictionary<long, List<MATCH_PLAYER>> activePlayersByMatchId, ISet<long> cancelledMatchIds,
-            DateTime utcNow)
+        private void CancelMatchAndMarkPlayersLeft(ForceLeaveContext context, MATCH matchEntity, MATCH_PLAYER hostPlayerEntry) 
         {
-            if (cancelledMatchIds.Contains(matchEntity.MATCHID))
+            if (context.CancelledMatchIds.Contains(matchEntity.MATCHID))
             {
                 return;
             }
 
-            cancelledMatchIds.Add(matchEntity.MATCHID);
+            context.CancelledMatchIds.Add(matchEntity.MATCHID);
 
             matchEntity.STATUSID = MatchStatusIds.CANCELLED;
-            matchEntity.ENDTIME = utcNow;
+            matchEntity.ENDTIME = context.UtcNow;
 
-            if (activePlayersByMatchId.TryGetValue(matchEntity.MATCHID, out List<MATCH_PLAYER> matchActivePlayers))
+            if (context.ActivePlayersByMatchId.TryGetValue(matchEntity.MATCHID, out List<MATCH_PLAYER> matchActivePlayers))
             {
                 foreach (MATCH_PLAYER otherPlayer in matchActivePlayers)
                 {
-                    MarkPlayerAsLeft(otherPlayer, utcNow);
+                    MarkPlayerAsLeft(otherPlayer, context.UtcNow);
                 }
 
                 return;
             }
 
-            MarkPlayerAsLeft(hostPlayerEntry, utcNow);
+            MarkPlayerAsLeft(hostPlayerEntry, context.UtcNow);
         }
 
-        private void MarkPlayerLeftIfMatchNotCancelled(long matchId, MATCH_PLAYER playerEntry, ISet<long> cancelledMatchIds,
-            DateTime utcNow)
+        private void MarkPlayerLeftIfMatchNotCancelled(ForceLeaveContext context, long matchId, MATCH_PLAYER playerEntry) 
         {
-            if (!cancelledMatchIds.Contains(matchId))
+            if (!context.CancelledMatchIds.Contains(matchId))
             {
-                MarkPlayerAsLeft(playerEntry, utcNow);
+                MarkPlayerAsLeft(playerEntry, context.UtcNow);
             }
         }
     }

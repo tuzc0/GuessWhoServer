@@ -1,8 +1,8 @@
-﻿using GuessWhoCore.Contracts.Faults;
+﻿using ClassLibraryGuessWho.Data.Factories;
+using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
 using GuessWhoServerDomain.Domain.Enums.Security;
-using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
 using GuessWhoServerDomain.Domain.Models.EmailVerification;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
@@ -28,15 +28,35 @@ namespace WcfServiceLibraryGuessWho.Coordinators
             LogManager.GetLogger(typeof(PasswordRecoveryManager));
 
         private const string LOG_CTX_SEND = "PasswordRecoveryManager.SendRecoveryPassword";
-
         private const string LOG_CTX_UPDATE = "PasswordRecoveryManager.UpdatePasswordWithVerificationCode";
-
         private const string LOG_CTX_REGEX_TIMEOUT = "PasswordRecoveryManager.RegexTimeout";
+
+        private const string LOG_MSG_RECOVERY_REQUESTED =
+            "{0}: requested for email '{1}'.";
+
+        private const string LOG_MSG_ACCOUNT_NOT_FOUND_AMBIGUOUS =
+            "{0}: account not found for email '{1}'. Returning ambiguous success.";
+
+        private const string LOG_MSG_TOKEN_CREATION_FAILED =
+            "{0}: token creation failed for accountId '{1}'.";
+
+        private const string LOG_MSG_EMAIL_MESSAGE_BUILD_RETURNED_NULL =
+            "{0}: recovery email builder returned null message for accountId '{1}'.";
+
+        private const string LOG_MSG_EMAIL_SENDER_RETURNED_NULL =
+            "{0}: email sender returned null result for accountId '{1}'.";
+
+        private const string LOG_MSG_EMAIL_SEND_FAILED =
+            "{0}: recovery email send failed for accountId '{1}'. Status='{2}', ErrorCode='{3}'.";
+
+        private const string LOG_MSG_EMAIL_TECHNICAL_EXCEPTION =
+            "{0}: email technical exception.";
 
         private const int MIN_EXPIRATION_MINUTES = 1;
 
-        private readonly IUserAccountRepository accountRepository;
-        private readonly IEmailVerificationRepository emailVerificationRepository;
+        private const long INVALID_ACCOUNT_ID = 0;
+
+        private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
         private readonly IEmailSender emailSender;
         private readonly IEmailMessageBuilder<VerificationCodeEmailContext> verificationCodeEmailBuilder;
         private readonly IVerificationCodeService verificationCodeService;
@@ -44,27 +64,24 @@ namespace WcfServiceLibraryGuessWho.Coordinators
         private readonly IPasswordHasher passwordHasher;
 
         public PasswordRecoveryManager(
-            IUserAccountRepository accountRepository,
-            IEmailVerificationRepository emailVerificationRepository,
+            IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
             IEmailSender emailSender,
             IEmailMessageBuilder<VerificationCodeEmailContext> verificationCodeEmailBuilder,
             IVerificationCodeService verificationCodeService,
             IEmailVerificationDomainService emailVerificationDomainService,
             IPasswordHasher passwordHasher)
         {
-            this.accountRepository = accountRepository ??
-                throw new ArgumentNullException(nameof(accountRepository));
-            this.emailVerificationRepository = emailVerificationRepository ??
-                throw new ArgumentNullException(nameof(emailVerificationRepository));
-            this.emailSender = emailSender ??
+            this.unitOfWorkFactory = unitOfWorkFactory ?? 
+                throw new ArgumentNullException(nameof(unitOfWorkFactory));
+            this.emailSender = emailSender ?? 
                 throw new ArgumentNullException(nameof(emailSender));
-            this.verificationCodeEmailBuilder = verificationCodeEmailBuilder ??
+            this.verificationCodeEmailBuilder = verificationCodeEmailBuilder ?? 
                 throw new ArgumentNullException(nameof(verificationCodeEmailBuilder));
-            this.verificationCodeService = verificationCodeService ??
+            this.verificationCodeService = verificationCodeService ?? 
                 throw new ArgumentNullException(nameof(verificationCodeService));
-            this.emailVerificationDomainService = emailVerificationDomainService ??
+            this.emailVerificationDomainService = emailVerificationDomainService ?? 
                 throw new ArgumentNullException(nameof(emailVerificationDomainService));
-            this.passwordHasher = passwordHasher ??
+            this.passwordHasher = passwordHasher ?? 
                 throw new ArgumentNullException(nameof(passwordHasher));
         }
 
@@ -77,129 +94,54 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                     EnsureRecoveryRequestIsNotNull(request);
 
                     string normalizedEmail = NormalizeEmail(request.Email);
-                    DateTime nowUtc = DateTime.UtcNow;
-
                     if (IsEmailMissing(normalizedEmail))
                     {
                         return CreateAmbiguousSuccessResponse();
                     }
 
-                    Logger.InfoFormat("{0}: requested for email '{1}'.", LOG_CTX_SEND, normalizedEmail);
+                    DateTime nowUtc = DateTime.UtcNow;
 
-                    long accountId = GetAccountIdOrAmbiguousSuccess(normalizedEmail);
-                    if (accountId <= 0)
+                    Logger.InfoFormat(LOG_MSG_RECOVERY_REQUESTED, LOG_CTX_SEND, normalizedEmail);
+
+                    VerificationCodeResult codeResult;
+                    TimeSpan lifeTime;
+                    long accountId;
+
+                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
                     {
-                        return CreateAmbiguousSuccessResponse();
+                        accountId = TryGetAccountIdOrZero(unitOfWork, normalizedEmail);
+                        if (accountId <= 0)
+                        {
+                            return CreateAmbiguousSuccessResponse();
+                        }
+
+                        emailVerificationDomainService.ValidateResendLimitsOrThrow(accountId, nowUtc);
+
+                        codeResult = verificationCodeService.CreateVerificationCodeOrFault();
+                        lifeTime = emailVerificationDomainService.GetVerificationCodeLifetime();
+
+                        PersistRecoveryTokenOrThrow(
+                            unitOfWork,
+                            new PersistRecoveryToken(
+                                accountId,
+                                codeResult.HashCode,
+                                nowUtc,
+                                lifeTime));
+
+                        unitOfWork.Flush();
+                        
                     }
 
-                    emailVerificationDomainService.ValidateResendLimitsOrThrow(accountId, nowUtc);
-
-                    VerificationCodeResult verificationCodeResult =
-                        verificationCodeService.CreateVerificationCodeOrFault();
-
-                    TimeSpan lifeTime = emailVerificationDomainService.GetVerificationCodeLifetime();
-
-                    CreateVerificationTokenOrThrow(accountId, verificationCodeResult, nowUtc, lifeTime);
-
-                    SendRecoveryEmailOrThrow(normalizedEmail, accountId, verificationCodeResult, lifeTime);
+                    SendRecoveryEmailOrThrow(
+                        new SendRecoveryEmail(
+                            normalizedEmail,
+                            accountId,
+                            codeResult.PlainCode,
+                            lifeTime));
 
                     return CreateSuccessResponse();
                 },
                 customErrorHandler: HandleRegexTimeout);
-        }
-
-        private static bool IsEmailMissing(string normalizedEmail)
-        {
-            return string.IsNullOrWhiteSpace(normalizedEmail);
-        }
-
-        private long GetAccountIdOrAmbiguousSuccess(string normalizedEmail)
-        {
-            long accountId = accountRepository.GetAccountIdByEmail(normalizedEmail);
-
-            if (accountId > 0)
-            {
-                return accountId;
-            }
-
-            Logger.WarnFormat(
-                "{0}: account not found for email '{1}'. Returning ambiguous success.",
-                LOG_CTX_SEND,
-                normalizedEmail);
-
-            return 0;
-        }
-
-        private void CreateVerificationTokenOrThrow(
-            long accountId,
-            VerificationCodeResult verificationCodeResult,
-            DateTime nowUtc,
-            TimeSpan lifeTime)
-        {
-            var createTokenArgs = new CreateEmailTokenArgs
-            {
-                AccountId = accountId,
-                CodeHash = verificationCodeResult.HashCode,
-                NowUtc = nowUtc,
-                LifeSpan = lifeTime
-            };
-
-            bool tokenCreated = emailVerificationRepository.AddVerificationToken(createTokenArgs);
-
-            if (tokenCreated)
-            {
-                return;
-            }
-
-            Logger.WarnFormat("{0}: token creation failed for accountId '{1}'.",
-                LOG_CTX_SEND, accountId);
-
-            throw FaultsFactory.Create(
-                PasswordRecoveryFaultKeys.CODE_TOKEN_CREATION_FAILED,
-                PasswordRecoveryFaultKeys.MSG_TOKEN_CREATION_FAILED,
-                PasswordRecoveryFaultKeys.FALLBACK_TOKEN_CREATION_FAILED);
-        }
-
-        private void SendRecoveryEmailOrThrow(string normalizedEmail, long accountId, VerificationCodeResult verificationCodeResult, TimeSpan lifeTime)
-        {
-            int expirationMinutes = Math.Max(MIN_EXPIRATION_MINUTES,
-                (int)Math.Ceiling(lifeTime.TotalMinutes));
-
-            var emailContext = new VerificationCodeEmailContext(
-                normalizedEmail,
-                verificationCodeResult.PlainCode,
-                expirationMinutes);
-
-            var message = verificationCodeEmailBuilder.Build(emailContext);
-
-            EmailSendResult sendResult = emailSender.Send(message);
-
-            if (sendResult != null && sendResult.IsSuccess)
-            {
-                return;
-            }
-
-            Logger.WarnFormat("{0}: recovery email send failed for accountId '{1}'. Status='{2}', ErrorCode='{3}'.",
-                LOG_CTX_SEND,
-                accountId,
-                sendResult != null ? sendResult.Status.ToString() : "NULL",
-                sendResult != null ? sendResult.ErrorCode : string.Empty);
-
-            if (sendResult != null && sendResult.TechnicalException != null)
-            {
-                Logger.Error(LOG_CTX_SEND + ": email technical exception.", sendResult.TechnicalException);
-            }
-
-            throw EmailFaultTranslator.ToInfrastructureEmailFault(sendResult);
-        }
-
-        private static PasswordRecoveryResponse CreateSuccessResponse()
-        {
-            return new PasswordRecoveryResponse
-            {
-                Success = true,
-                Message = PasswordRecoveryFaultKeys.MSG_RECOVERY_SENT
-            };
         }
 
         public bool UpdatePasswordWithVerificationCode(UpdatePasswordRequest request)
@@ -223,7 +165,10 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                             PasswordRecoveryFaultKeys.FALLBACK_ACCOUNT_NOT_FOUND);
                     }
 
-                    long accountId = accountRepository.GetAccountIdByEmail(normalizedEmail);
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
+                    using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+
+                    long accountId = unitOfWork.UserAccounts.GetAccountIdByEmail(normalizedEmail);
 
                     if (accountId <= 0)
                     {
@@ -234,7 +179,7 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                     }
 
                     EmailVerificationTokenRecord activeToken =
-                        emailVerificationRepository.GetLatestActiveTokenByAccountId(accountId, nowUtc);
+                        unitOfWork.EmailVerification.GetLatestActiveTokenByAccountId(accountId, nowUtc);
 
                     if (activeToken == null || !activeToken.IsValid)
                     {
@@ -248,7 +193,7 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
                     emailVerificationDomainService.ValidateTokenMatchOrThrow(tokenMatchArgs);
 
-                    int consumedRows = emailVerificationRepository.ConsumeToken(activeToken.TokenId);
+                    int consumedRows = unitOfWork.EmailVerification.ConsumeToken(activeToken.TokenId);
 
                     if (consumedRows <= 0)
                     {
@@ -267,19 +212,148 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                         UpdatedAtUtc = nowUtc
                     };
 
-                    bool passwordUpdated = accountRepository.UpdatePasswordOnly(updatePasswordArgs);
+                    bool passwordUpdated = unitOfWork.UserAccounts.UpdatePasswordOnly(updatePasswordArgs);
 
-                    if (passwordUpdated)
+                    if (!passwordUpdated)
                     {
-                        return true;
+                        throw FaultsFactory.Create(
+                            PasswordRecoveryFaultKeys.CODE_UPDATE_PASSWORD_DB_FAILED,
+                            PasswordRecoveryFaultKeys.MSG_UPDATE_PASSWORD_DB_FAILED,
+                            PasswordRecoveryFaultKeys.FALLBACK_UPDATE_PASSWORD_DB_FAILED);
                     }
 
-                    throw FaultsFactory.Create(
-                        PasswordRecoveryFaultKeys.CODE_UPDATE_PASSWORD_DB_FAILED,
-                        PasswordRecoveryFaultKeys.MSG_UPDATE_PASSWORD_DB_FAILED,
-                        PasswordRecoveryFaultKeys.FALLBACK_UPDATE_PASSWORD_DB_FAILED);
+                    unitOfWork.Flush();
+                    transaction.Commit();
+
+                    return true;
                 },
                 customErrorHandler: HandleRegexTimeout);
+        }
+
+        private static bool IsEmailMissing(string normalizedEmail)
+        {
+            return string.IsNullOrWhiteSpace(normalizedEmail);
+        }
+
+        private long TryGetAccountIdOrZero(IGuessWhoUnitOfWork unitOfWork, string normalizedEmail)
+        {
+            if (unitOfWork == null)
+            {
+                throw new ArgumentNullException(nameof(unitOfWork));
+            }
+
+            long accountId = unitOfWork.UserAccounts.GetAccountIdByEmail(normalizedEmail);
+
+            if (accountId > 0)
+            {
+                return accountId;
+            }
+
+            Logger.WarnFormat(LOG_MSG_ACCOUNT_NOT_FOUND_AMBIGUOUS, LOG_CTX_SEND, normalizedEmail);
+
+            return INVALID_ACCOUNT_ID;
+        }
+
+        private readonly record struct PersistRecoveryToken(
+            long AccountId,
+            byte[] CodeHash,
+            DateTime NowUtc,
+            TimeSpan LifeTime);
+
+        private void PersistRecoveryTokenOrThrow(IGuessWhoUnitOfWork unitOfWork, PersistRecoveryToken persistRecoveryToken)
+        {
+            if (unitOfWork == null)
+            {
+                throw new ArgumentNullException(nameof(unitOfWork));
+            }
+
+            var createTokenArgs = new CreateEmailTokenArgs
+            {
+                AccountId = persistRecoveryToken.AccountId,
+                CodeHash = persistRecoveryToken.CodeHash ?? Array.Empty<byte>(),
+                NowUtc = persistRecoveryToken.NowUtc,
+                LifeSpan = persistRecoveryToken.LifeTime
+            };
+
+            bool tokenCreated = unitOfWork.EmailVerification.AddVerificationToken(createTokenArgs);
+
+            if (tokenCreated)
+            {
+                return;
+            }
+
+            Logger.WarnFormat(LOG_MSG_TOKEN_CREATION_FAILED, LOG_CTX_SEND, persistRecoveryToken.AccountId);
+
+            throw FaultsFactory.Create(
+                PasswordRecoveryFaultKeys.CODE_TOKEN_CREATION_FAILED,
+                PasswordRecoveryFaultKeys.MSG_TOKEN_CREATION_FAILED,
+                PasswordRecoveryFaultKeys.FALLBACK_TOKEN_CREATION_FAILED);
+        }
+
+        private readonly record struct SendRecoveryEmail(
+            string Email,
+            long AccountId,
+            string PlainCode,
+            TimeSpan LifeTime);
+
+        private void SendRecoveryEmailOrThrow(SendRecoveryEmail sendRecovery)
+        {
+            int expirationMinutes = Math.Max(
+                MIN_EXPIRATION_MINUTES,
+                (int)Math.Ceiling(sendRecovery.LifeTime.TotalMinutes));
+
+            var emailContext = new VerificationCodeEmailContext(
+                sendRecovery.Email,
+                sendRecovery.PlainCode ?? string.Empty,
+                expirationMinutes);
+
+            EmailMessage message = verificationCodeEmailBuilder.Build(emailContext);
+
+            if (message == null)
+            {
+                Logger.WarnFormat(LOG_MSG_EMAIL_MESSAGE_BUILD_RETURNED_NULL, LOG_CTX_SEND, sendRecovery.AccountId);
+
+                throw FaultsFactory.Create(
+                    PasswordRecoveryFaultKeys.CODE_EMAIL_MESSAGE_BUILD_FAILED,
+                    PasswordRecoveryFaultKeys.MSG_EMAIL_MESSAGE_BUILD_FAILED,
+                    PasswordRecoveryFaultKeys.FALLBACK_EMAIL_MESSAGE_BUILD_FAILED);
+            }
+
+            EmailSendResult sendResult = emailSender.Send(message);
+
+            if (sendResult == null)
+            {
+                Logger.WarnFormat(LOG_MSG_EMAIL_SENDER_RETURNED_NULL, LOG_CTX_SEND, sendRecovery.AccountId);
+
+                throw FaultsFactory.Create(
+                    PasswordRecoveryFaultKeys.CODE_EMAIL_SENDER_RETURNED_NULL,
+                    PasswordRecoveryFaultKeys.MSG_EMAIL_SENDER_RETURNED_NULL,
+                    PasswordRecoveryFaultKeys.FALLBACK_EMAIL_SENDER_RETURNED_NULL);
+            }
+
+            if (sendResult.IsSuccess)
+            {
+                return;
+            }
+
+            Logger.WarnFormat(LOG_MSG_EMAIL_SEND_FAILED, LOG_CTX_SEND, sendRecovery.AccountId, sendResult.Status,
+                sendResult.ErrorCode);
+
+            if (sendResult.TechnicalException != null)
+            {
+                Logger.ErrorFormat(LOG_MSG_EMAIL_TECHNICAL_EXCEPTION, LOG_CTX_SEND, sendResult.TechnicalException);
+            }
+
+            throw EmailFaultTranslator.ToInfrastructureEmailFault(sendResult);
+        }
+
+        private static PasswordRecoveryResponse CreateSuccessResponse()
+        {
+            return new PasswordRecoveryResponse
+            {
+                Success = true,
+                Message = PasswordRecoveryFaultKeys.MSG_RECOVERY_SENT
+            };
         }
 
         private void HandleRegexTimeout(Exception ex)

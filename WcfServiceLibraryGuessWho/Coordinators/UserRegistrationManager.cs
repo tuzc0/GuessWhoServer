@@ -1,14 +1,17 @@
 ﻿using ClassLibraryGuessWho.Data.Factories;
 using GuessWhoCore.Contracts.Faults;
+using GuessWhoCore.Validation; 
+using GuessWhoCore.Validation.ValidationDTOs;
 using GuessWhoServerDomain.Domain.Enums.Security;
-using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
 using GuessWhoServerDomain.Domain.Models.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
+using GuessWhoServerDomain.Domain.Results.Accounts;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
+using System.Collections.Generic; 
 using System.ServiceModel;
 using WcfServiceLibraryGuessWho.Communication.Email;
 using WcfServiceLibraryGuessWho.Communication.Email.Builders;
@@ -20,20 +23,37 @@ using WcfServiceLibraryGuessWho.Errors;
 
 namespace WcfServiceLibraryGuessWho.Coordinators
 {
-    public sealed class RegisterResult
+    public sealed class RegisterResultArgs
     {
-        public RegisterResult(
-            long accountId,
-            long userId,
-            string email,
-            string displayName,
-            bool emailVerificationRequired)
+        public RegisterResultArgs(long accountId, long userId, string email)
         {
             AccountId = accountId;
             UserId = userId;
             Email = email ?? string.Empty;
-            DisplayName = displayName ?? string.Empty;
-            EmailVerificationRequired = emailVerificationRequired;
+        }
+
+        public long AccountId { get; }
+        public long UserId { get; }
+        public string Email { get; }
+
+        public string DisplayName { get; set; } = string.Empty;
+        public bool EmailVerificationRequired { get; set; }
+    }
+
+    public sealed class RegisterResult
+    {
+        public RegisterResult(RegisterResultArgs args)
+        {
+            if (args == null)
+            {
+                throw new ArgumentNullException(nameof(args));
+            }
+
+            AccountId = args.AccountId;
+            UserId = args.UserId;
+            Email = args.Email ?? string.Empty;
+            DisplayName = args.DisplayName ?? string.Empty;
+            EmailVerificationRequired = args.EmailVerificationRequired;
         }
 
         public long AccountId { get; }
@@ -52,8 +72,11 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
         private const int MIN_EXPIRATION_MINUTES = 1;
 
+        private const bool EMAIL_VERIFICATION_REQUIRED = true;
+
+        private const string EMPTY = "";
+
         private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
-        private readonly IAvatarRepository avatarRepository;
         private readonly IEmailSender emailSender;
         private readonly IEmailMessageBuilder<VerificationCodeEmailContext> verificationCodeEmailBuilder;
         private readonly IPasswordHasher passwordHasher;
@@ -62,24 +85,21 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
         public UserRegistrationManager(
             IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
-            IAvatarRepository avatarRepository,
             IEmailSender emailSender,
             IEmailMessageBuilder<VerificationCodeEmailContext> verificationCodeEmailBuilder,
             IPasswordHasher passwordHasher,
             IVerificationCodeService verificationCodeService,
             TimeSpan verificationCodeLifeTime)
         {
-            this.unitOfWorkFactory = unitOfWorkFactory ?? 
+            this.unitOfWorkFactory = unitOfWorkFactory ??
                 throw new ArgumentNullException(nameof(unitOfWorkFactory));
-            this.avatarRepository = avatarRepository ?? 
-                throw new ArgumentNullException(nameof(avatarRepository));
-            this.emailSender = emailSender ?? 
+            this.emailSender = emailSender ??
                 throw new ArgumentNullException(nameof(emailSender));
             this.verificationCodeEmailBuilder = verificationCodeEmailBuilder ??
                 throw new ArgumentNullException(nameof(verificationCodeEmailBuilder));
-            this.passwordHasher = passwordHasher ?? 
+            this.passwordHasher = passwordHasher ??
                 throw new ArgumentNullException(nameof(passwordHasher));
-            this.verificationCodeService = verificationCodeService ?? 
+            this.verificationCodeService = verificationCodeService ??
                 throw new ArgumentNullException(nameof(verificationCodeService));
 
             if (verificationCodeLifeTime <= TimeSpan.Zero)
@@ -96,23 +116,65 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 LOG_CTX_REGISTER,
                 () =>
                 {
-                    NormalizedRegistration userNormalized = ValidateAndNormalize(registerUserArgs);
+                    NormalizedRegistration normalized = ValidateAndNormalize(registerUserArgs);
 
-                    RegistrationDbResult resultDb = CreateAccountAndToken(userNormalized);
+                    RegistrationDbResult dbResult;
 
-                    int expirationMinutes = Math.Max(MIN_EXPIRATION_MINUTES, (int)Math.Ceiling(verificationCodeLifeTime.TotalMinutes));
+                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
+                    {
+                        dbResult = CreateAccountAndToken(unitOfWork, normalized);
+                    }
 
-                    TrySendVerificationEmail(userNormalized.Email, resultDb.VerificationCode.PlainCode, resultDb.Account.AccountId, expirationMinutes);
+                    int expirationMinutes = GetExpirationMinutes();
 
-                    return new RegisterResult(
-                        resultDb.Account.AccountId,
-                        resultDb.Profile.UserId,
-                        userNormalized.Email,
-                        resultDb.Profile.DisplayName,
-                        emailVerificationRequired: true);
+                    TrySendVerificationEmail(new SendVerificationEmailArgs(
+                        normalized.Email,
+                        dbResult.VerificationCode.PlainCode,
+                        dbResult.Account.AccountId,
+                        expirationMinutes));
+
+                    var resultArgs = new RegisterResultArgs(
+                        dbResult.Account.AccountId,
+                        dbResult.Profile.UserId,
+                        normalized.Email)
+                    {
+                        DisplayName = dbResult.Profile.DisplayName,
+                        EmailVerificationRequired = EMAIL_VERIFICATION_REQUIRED
+                    };
+
+                    return new RegisterResult(resultArgs);
                 });
         }
 
+        protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)
+        {
+            return FaultTranslator.ToTechnicalFault(ex, Logger);
+        }
+
+        private NormalizedRegistration ValidateAndNormalize(RegisterUserArgs userArgs)
+        {
+            EnsureArgsNotNull(userArgs);
+
+            DateTime nowUtc = EnsureNowUtcIsValid(userArgs.NowUtc);
+
+            var passwords = new PasswordConfirmationDraft(
+                userArgs.Password,
+                userArgs.Password);
+
+            var draft = new UserRulesDraft(
+                userArgs.Email,
+                userArgs.DisplayName,
+                passwords);
+
+            IReadOnlyList<ValidationError> errors = UserRules.Validate(draft);
+
+            if (errors != null && errors.Count > 0)
+            {
+                ThrowValidationFault(errors[0]);
+            }
+
+            return new NormalizedRegistration(userArgs, nowUtc);
+        }
 
         private static void EnsureArgsNotNull(RegisterUserArgs registerUserArgs)
         {
@@ -125,51 +187,6 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 UserRegistrationFaultKeys.CODE_ARGS_REQUIRED,
                 UserRegistrationFaultKeys.MSG_ARGS_REQUIRED,
                 UserRegistrationFaultKeys.FALLBACK_ARGS_REQUIRED);
-        }
-
-        private static string EnsureEmailIsProvided(string email)
-        {
-            string normalizedEmail = NormalizeEmail(email);
-
-            if (!string.IsNullOrWhiteSpace(normalizedEmail))
-            {
-                return normalizedEmail;
-            }
-
-            throw FaultsFactory.Create(
-                UserRegistrationFaultKeys.CODE_EMAIL_REQUIRED,
-                UserRegistrationFaultKeys.MSG_EMAIL_REQUIRED,
-                UserRegistrationFaultKeys.FALLBACK_EMAIL_REQUIRED);
-        }
-
-        private static string EnsurePasswordIsProvided(string password)
-        {
-            string safePassword = password ?? string.Empty;
-
-            if (!string.IsNullOrWhiteSpace(safePassword))
-            {
-                return safePassword;
-            }
-
-            throw FaultsFactory.Create(
-                UserRegistrationFaultKeys.CODE_PASSWORD_REQUIRED,
-                UserRegistrationFaultKeys.MSG_PASSWORD_REQUIRED,
-                UserRegistrationFaultKeys.FALLBACK_PASSWORD_REQUIRED);
-        }
-
-        private static string EnsureDisplayNameIsProvided(string displayName)
-        {
-            string normalizedDisplayName = (displayName ?? string.Empty).Trim();
-
-            if (!string.IsNullOrWhiteSpace(normalizedDisplayName))
-            {
-                return normalizedDisplayName;
-            }
-
-            throw FaultsFactory.Create(
-                UserRegistrationFaultKeys.CODE_DISPLAYNAME_REQUIRED,
-                UserRegistrationFaultKeys.MSG_DISPLAYNAME_REQUIRED,
-                UserRegistrationFaultKeys.FALLBACK_DISPLAYNAME_REQUIRED);
         }
 
         private static DateTime EnsureNowUtcIsValid(DateTime nowUtc)
@@ -185,58 +202,111 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 UserRegistrationFaultKeys.FALLBACK_NOWUTC_REQUIRED);
         }
 
+        private void ThrowValidationFault(ValidationError error)
+        {
+            string key = error != null ? (error.Key ?? EMPTY) : EMPTY;
+
+            switch (key)
+            {
+                case "Registration.InvalidRequest":
+
+                    throw FaultsFactory.Create(
+                        UserRegistrationFaultKeys.CODE_ARGS_REQUIRED,
+                        UserRegistrationFaultKeys.MSG_ARGS_REQUIRED,
+                        UserRegistrationFaultKeys.FALLBACK_ARGS_REQUIRED);
+
+                case "Registration.Email.Required":
+
+                    throw FaultsFactory.Create(
+                        UserRegistrationFaultKeys.CODE_EMAIL_REQUIRED,
+                        UserRegistrationFaultKeys.MSG_EMAIL_REQUIRED,
+                        UserRegistrationFaultKeys.FALLBACK_EMAIL_REQUIRED);
+
+                case "Registration.Email.TooLong":
+                case "Registration.Email.InvalidFormat":
+
+                    throw FaultsFactory.Create(
+                        UserRegistrationFaultKeys.CODE_EMAIL_INVALID,
+                        UserRegistrationFaultKeys.MSG_EMAIL_INVALID,
+                        UserRegistrationFaultKeys.FALLBACK_EMAIL_INVALID);
+
+                case "Registration.DisplayName.Required":
+                    throw FaultsFactory.Create(
+                        UserRegistrationFaultKeys.CODE_DISPLAYNAME_REQUIRED,
+                        UserRegistrationFaultKeys.MSG_DISPLAYNAME_REQUIRED,
+                        UserRegistrationFaultKeys.FALLBACK_DISPLAYNAME_REQUIRED);
+
+                case "Registration.DisplayName.TooShort":
+                case "Registration.DisplayName.TooLong":
+                case "Registration.DisplayName.InvalidFormat":
+
+                    throw FaultsFactory.Create(
+                        UserRegistrationFaultKeys.CODE_DISPLAYNAME_INVALID,
+                        UserRegistrationFaultKeys.MSG_DISPLAYNAME_INVALID,
+                        UserRegistrationFaultKeys.FALLBACK_DISPLAYNAME_INVALID);
+
+                case "Registration.Password.Required":
+                    throw FaultsFactory.Create(
+                        UserRegistrationFaultKeys.CODE_PASSWORD_REQUIRED,
+                        UserRegistrationFaultKeys.MSG_PASSWORD_REQUIRED,
+                        UserRegistrationFaultKeys.FALLBACK_PASSWORD_REQUIRED);
+
+                case "Registration.Password.TooShort":
+                case "Registration.Password.TooLong":
+                case "Registration.ConfirmPassword.Required":
+                case "Registration.ConfirmPassword.Mismatch":
+                    throw FaultsFactory.Create(
+                        UserRegistrationFaultKeys.CODE_PASSWORD_INVALID,
+                        UserRegistrationFaultKeys.MSG_PASSWORD_INVALID,
+                        UserRegistrationFaultKeys.FALLBACK_PASSWORD_INVALID);
+
+                default:
+                    throw FaultsFactory.Create(
+                        UserRegistrationFaultKeys.CODE_UNEXPECTED_ERROR,
+                        UserRegistrationFaultKeys.MSG_UNEXPECTED_ERROR,
+                        UserRegistrationFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+            }
+        }
+
         private static string NormalizeEmail(string email)
         {
-            return (email ?? string.Empty).Trim().ToLowerInvariant();
+            return (email ?? EMPTY).Trim().ToLowerInvariant();
         }
 
-        protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)
+        private int GetExpirationMinutes()
         {
-            return FaultTranslator.ToTechnicalFault(ex, Logger);
+            return Math.Max(MIN_EXPIRATION_MINUTES, (int)Math.Ceiling(verificationCodeLifeTime.TotalMinutes));
         }
 
-        private NormalizedRegistration ValidateAndNormalize(RegisterUserArgs userArgs)
+        private RegistrationDbResult CreateAccountAndToken(IGuessWhoUnitOfWork unitOfWork, NormalizedRegistration registration)
         {
-            EnsureArgsNotNull(userArgs);
-
-            string email = EnsureEmailIsProvided(userArgs.Email);
-            string displayName = EnsureDisplayNameIsProvided(userArgs.DisplayName);
-            string password = EnsurePasswordIsProvided(userArgs.Password);
-            DateTime nowUtc = EnsureNowUtcIsValid(userArgs.NowUtc);
-
-            return new NormalizedRegistration(email, displayName, password, nowUtc);
-        }
-
-        private RegistrationDbResult CreateAccountAndToken(NormalizedRegistration registration)
-        {
-            byte[] passwordHash = passwordHasher.HashPassword(registration.Password);
-
-            string defaultAvatarId = avatarRepository.GetDefaultAvatarId();
-
-            if (string.IsNullOrWhiteSpace(defaultAvatarId))
+            if (unitOfWork == null)
             {
-                Logger.Error(LOG_CTX_REGISTER + ": default avatar id not configured.");
-
-                throw FaultsFactory.Create(
-                    InfrastructureFaultKeys.CODE_DEFAULT_AVATAR_NOT_CONFIGURED,
-                    InfrastructureFaultKeys.MSG_DEFAULT_AVATAR_NOT_CONFIGURED,
-                    InfrastructureFaultKeys.FALLBACK_DEFAULT_AVATAR_NOT_CONFIGURED);
+                throw new ArgumentNullException(nameof(unitOfWork));
             }
 
-            var createAccountArgs = new CreateAccountArgs
+            if (registration == null)
             {
-                Email = registration.Email,
-                PasswordHash = passwordHash,
-                DisplayName = registration.DisplayName,
-                CreationDate = registration.NowUtc,
-                AvatarId = defaultAvatarId
-            };
+                throw new ArgumentNullException(nameof(registration));
+            }
 
+            byte[] passwordHash = passwordHasher.HashPassword(registration.Password);
             VerificationCodeResult codeResult = verificationCodeService.CreateVerificationCodeOrFault();
 
-            using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
-            using (IGuessWhoDbTransaction tx = unitOfWork.BeginTransaction())
+            using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
             {
+                string defaultAvatarId = unitOfWork.Avatars.GetDefaultAvatarId();
+
+                if (string.IsNullOrWhiteSpace(defaultAvatarId))
+                {
+                    Logger.ErrorFormat("{0}: default avatar id not configured.", LOG_CTX_REGISTER);
+
+                    throw FaultsFactory.Create(
+                        InfrastructureFaultKeys.CODE_DEFAULT_AVATAR_NOT_CONFIGURED,
+                        InfrastructureFaultKeys.MSG_DEFAULT_AVATAR_NOT_CONFIGURED,
+                        InfrastructureFaultKeys.FALLBACK_DEFAULT_AVATAR_NOT_CONFIGURED);
+                }
+
                 if (unitOfWork.UserAccounts.EmailExists(registration.Email))
                 {
                     Logger.WarnFormat("{0}: email already exists '{1}'.", LOG_CTX_REGISTER, registration.Email);
@@ -247,7 +317,16 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                         UserRegistrationFaultKeys.FALLBACK_EMAIL_ALREADY_EXISTS);
                 }
 
-                var created = unitOfWork.UserAccounts.CreateAccount(createAccountArgs);
+                var createAccountArgs = new CreateAccountArgs
+                {
+                    Email = registration.Email,
+                    PasswordHash = passwordHash,
+                    DisplayName = registration.DisplayName,
+                    CreationDate = registration.NowUtc,
+                    AvatarId = defaultAvatarId
+                };
+
+                CreatedAccountResult created = unitOfWork.UserAccounts.CreateAccount(createAccountArgs);
 
                 var tokenArgs = new CreateEmailTokenArgs
                 {
@@ -258,6 +337,7 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 };
 
                 bool tokenCreated = unitOfWork.EmailVerification.AddVerificationToken(tokenArgs);
+
                 if (!tokenCreated)
                 {
                     Logger.WarnFormat("{0}: token creation failed for accountId '{1}'.", LOG_CTX_REGISTER, created.Account.AccountId);
@@ -268,41 +348,62 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                         UserRegistrationFaultKeys.FALLBACK_TOKEN_CREATION_FAILED);
                 }
 
-                tx.Commit();
+                unitOfWork.Flush();
+                transaction.Commit();
 
                 return new RegistrationDbResult(created.Account, created.Profile, codeResult);
             }
         }
 
-        private void TrySendVerificationEmail(string email, string code, long accountId, int expirationMinutes)
+        private readonly record struct SendVerificationEmailArgs(
+            string Email,
+            string Code,
+            long AccountId,
+            int ExpirationMinutes);
+
+        private void TrySendVerificationEmail(SendVerificationEmailArgs args)
         {
-            var message = verificationCodeEmailBuilder.Build(new VerificationCodeEmailContext(email, code, expirationMinutes));
+            var context = new VerificationCodeEmailContext(
+                args.Email ?? EMPTY,
+                args.Code ?? EMPTY,
+                args.ExpirationMinutes);
+
+            EmailMessage message = verificationCodeEmailBuilder.Build(context);
+
+            if (message == null)
+            {
+                Logger.WarnFormat("{0}: verification email builder returned null message for accountId '{1}'.", 
+                    LOG_CTX_REGISTER, args.AccountId);
+                return;
+            }
 
             EmailSendResult sendResult = emailSender.Send(message);
 
-            if (!sendResult.IsSuccess)
+            if (sendResult == null)
             {
-                Logger.WarnFormat(
-                    "{0}: verification email send failed for accountId '{1}'. Status='{2}', ErrorCode='{3}'.",
-                    LOG_CTX_REGISTER,
-                    accountId,
-                    sendResult.Status,
-                    sendResult.ErrorCode);
+                Logger.WarnFormat("{0}: email sender returned null result for accountId '{1}'.", 
+                    LOG_CTX_REGISTER, args.AccountId);
+                return;
+            }
 
-                if (sendResult.TechnicalException != null)
-                {
-                    Logger.Error(LOG_CTX_REGISTER + ": email technical exception.", sendResult.TechnicalException);
-                }
+            if (sendResult.IsSuccess)
+            {
+                return;
+            }
+
+            if (sendResult.TechnicalException != null)
+            {
+                Logger.ErrorFormat("{0}: email technical exception.", LOG_CTX_REGISTER, sendResult.TechnicalException);
             }
         }
 
         private sealed class NormalizedRegistration
         {
-            public NormalizedRegistration(string email, string displayName, string password, DateTime nowUtc)
+            public NormalizedRegistration(RegisterUserArgs userArgs, DateTime nowUtc)
             {
-                Email = email;
-                DisplayName = displayName;
-                Password = password;
+                Email = NormalizeEmail(userArgs != null ? userArgs.Email : EMPTY);
+                DisplayName = (userArgs != null ? (userArgs.DisplayName ?? EMPTY) : EMPTY).Trim();
+                Password = userArgs != null ? (userArgs.Password ?? EMPTY) : EMPTY;
                 NowUtc = nowUtc;
             }
 
@@ -314,14 +415,15 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
         private sealed class RegistrationDbResult
         {
-            public RegistrationDbResult(
-                AccountRecord account,
-                UserProfileRecord profile,
+            public RegistrationDbResult(AccountRecord account, UserProfileRecord profile, 
                 VerificationCodeResult verificationCode)
             {
-                Account = account;
-                Profile = profile;
-                VerificationCode = verificationCode;
+                Account = account ?? 
+                    throw new ArgumentNullException(nameof(account));
+                Profile = profile ?? 
+                    throw new ArgumentNullException(nameof(profile));
+                VerificationCode = verificationCode ?? 
+                    throw new ArgumentNullException(nameof(verificationCode));
             }
 
             public AccountRecord Account { get; }

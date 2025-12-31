@@ -7,6 +7,7 @@
         MatchNotInLobby = 2,
         HostNotAuthorized = 3,
         AlreadyPrivate = 4,
-        TechnicalError = 99
+        InvalidArgs = 5,
+        ConcurrentUpdate = 6
     }
 }

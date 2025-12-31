@@ -1,8 +1,8 @@
-﻿using GuessWhoCore.Contracts.Faults;
+﻿using ClassLibraryGuessWho.Data.Factories; 
+using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
 using GuessWhoServerDomain.Domain.Enums.Security;
-using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
 using GuessWhoServerDomain.Domain.Models.Accounts;
 using GuessWhoServerDomain.Domain.Models.EmailVerification;
@@ -34,27 +34,50 @@ namespace WcfServiceLibraryGuessWho.Coordinators
         private const string LOG_CTX_REGEX_TIMEOUT =
             "EmailVerificationManager.RegexTimeout";
 
+        private const string LOG_MSG_ACCOUNT_NOT_FOUND =
+            "{0}: account not found for accountId '{1}'.";
+
+        private const string LOG_MSG_ALREADY_VERIFIED_SKIP =
+            "{0}: email already verified for accountId '{1}'. Skipping.";
+
+        private const string LOG_MSG_TOKEN_CREATION_FAILED =
+            "{0}: token creation failed for accountId '{1}'.";
+
+        private const string LOG_MSG_TOKEN_ALREADY_CONSUMED =
+            "{0}: token already consumed or not found for tokenId '{1}'.";
+
+        private const string LOG_MSG_MARK_VERIFIED_FAILED =
+            "{0}: could not mark email as verified for accountId '{1}'.";
+
+        private const string LOG_MSG_EMAIL_MESSAGE_BUILD_RETURNED_NULL =
+            "{0}: email builder returned null message for accountId '{1}'.";
+
+        private const string LOG_MSG_EMAIL_SENDER_RETURNED_NULL =
+            "{0}: email sender returned null result for accountId '{1}'.";
+
+        private const string LOG_MSG_EMAIL_SEND_FAILED =
+            "{0}: email send failed for accountId '{1}'. Status='{2}', Code='{3}'.";
+
+        private const string LOG_MSG_EMAIL_TECHNICAL_EXCEPTION =
+            "{0}: email technical exception.";
+
         private const int MIN_EXPIRATION_MINUTES = 1;
 
-        private readonly IUserAccountRepository accountRepository;
-        private readonly IEmailVerificationRepository emailVerificationRepository;
+        private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory; 
         private readonly IVerificationCodeService verificationCodeService;
         private readonly IEmailSender emailSender;
         private readonly VerificationCodeEmailBuilder verificationCodeEmailBuilder;
         private readonly IEmailVerificationDomainService domainService;
 
         public EmailVerificationManager(
-            IUserAccountRepository accountRepository,
-            IEmailVerificationRepository emailVerificationRepository,
+            IGuessWhoUnitOfWorkFactory unitOfWorkFactory, 
             IVerificationCodeService verificationCodeService,
             IEmailSender emailSender,
             VerificationCodeEmailBuilder verificationCodeEmailBuilder,
             IEmailVerificationDomainService domainService)
         {
-            this.accountRepository = accountRepository ??
-                throw new ArgumentNullException(nameof(accountRepository));
-            this.emailVerificationRepository = emailVerificationRepository ??
-                throw new ArgumentNullException(nameof(emailVerificationRepository));
+            this.unitOfWorkFactory = unitOfWorkFactory ??
+                throw new ArgumentNullException(nameof(unitOfWorkFactory));
             this.verificationCodeService = verificationCodeService ??
                 throw new ArgumentNullException(nameof(verificationCodeService));
             this.emailSender = emailSender ??
@@ -78,33 +101,41 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
                     domainService.ValidateVerificationCodeFormatOrThrow(request.AccountId, trimmedCode);
 
-                    AccountRecord account = LoadUnverifiedAccountOrSkip(request.AccountId);
-
-                    if (account == null)
+                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create()) 
+                    using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction()) 
                     {
+                        AccountLookupResult accountLookup = LoadUnverifiedAccountOrSkip(unitOfWork, request.AccountId);
+
+                        if (accountLookup.ShouldSkip)
+                        {
+                            transaction.Commit();
+                            return new VerifyEmailResponse { Success = true };
+                        }
+
+                        EmailVerificationTokenRecord activeToken =
+                            unitOfWork.EmailVerification.GetLatestActiveTokenByAccountId(request.AccountId, nowUtc);
+
+                        if (activeToken == null || !activeToken.IsValid)
+                        {
+                            throw CreateInvalidOrExpiredVerificationCodeFault(unitOfWork, request.AccountId, nowUtc);
+                        }
+
+                        var matchArgs = new ValidateTokenMatchArgs(
+                            request.AccountId,
+                            trimmedCode,
+                            activeToken,
+                            nowUtc);
+
+                        domainService.ValidateTokenMatchOrThrow(matchArgs);
+
+                        ConsumeTokenOrThrow(unitOfWork, activeToken.TokenId);
+                        MarkEmailVerifiedOrThrow(unitOfWork, request.AccountId, nowUtc);
+
+                        unitOfWork.Flush(); 
+                        transaction.Commit();
+
                         return new VerifyEmailResponse { Success = true };
                     }
-
-                    EmailVerificationTokenRecord activeToken =
-                        emailVerificationRepository.GetLatestActiveTokenByAccountId(request.AccountId, nowUtc);
-
-                    if (activeToken == null || !activeToken.IsValid)
-                    {
-                        throw CreateInvalidOrExpiredVerificationCodeFault(request.AccountId, nowUtc);
-                    }
-
-                    var matchArgs = new ValidateTokenMatchArgs(
-                        request.AccountId,
-                        trimmedCode,
-                        activeToken,
-                        nowUtc);
-
-                    domainService.ValidateTokenMatchOrThrow(matchArgs);
-
-                    ConsumeTokenOrThrow(activeToken.TokenId);
-                    MarkEmailVerifiedOrThrow(request.AccountId, nowUtc);
-
-                    return new VerifyEmailResponse { Success = true };
                 },
                 customErrorHandler: HandleRegexTimeout);
         }
@@ -119,68 +150,106 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
                     DateTime nowUtc = DateTime.UtcNow;
 
-                    AccountRecord account = LoadUnverifiedAccountOrSkip(request.AccountId);
-                    
-                    if (account == null)
+                    AccountRecord account;
+                    VerificationCodeResult verificationCode;
+                    int expirationMinutes;
+
+                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create()) 
                     {
-                        return;
-                    }
+                        AccountLookupResult accountLookup = LoadUnverifiedAccountOrSkip(unitOfWork, request.AccountId);
 
-                    domainService.ValidateResendLimitsOrThrow(request.AccountId, nowUtc);
-
-                    VerificationCodeResult verificationCode =
-                        verificationCodeService.CreateVerificationCodeOrFault();
-
-                    TimeSpan lifeTime = domainService.GetVerificationCodeLifetime();
-
-                    var createTokenArgs = new CreateEmailTokenArgs
-                    {
-                        AccountId = request.AccountId,
-                        CodeHash = verificationCode.HashCode,
-                        NowUtc = nowUtc,
-                        LifeSpan = lifeTime
-                    };
-
-                    int expirationMinutes = Math.Max(MIN_EXPIRATION_MINUTES,
-                        (int)Math.Ceiling(domainService.GetVerificationCodeLifetime().TotalMinutes));
-
-                    bool created = emailVerificationRepository.AddVerificationToken(createTokenArgs);
-
-                    if (!created)
-                    {
-                        Logger.WarnFormat(
-                            "{0}: token creation failed for accountId '{1}'.",
-                            LOG_CTX_RESEND,
-                            request.AccountId);
-
-                        throw FaultsFactory.Create(
-                            EmailVerificationFaultKeys.CODE_TOKEN_CREATION_FAILED,
-                            EmailVerificationFaultKeys.MSG_TOKEN_CREATION_FAILED,
-                            EmailVerificationFaultKeys.FALLBACK_TOKEN_CREATION_FAILED);
-                    }
-
-                    var message = verificationCodeEmailBuilder.Build(new VerificationCodeEmailContext(account.Email, verificationCode.PlainCode, expirationMinutes));
-
-                    EmailSendResult sendResult = emailSender.Send(message);
-
-                    if (!sendResult.IsSuccess)
-                    {
-                        Logger.WarnFormat(
-                            "{0}: email send failed for accountId '{1}'. Status='{2}', Code='{3}'.",
-                            LOG_CTX_RESEND,
-                            request.AccountId,
-                            sendResult.Status,
-                            sendResult.ErrorCode);
-
-                        if (sendResult.TechnicalException != null)
+                        if (accountLookup.ShouldSkip)
                         {
-                            Logger.Error(LOG_CTX_RESEND + ": email technical exception.", sendResult.TechnicalException);
+                            return;
                         }
 
-                        throw EmailFaultTranslator.ToInfrastructureEmailFault(sendResult);
+                        account = accountLookup.Account;
+
+                        domainService.ValidateResendLimitsOrThrow(request.AccountId, nowUtc);
+
+                        verificationCode = verificationCodeService.CreateVerificationCodeOrFault();
+
+                        TimeSpan lifeTime = domainService.GetVerificationCodeLifetime();
+
+                        var createTokenArgs = new CreateEmailTokenArgs
+                        {
+                            AccountId = request.AccountId,
+                            CodeHash = verificationCode.HashCode,
+                            NowUtc = nowUtc,
+                            LifeSpan = lifeTime
+                        };
+
+                        bool created = unitOfWork.EmailVerification.AddVerificationToken(createTokenArgs);
+
+                        if (!created)
+                        {
+                            Logger.WarnFormat(LOG_MSG_TOKEN_CREATION_FAILED, LOG_CTX_RESEND, request.AccountId);
+
+                            throw FaultsFactory.Create(
+                                EmailVerificationFaultKeys.CODE_TOKEN_CREATION_FAILED,
+                                EmailVerificationFaultKeys.MSG_TOKEN_CREATION_FAILED,
+                                EmailVerificationFaultKeys.FALLBACK_TOKEN_CREATION_FAILED);
+                        }
+
+                        unitOfWork.Flush(); 
+
+                        expirationMinutes = Math.Max(
+                            MIN_EXPIRATION_MINUTES,
+                            (int)Math.Ceiling(lifeTime.TotalMinutes));
                     }
+
+                    SendVerificationEmailOrThrow(
+                        account.Email,
+                        request.AccountId,
+                        verificationCode.PlainCode,
+                        expirationMinutes);
                 },
                 customErrorHandler: HandleRegexTimeout);
+        }
+
+        private void SendVerificationEmailOrThrow(string email, long accountId, string plainCode, int expirationMinutes)
+        {
+            EmailMessage message = verificationCodeEmailBuilder.Build(
+                new VerificationCodeEmailContext(
+                    email,
+                    plainCode ?? string.Empty,
+                    expirationMinutes));
+
+            if (message == null)
+            {
+                Logger.WarnFormat(LOG_MSG_EMAIL_MESSAGE_BUILD_RETURNED_NULL, LOG_CTX_RESEND, accountId);
+
+                throw FaultsFactory.Create(
+                    EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR,
+                    EmailVerificationFaultKeys.MSG_UNEXPECTED_ERROR,
+                    EmailVerificationFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+            }
+
+            EmailSendResult sendResult = emailSender.Send(message);
+
+            if (sendResult == null)
+            {
+                Logger.WarnFormat(LOG_MSG_EMAIL_SENDER_RETURNED_NULL, LOG_CTX_RESEND, accountId);
+
+                throw FaultsFactory.Create(
+                    EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR,
+                    EmailVerificationFaultKeys.MSG_UNEXPECTED_ERROR,
+                    EmailVerificationFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+            }
+
+            if (sendResult.IsSuccess)
+            {
+                return;
+            }
+
+            Logger.WarnFormat(LOG_MSG_EMAIL_SEND_FAILED, LOG_CTX_RESEND, accountId, sendResult.Status, sendResult.ErrorCode);
+
+            if (sendResult.TechnicalException != null)
+            {
+                Logger.ErrorFormat(LOG_MSG_EMAIL_TECHNICAL_EXCEPTION, LOG_CTX_RESEND, sendResult.TechnicalException);
+            }
+
+            throw EmailFaultTranslator.ToInfrastructureEmailFault(sendResult);
         }
 
         private void HandleRegexTimeout(Exception ex)
@@ -223,10 +292,13 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 EmailVerificationFaultKeys.FALLBACK_REQUEST_NULL);
         }
 
-        private FaultException<ServiceFault> CreateInvalidOrExpiredVerificationCodeFault(long accountId, DateTime nowUtc)
+        private FaultException<ServiceFault> CreateInvalidOrExpiredVerificationCodeFault(
+            IGuessWhoUnitOfWork unitOfWork, 
+            long accountId,
+            DateTime nowUtc)
         {
             EmailVerificationTokenRecord lastToken =
-                emailVerificationRepository.GetLatestTokenStatusByAccountId(accountId);
+                unitOfWork.EmailVerification.GetLatestTokenStatusByAccountId(accountId);
 
             if (lastToken == null)
             {
@@ -258,19 +330,16 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 EmailVerificationFaultKeys.FALLBACK_CODE_INVALID_OR_EXPIRED);
         }
 
-        private void ConsumeTokenOrThrow(Guid tokenId)
+        private void ConsumeTokenOrThrow(IGuessWhoUnitOfWork unitOfWork, Guid tokenId)
         {
-            int consumedRows = emailVerificationRepository.ConsumeToken(tokenId);
+            int consumedRows = unitOfWork.EmailVerification.ConsumeToken(tokenId);
 
             if (consumedRows > 0)
             {
                 return;
             }
 
-            Logger.WarnFormat(
-                "{0}: token already consumed or not found for tokenId '{1}'.",
-                LOG_CTX_CONFIRM,
-                tokenId);
+            Logger.WarnFormat(LOG_MSG_TOKEN_ALREADY_CONSUMED, LOG_CTX_CONFIRM, tokenId);
 
             throw FaultsFactory.Create(
                 EmailVerificationFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
@@ -278,19 +347,16 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 EmailVerificationFaultKeys.FALLBACK_CODE_ALREADY_USED);
         }
 
-        private void MarkEmailVerifiedOrThrow(long accountId, DateTime nowUtc)
+        private void MarkEmailVerifiedOrThrow(IGuessWhoUnitOfWork unitOfWork, long accountId, DateTime nowUtc)
         {
-            bool updated = accountRepository.MarkEmailVerified(accountId, nowUtc);
+            bool updated = unitOfWork.UserAccounts.MarkEmailVerified(accountId, nowUtc);
 
             if (updated)
             {
                 return;
             }
 
-            Logger.WarnFormat(
-                "{0}: could not mark email as verified for accountId '{1}'.",
-                LOG_CTX_CONFIRM,
-                accountId);
+            Logger.WarnFormat(LOG_MSG_MARK_VERIFIED_FAILED, LOG_CTX_CONFIRM, accountId);
 
             throw FaultsFactory.Create(
                 EmailVerificationFaultKeys.CODE_EMAIL_VERIFICATION_FAILED,
@@ -298,15 +364,13 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 EmailVerificationFaultKeys.FALLBACK_EMAIL_VERIFICATION_FAILED);
         }
 
-        private AccountRecord LoadUnverifiedAccountOrSkip(long accountId)
+        private AccountLookupResult LoadUnverifiedAccountOrSkip(IGuessWhoUnitOfWork unitOfWork, long accountId)
         {
-            AccountRecord account = accountRepository.GetAccountByIdAccount(accountId);
+            AccountRecord account = unitOfWork.UserAccounts.GetAccountByIdAccount(accountId);
 
             if (account == null || !account.IsValid)
             {
-                Logger.WarnFormat(
-                    "LoadUnverifiedAccountOrSkip: account not found for accountId '{0}'.",
-                    accountId);
+                Logger.WarnFormat(LOG_MSG_ACCOUNT_NOT_FOUND, LOG_CTX_CONFIRM, accountId);
 
                 throw FaultsFactory.Create(
                     EmailVerificationFaultKeys.CODE_ACCOUNT_NOT_FOUND,
@@ -316,14 +380,39 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
             if (account.IsEmailVerified)
             {
-                Logger.InfoFormat(
-                    "LoadUnverifiedAccountOrSkip: email already verified for accountId '{0}'.",
-                    accountId);
+                Logger.InfoFormat(LOG_MSG_ALREADY_VERIFIED_SKIP, LOG_CTX_CONFIRM, accountId);
 
-                return null;
+                return AccountLookupResult.Skip();
             }
 
-            return account;
+            return AccountLookupResult.Found(account);
+        }
+
+        private sealed class AccountLookupResult
+        {
+            private AccountLookupResult(bool shouldSkip, AccountRecord account)
+            {
+                ShouldSkip = shouldSkip;
+                Account = account;
+            }
+
+            public bool ShouldSkip { get; }
+            public AccountRecord Account { get; }
+
+            public static AccountLookupResult Skip()
+            {
+                return new AccountLookupResult(shouldSkip: true, account: null);
+            }
+
+            public static AccountLookupResult Found(AccountRecord account)
+            {
+                if (account == null)
+                {
+                    throw new ArgumentNullException(nameof(account));
+                }
+
+                return new AccountLookupResult(shouldSkip: false, account: account);
+            }
         }
 
         protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)

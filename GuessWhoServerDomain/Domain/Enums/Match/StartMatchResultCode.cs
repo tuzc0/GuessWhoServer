@@ -7,6 +7,6 @@
         MatchNotInLobby = 2,
         NotEnoughPlayers = 3,
         PlayersNotReady = 4,
-        TechnicalError = 5
+        ConcurrentUpdate = 5
     }
 }

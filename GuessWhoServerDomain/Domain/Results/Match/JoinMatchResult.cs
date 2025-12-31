@@ -7,9 +7,9 @@ namespace GuessWhoServerDomain.Domain.Results.Match
         JoinMatchResultCode Code,
         long MatchId)
     {
-        public bool IsValid => Code == JoinMatchResultCode.Sucess;
+        public bool IsValid => Code == JoinMatchResultCode.Success;
 
-        public static JoinMatchResult Success(long matchId) => new(JoinMatchResultCode.Sucess, matchId);
+        public static JoinMatchResult Success(long matchId) => new(JoinMatchResultCode.Success, matchId);
 
         public static JoinMatchResult Fail(JoinMatchResultCode code, long matchId) => new(code, matchId);
     }

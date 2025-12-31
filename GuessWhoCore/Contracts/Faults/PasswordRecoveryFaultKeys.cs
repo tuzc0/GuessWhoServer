@@ -46,6 +46,16 @@
         public const string FALLBACK_TOKEN_CREATION_FAILED =
             "We could not create the password recovery verification code. Please try again.";
 
+        public const string CODE_EMAIL_MESSAGE_BUILD_FAILED = "PASSWORDRECOVERY_EMAIL_MESSAGE_BUILD_FAILED";
+        public const string MSG_EMAIL_MESSAGE_BUILD_FAILED = "PasswordRecovery.EmailMessageBuildFailed";
+        public const string FALLBACK_EMAIL_MESSAGE_BUILD_FAILED =
+            "Could not prepare the recovery email. Please try again later.";
+
+        public const string CODE_EMAIL_SENDER_RETURNED_NULL = "PASSWORDRECOVERY_EMAIL_SENDER_RETURNED_NULL";
+        public const string MSG_EMAIL_SENDER_RETURNED_NULL = "PasswordRecovery.EmailSenderReturnedNull";
+        public const string FALLBACK_EMAIL_SENDER_RETURNED_NULL =
+            "Could not send the recovery email. Please try again later.";
+
         public const string MSG_AMBIGUOUS_SUCCESS = "PasswordRecovery.AmbiguousSuccess";
         public const string FALLBACK_AMBIGUOUS_SUCCESS =
             "If the email is registered, a recovery code has been sent.";

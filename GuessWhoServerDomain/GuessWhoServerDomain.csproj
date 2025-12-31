@@ -56,9 +56,9 @@
     <Compile Include="Domain\Enums\Match\StartMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Security\VerificationCodeResult.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IAvatarRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\ICharacterRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IEmailVerificationRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IFriendshipRepository.cs" />
-    <Compile Include="Domain\Interfaces\Repositories\IGameSessionRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IMatchRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IUserAccountRepository.cs" />
     <Compile Include="Domain\Interfaces\Security\IEmailVerificationDomainService.cs" />
@@ -71,9 +71,13 @@
     <Compile Include="Domain\Models\Avatars\AvatarRecord.cs" />
     <Compile Include="Domain\Models\EmailVerification\EmailVerificationTokenRecord.cs" />
     <Compile Include="Domain\Models\Friends\FriendRequestRecord.cs" />
+    <Compile Include="Domain\Models\Friends\IFriendRequestIdProvider.cs" />
     <Compile Include="Domain\Models\Friends\UserProfileSearchRecord.cs" />
+    <Compile Include="Domain\Models\Match\CharacterRecord.cs" />
+    <Compile Include="Domain\Models\Match\MatchDeckRecord.cs" />
     <Compile Include="Domain\Models\Match\LobbyPlayerSnapshot.cs" />
     <Compile Include="Domain\Models\Match\MatchSnapshot.cs" />
+    <Compile Include="Domain\Results\Match\TournamentMatchCreationResult.cs" />
     <Compile Include="Domain\Models\Session\SessionLoginResult.cs" />
     <Compile Include="Domain\Parameters\Accounts\AccountSearchParameters.cs" />
     <Compile Include="Domain\Parameters\Accounts\UpdatePasswordArgs.cs" />
@@ -87,6 +91,7 @@
     <Compile Include="Domain\Parameters\Matches\CreateMatchArgs.cs" />
     <Compile Include="Domain\Parameters\Matches\CreateTournamentMatchArgs.cs" />
     <Compile Include="Domain\Enums\AccountProfileStatus.cs" />
+    <Compile Include="Domain\Parameters\Matches\SaveMatchDeckArgs.cs" />
     <Compile Include="Domain\Results\Accounts\AccountProfileRecordResult.cs" />
     <Compile Include="Domain\Results\Accounts\AccountWithProfileResult.cs" />
     <Compile Include="Domain\Results\Accounts\CreatedAccountResult.cs" />

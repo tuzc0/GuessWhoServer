@@ -38,7 +38,7 @@ namespace GuessWhoContracts.Services
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
-        MatchDeckResponse GetMatchDeck(GetMatchDeckRequest request);
+        MatchDeckResponse GetMatchDeck(GetOrCreateMatchDeckRequest request);
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]

@@ -6,6 +6,6 @@
         MatchNotFound = 1,
         MatchNotInProgress = 2,
         WinnerNotInMatch = 3,
-        TechnicalError = 99
+        ConcurrentUpdate = 4
     }
 }

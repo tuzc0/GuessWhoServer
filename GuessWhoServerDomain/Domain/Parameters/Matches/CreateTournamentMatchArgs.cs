@@ -4,10 +4,8 @@ namespace GuessWhoServerDomain.Domain.Parameters.Matches
 {
     public class CreateTournamentMatchArgs
     {
-        public long HostUserId { get; set; }
-        public long CharacterSetId { get; set; }
-        public int TurnSecond { get; set; }
-        public byte StatusId { get; set; }
-        public DateTime CreateAtUtc { get; set; }
+        public long Player1UserId { get; init; }
+        public long Player2UserId { get; init; }
+        public DateTime NowUtc { get; init; }
     }
 }

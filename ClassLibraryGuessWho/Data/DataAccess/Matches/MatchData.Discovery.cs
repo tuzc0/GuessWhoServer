@@ -10,9 +10,9 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
     {
         public MatchSnapshot GetOpenMatchByCode(string matchCode)
         {
-            string safeCode = matchCode ?? string.Empty;
+            string safeCode = NormalizeMatchCode(matchCode);
 
-            if (string.IsNullOrWhiteSpace(safeCode))
+            if (string.IsNullOrWhiteSpace(safeCode) || safeCode.Length != MATCH_CODE_LENGTH) 
             {
                 return MatchSnapshot.CreateInvalid();
             }
@@ -20,11 +20,11 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             MatchSnapshot matchSnapshot = dataContext.MATCH
                 .AsNoTracking()
                 .Where(m =>
-                m.MATCHCODE == safeCode &&
-                m.STATUSID == MatchStatusIds.LOBBY &&
-                m.STARTTIME == null &&
-                m.ENDTIME == null &&
-                m.ISCODEJOINENABLED)
+                    m.MATCHCODE == safeCode &&
+                    m.STATUSID == MatchStatusIds.LOBBY &&
+                    m.STARTTIME == null &&
+                    m.ENDTIME == null &&
+                    m.ISCODEJOINENABLED)
                 .Select(m => new MatchSnapshot(
                     m.MATCHID,
                     m.MATCHCODE ?? string.Empty,
@@ -68,21 +68,32 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 return Array.Empty<LobbyPlayerSnapshot>();
             }
 
-            List<LobbyPlayerSnapshot> players = (from matchPlayerEntity in dataContext.MATCH_PLAYER.AsNoTracking()
-                                                 join userProfileEntity in dataContext.USER_PROFILE.AsNoTracking()
-                                                 on matchPlayerEntity.USERID equals userProfileEntity.USERID
-                                                 where matchPlayerEntity.MATCHID == matchId && matchPlayerEntity.LEFTATUTC == null
-                                                 select new LobbyPlayerSnapshot(
-                                                     matchPlayerEntity.MATCHID,
-                                                     matchPlayerEntity.USERID,
-                                                     userProfileEntity.DISPLAYNAME ?? string.Empty,
-                                                     userProfileEntity.AVATARID ?? string.Empty,
-                                                     (byte)matchPlayerEntity.SLOTNUMBER,
-                                                     matchPlayerEntity.ISREADY,
-                                                     matchPlayerEntity.ISHOST))
-                                                     .ToList();
+            List<LobbyPlayerSnapshot> players =
+                (from matchPlayerEntity in dataContext.MATCH_PLAYER.AsNoTracking()
+                 join userProfileEntity in dataContext.USER_PROFILE.AsNoTracking()
+                    on matchPlayerEntity.USERID equals userProfileEntity.USERID
+                 join accountEntity in dataContext.ACCOUNT.AsNoTracking() 
+                    on userProfileEntity.USERID equals accountEntity.USERID 
+                 where matchPlayerEntity.MATCHID == matchId &&
+                       matchPlayerEntity.LEFTATUTC == null &&
+                       !accountEntity.ISDELETED 
+                 orderby matchPlayerEntity.SLOTNUMBER 
+                 select new LobbyPlayerSnapshot(
+                     matchPlayerEntity.MATCHID,
+                     matchPlayerEntity.USERID,
+                     userProfileEntity.DISPLAYNAME ?? string.Empty,
+                     userProfileEntity.AVATARID ?? string.Empty,
+                     (byte)matchPlayerEntity.SLOTNUMBER,
+                     matchPlayerEntity.ISREADY,
+                     matchPlayerEntity.ISHOST))
+                .ToList();
 
             return players;
+        }
+
+        private static string NormalizeMatchCode(string matchCode) 
+        {
+            return (matchCode ?? string.Empty).Trim().ToUpperInvariant();
         }
     }
 }

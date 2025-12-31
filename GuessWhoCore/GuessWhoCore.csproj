@@ -45,9 +45,15 @@
     <Compile Include="Contracts\Enums\Friends\FriendRequestStatus.cs" />
     <Compile Include="Contracts\Faults\EmailVerificationFaultsKeys.cs" />
     <Compile Include="Contracts\Faults\FriendFaultKeys.cs" />
+    <Compile Include="Contracts\Faults\GameSessionFaultKeys.cs" />
     <Compile Include="Contracts\Faults\InfrastructureEmailFaultKeys.cs" />
     <Compile Include="Contracts\Faults\InfrastructureFaultKeys.cs" />
+    <Compile Include="Contracts\Faults\LoginCoordinatorFaultKeys.cs" />
     <Compile Include="Contracts\Faults\LoginFaultKeys.cs" />
+    <Compile Include="Contracts\Faults\MatchFaultKeys.cs" />
+    <Compile Include="Contracts\Faults\Match\MatchDeckFaultKeys.cs" />
+    <Compile Include="Contracts\Faults\Match\MatchSecretFaultKey.cs" />
+    <Compile Include="Contracts\Faults\Match\MatchSecretFaultKeys.cs" />
     <Compile Include="Contracts\Faults\PasswordRecoveryFaultKeys.cs" />
     <Compile Include="Contracts\Faults\SecurityFaultsCodes.cs" />
     <Compile Include="Contracts\Faults\ServiceFault.cs" />
@@ -121,7 +127,10 @@
     <Compile Include="Enums\UserSessionLoginStatus.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Validation\UserRegistrationRules.cs" />
+    <Compile Include="Validation\UserRules.cs" />
+    <Compile Include="Validation\ValidationDTOs\PasswordConfirmationDraft.cs" />
     <Compile Include="Validation\ValidationDTOs\UserRegistrationDraft.cs" />
+    <Compile Include="Validation\ValidationDTOs\UserRulesDraft.cs" />
     <Compile Include="Validation\ValidationError.cs" />
   </ItemGroup>
   <ItemGroup />

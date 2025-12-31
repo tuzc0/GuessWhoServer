@@ -10,18 +10,21 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 {
     public sealed partial class MatchData
     {
-        private const string SQL_SET_MATCH_PRIVATE_ATOMIC = @"UPDATE M SET M.VISIBILITYID = @VisibilityPrivate 
-                                                            FROM MATCH M
-                                                            INNER JOIN MATCH_PLAYER HostMP
-                                                                ON HostMP.MATCHID = M.MATCHID
-                                                            WHERE M.MATCHID = @MatchId
-                                                                AND M.STATUSID = @MatchStatusLobby
-                                                                AND M.STARTTIME IS NULL
-                                                                AND M.ENDTIME IS NULL
-                                                                AND M.VISIBILITYID = @VisibilityPublic
-                                                                AND HostMP.USERID = @HostUserId
-                                                                AND HostMP.ISHOST = 1
-                                                                AND HostMP.LEFTATUTC IS NULL;";
+        private const string SQL_SET_MATCH_PRIVATE_ATOMIC =
+            @"UPDATE M
+              SET M.VISIBILITYID = @VisibilityPrivate
+              FROM [MATCH] M
+              INNER JOIN [MATCH_PLAYER] HostMP
+                  ON HostMP.MATCHID = M.MATCHID
+              WHERE M.MATCHID = @MatchId
+                AND M.STATUSID = @MatchStatusLobby
+                AND M.STARTTIME IS NULL
+                AND M.ENDTIME IS NULL
+                AND M.VISIBILITYID = @VisibilityPublic
+                AND HostMP.USERID = @HostUserId
+                AND HostMP.ISHOST = 1
+                AND HostMP.LEFTATUTC IS NULL;";
+
         private sealed class SetPrivateDiagnostic
         {
             public bool MatchExists { get; set; }
@@ -41,12 +44,14 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
             if (playerArgs.MatchId <= 0 || playerArgs.UserProfileId <= 0)
             {
-                return MarkReadyResult.Fail(MarkReadyResultCode.PlayerNotFound);
+                return MarkReadyResult.Fail(MarkReadyResultCode.InvalidArgs); 
             }
 
             MATCH_PLAYER playerEntity = dataContext.MATCH_PLAYER
-                .Include(m => m.MATCH)
-                .SingleOrDefault(mp => mp.MATCHID == playerArgs.MatchId && mp.USERID == playerArgs.UserProfileId);
+                .Include(mp => mp.MATCH)
+                .SingleOrDefault(mp =>
+                    mp.MATCHID == playerArgs.MatchId &&
+                    mp.USERID == playerArgs.UserProfileId);
 
             if (playerEntity == null)
             {
@@ -65,8 +70,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
             playerEntity.ISREADY = true;
 
-            dataContext.SaveChanges();
-
             return MarkReadyResult.Success();
         }
 
@@ -74,10 +77,11 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
         {
             if (matchId <= 0 || hostUserId <= 0)
             {
-                return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.MatchNotFound);
+                return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.InvalidArgs);
             }
 
-            int rowsAffected = dataContext.Database.ExecuteSqlCommand(SQL_SET_MATCH_PRIVATE_ATOMIC,
+            int rowsAffected = dataContext.Database.ExecuteSqlCommand(
+                SQL_SET_MATCH_PRIVATE_ATOMIC,
                 new SqlParameter("@MatchId", matchId),
                 new SqlParameter("@HostUserId", hostUserId),
                 new SqlParameter("@MatchStatusLobby", MatchStatusIds.LOBBY),
@@ -89,21 +93,22 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 return SetMatchPrivateResult.Success();
             }
 
-            SetPrivateDiagnostic diagnostic = (from matchEntity in dataContext.MATCH.AsNoTracking()
-                                               where matchEntity.MATCHID == matchId
-                                               select new SetPrivateDiagnostic
-                                               {
-                                                   MatchExists = true,
-                                                   MatchStatusId = matchEntity.STATUSID,
-                                                   VisibilityId = matchEntity.VISIBILITYID,
-                                                   HasStartTime = matchEntity.STARTTIME != null,
-                                                   HasEndTime = matchEntity.ENDTIME != null,
-                                                   HostIsActiveHost = dataContext.MATCH_PLAYER.Any(mp =>
-                                                   mp.MATCHID == matchId &&
-                                                   mp.USERID == hostUserId &&
-                                                   mp.ISHOST &&
-                                                   mp.LEFTATUTC == null)
-                                               }).SingleOrDefault();
+            SetPrivateDiagnostic diagnostic =
+                (from matchEntity in dataContext.MATCH.AsNoTracking()
+                 where matchEntity.MATCHID == matchId
+                 select new SetPrivateDiagnostic
+                 {
+                     MatchExists = true,
+                     MatchStatusId = matchEntity.STATUSID,
+                     VisibilityId = matchEntity.VISIBILITYID,
+                     HasStartTime = matchEntity.STARTTIME != null,
+                     HasEndTime = matchEntity.ENDTIME != null,
+                     HostIsActiveHost = dataContext.MATCH_PLAYER.Any(mp =>
+                         mp.MATCHID == matchId &&
+                         mp.USERID == hostUserId &&
+                         mp.ISHOST &&
+                         mp.LEFTATUTC == null)
+                 }).SingleOrDefault();
 
             if (diagnostic == null)
             {
@@ -120,7 +125,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.AlreadyPrivate);
             }
 
-            bool isNotLobby = diagnostic.MatchStatusId != MatchStatusIds.LOBBY || 
+            bool isNotLobby =
+                diagnostic.MatchStatusId != MatchStatusIds.LOBBY ||
                 diagnostic.HasStartTime ||
                 diagnostic.HasEndTime;
 
@@ -129,7 +135,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.MatchNotInLobby);
             }
 
-            return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.TechnicalError);
+            return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.ConcurrentUpdate);
         }
     }
 }

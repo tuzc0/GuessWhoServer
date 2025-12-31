@@ -38,5 +38,22 @@
         public const string CODE_NOWUTC_REQUIRED = "USERREGISTRATION_NOWUTC_REQUIRED";
         public const string MSG_NOWUTC_REQUIRED = "UserRegistration.NowUtcRequired";
         public const string FALLBACK_NOWUTC_REQUIRED = "Registration timestamp is required.";
+
+        public const string CODE_VALIDATION_FAILED = "USERREGISTRATION_VALIDATION_FAILED";
+        public const string MSG_VALIDATION_FAILED = "UserRegistration.ValidationFailed";
+        public const string FALLBACK_VALIDATION_FAILED = "Some registration fields are invalid.";
+
+        public const string CODE_EMAIL_INVALID = "USERREGISTRATION_EMAIL_INVALID";
+        public const string MSG_EMAIL_INVALID = "UserRegistration.EmailInvalid";
+        public const string FALLBACK_EMAIL_INVALID = "Email is invalid.";
+
+        public const string CODE_DISPLAYNAME_INVALID = "USERREGISTRATION_DISPLAYNAME_INVALID";
+        public const string MSG_DISPLAYNAME_INVALID = "UserRegistration.DisplayNameInvalid";
+        public const string FALLBACK_DISPLAYNAME_INVALID =
+            "Display name is invalid. Use 3–50 characters and only letters, numbers, spaces or hyphens.";
+
+        public const string CODE_PASSWORD_INVALID = "USERREGISTRATION_PASSWORD_INVALID";
+        public const string MSG_PASSWORD_INVALID = "UserRegistration.PasswordInvalid";
+        public const string FALLBACK_PASSWORD_INVALID = "Password is invalid. Use 8–64 characters.";
     }
 }

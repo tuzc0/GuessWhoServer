@@ -12,7 +12,7 @@
 
         public const string CODE_ACCOUNT_NOT_FOUND = "FRIEND_ACCOUNT_NOT_FOUND";
         public const string MSG_ACCOUNT_NOT_FOUND = "Friends.AccountNotFound";
-        public const string FALLBACK_ACCOUNT_NOT_FOUND = "Account does not exist.";
+        public const string FALLBACK_ACCOUNT_NOT_FOUND = "Account does not exist or is inactive.";
 
         public const string CODE_INVALID_DISPLAY_NAME = "FRIEND_INVALID_DISPLAY_NAME";
         public const string MSG_INVALID_DISPLAY_NAME = "Friends.InvalidDisplayName";
@@ -45,5 +45,20 @@
         public const string CODE_ALREADY_FRIENDS = "FRIEND_ALREADY_FRIENDS";
         public const string MSG_ALREADY_FRIENDS = "Friends.AlreadyFriends";
         public const string FALLBACK_ALREADY_FRIENDS = "Users are already friends.";
+
+        public const string CODE_UNEXPECTED_ERROR = "FRIEND_UNEXPECTED_ERROR";
+        public const string MSG_UNEXPECTED_ERROR = "Friends.UnexpectedError";
+        public const string FALLBACK_UNEXPECTED_ERROR =
+            "An unexpected error occurred while processing the friend request. Please try again.";
+
+        public const string CODE_REQUEST_ID_NOT_GENERATED = "FRIEND_REQUEST_ID_NOT_GENERATED";
+        public const string MSG_REQUEST_ID_NOT_GENERATED = "Friends.RequestIdNotGenerated";
+        public const string FALLBACK_REQUEST_ID_NOT_GENERATED =
+            "The friend request was created but could not be assigned an ID. Please try again.";
+
+        public const string CODE_REQUEST_ALREADY_PENDING = "FRIEND_REQUEST_ALREADY_PENDING";
+        public const string MSG_REQUEST_ALREADY_PENDING = "Friends.RequestAlreadyPending";
+        public const string FALLBACK_REQUEST_ALREADY_PENDING =
+            "A pending friend request already exists between these users.";
     }
 }

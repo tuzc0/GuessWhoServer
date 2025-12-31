@@ -33,5 +33,19 @@
         public const string CODE_PROFILE_DELETE_FAILED = "PROFILE_DELETE_FAILED";
         public const string MSG_PROFILE_DELETE_FAILED = "Profile.DeleteFailed";
         public const string FALLBACK_PROFILE_DELETE_FAILED = "We could not delete your profile. Please try again later.";
+
+        public const string CODE_DISPLAYNAME_INVALID = "PROFILE_DISPLAYNAME_INVALID";
+        public const string MSG_DISPLAYNAME_INVALID = "Profile.DisplayName.Invalid";
+        public const string FALLBACK_DISPLAYNAME_INVALID =
+            "The display name is not valid. Please use 3–50 characters and only letters, numbers, spaces or hyphens.";
+
+        public const string CODE_AVATAR_INVALID = "PROFILE_AVATAR_INVALID";
+        public const string MSG_AVATAR_INVALID = "Profile.Avatar.Invalid";
+        public const string FALLBACK_AVATAR_INVALID = "The selected avatar is not valid.";
+
+        public const string CODE_PASSWORD_INVALID = "PROFILE_PASSWORD_INVALID";
+        public const string MSG_PASSWORD_INVALID = "Profile.Password.Invalid";
+        public const string FALLBACK_PASSWORD_INVALID =
+            "The new password is not valid. Please use 8–64 characters.";
     }
 }

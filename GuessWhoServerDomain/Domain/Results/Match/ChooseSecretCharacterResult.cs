@@ -4,9 +4,9 @@ namespace GuessWhoServerDomain.Domain.Results.Match
 {
     public readonly record struct ChooseSecretCharacterResult(ChooseSecretCharacterResultCode Code)
     {
-        public bool IsSuccess => Code == ChooseSecretCharacterResultCode.Sucess;
+        public bool IsSuccess => Code == ChooseSecretCharacterResultCode.Success;
 
-        public static ChooseSecretCharacterResult Success() => new(ChooseSecretCharacterResultCode.Sucess);
+        public static ChooseSecretCharacterResult Success() => new(ChooseSecretCharacterResultCode.Success);
 
         public static ChooseSecretCharacterResult Fail(ChooseSecretCharacterResultCode code) => new(code);
     }

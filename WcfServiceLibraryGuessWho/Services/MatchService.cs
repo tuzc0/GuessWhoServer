@@ -1,83 +1,96 @@
-﻿using GuessWho.Services.WCF.Services.MatchApplication;
-using GuessWhoContracts.Services;
+﻿using GuessWhoContracts.Services;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
+using log4net;
 using System;
 using System.ServiceModel;
+using WcfServiceLibraryGuessWho.Coordinators.Base;
+using WcfServiceLibraryGuessWho.Services.MatchApplication;
 
 namespace GuessWho.Services.WCF.Services
 {
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall,
         ConcurrencyMode = ConcurrencyMode.Multiple,
         IncludeExceptionDetailInFaults = false)]
-    public sealed class MatchService : IMatchService
+    public sealed class MatchService : ServiceBase, IMatchService
     {
-        private readonly IMatchCreationService matchCreationService;
-        private readonly ILobbyCoordinator lobbyCoordinator;
-        private readonly IMatchLifecycleService matchLifecycleService;
+        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(UserService));
 
-        public MatchService(
-            IMatchCreationService matchCreationService,
-            ILobbyCoordinator lobbyCoordinator,
-            IMatchLifecycleService matchLifecycleService)
+        private const string CONTEXT_CREATE_MATCH = "MatchService.CreateMatch";
+        private const string CONTEXT_JOIN_MATCH = "MatchService.JoinMatch";
+        private const string CONTEXT_LEAVE_MATCH = "MatchService.LeaveMatch";
+        private const string CONTEXT_SET_READY = "MatchService.SetPlayerReadyStatus";
+        private const string CONTEXT_START_MATCH = "MatchService.StartMatch";
+        private const string CONTEXT_END_MATCH = "MatchService.EndMatch";
+        private const string CONTEXT_CHOOSE_SECRET = "MatchService.ChooseSecretCharacter";
+        private const string CONTEXT_GET_DECK = "MatchService.GetMatchDeck";
+        private const string CONTEXT_SUBSCRIBE = "MatchService.SubscribeLobby";
+        private const string CONTEXT_UNSUBSCRIBE = "MatchService.UnsubscribeLobby";
+
+        private readonly IMatchManager matchManager; 
+
+        public MatchService(IMatchManager matchManager)
         {
-            this.matchCreationService = matchCreationService ??
-                throw new ArgumentNullException(nameof(matchCreationService));
-
-            this.lobbyCoordinator = lobbyCoordinator ??
-                throw new ArgumentNullException(nameof(lobbyCoordinator));
-
-            this.matchLifecycleService = matchLifecycleService ??
-                throw new ArgumentNullException(nameof(matchLifecycleService));
+            this.matchManager = matchManager ?? 
+                throw new ArgumentNullException(nameof(matchManager));
         }
 
         public CreateMatchResponse CreateMatch(CreateMatchRequest request)
         {
-            return matchCreationService.CreateMatch(request);
+            return ExecuteService(CONTEXT_CREATE_MATCH, () => matchManager.CreateMatch(request));
         }
 
         public JoinMatchResponse JoinMatch(JoinMatchRequest request)
         {
-            return lobbyCoordinator.JoinMatch(request);
+            return ExecuteService(CONTEXT_JOIN_MATCH, () => matchManager.JoinMatch(request));
         }
 
         public BasicResponse LeaveMatch(LeaveMatchRequest request)
         {
-            return lobbyCoordinator.LeaveMatch(request);
+            return ExecuteService(CONTEXT_LEAVE_MATCH, () => matchManager.LeaveMatch(request));
         }
 
         public BasicResponse SetPlayerReadyStatus(SetPlayerReadyStatusRequest request)
         {
-            return lobbyCoordinator.SetPlayerReadyStatus(request);
+            return ExecuteService(CONTEXT_SET_READY, () => matchManager.SetPlayerReadyStatus(request));
         }
 
-        public void SubscribeLobby(long matchId)
-        {
-            lobbyCoordinator.SubscribeLobby(matchId);
-        }
-
-        public void UnsubscribeLobby(long matchId)
-        {
-            lobbyCoordinator.UnsubscribeLobby(matchId);
-        }
         public BasicResponse StartMatch(StartMatchRequest request)
         {
-            return matchLifecycleService.StartMatch(request);
+            return ExecuteService(CONTEXT_START_MATCH, () => matchManager.StartMatch(request));
         }
 
         public BasicResponse EndMatch(EndMatchRequest request)
         {
-            return matchLifecycleService.EndMatch(request);
+            return ExecuteService(CONTEXT_END_MATCH, () => matchManager.EndMatch(request));
         }
 
         public BasicResponse ChooseSecretCharacter(ChooseSecretCharacterRequest request)
         {
-            return matchLifecycleService.ChooseSecretCharacter(request);
+            return ExecuteService(CONTEXT_CHOOSE_SECRET, () => matchManager.ChooseSecretCharacter(request));
         }
 
-        public MatchDeckResponse GetMatchDeck(GetMatchDeckRequest request)
+        public MatchDeckResponse GetMatchDeck(GetOrCreateMatchDeckRequest request)
         {
-            return matchLifecycleService.GetMatchDeck(request);
+            return ExecuteService(CONTEXT_GET_DECK, () => matchManager.GetMatchDeck(request));
+        }
+
+        public void SubscribeLobby(long matchId)
+        {
+            ExecuteService(CONTEXT_SUBSCRIBE, () =>
+            {
+                IMatchCallback callbackChannel = OperationContext.Current.GetCallbackChannel<IMatchCallback>();
+                matchManager.SubscribeLobby(matchId, callbackChannel);
+            });
+        }
+
+        public void UnsubscribeLobby(long matchId)
+        {
+            ExecuteService(CONTEXT_UNSUBSCRIBE, () =>
+            {
+                IMatchCallback callbackChannel = OperationContext.Current.GetCallbackChannel<IMatchCallback>();
+                matchManager.UnsubscribeLobby(matchId, callbackChannel);
+            });
         }
     }
 }

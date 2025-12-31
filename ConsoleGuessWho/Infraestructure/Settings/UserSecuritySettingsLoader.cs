@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace ConsoleGuessWho.Infraestructure.Settings
 {
-    public static class UserSecuritySettingsLoader
+    internal static class UserSecuritySettingsLoader
     {
         private const string KEY_CODE_LIFETIME_MINUTES = "Security.VerificationCodeLifetimeMinutes";
         private const string KEY_REGEX_TIMEOUT_MS = "Security.RegexTimeoutMs";

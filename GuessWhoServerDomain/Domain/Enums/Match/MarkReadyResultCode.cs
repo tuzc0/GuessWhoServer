@@ -6,6 +6,6 @@
         PlayerNotFound = 1, 
         PlayerAlreadyLeft = 2,
         MatchNotInLobby = 3,
-        TechnicalError = 4
+        InvalidArgs = 4
     }
 }

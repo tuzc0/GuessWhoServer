@@ -11,6 +11,7 @@
     <RootNamespace>ClassLibraryGuessWho</RootNamespace>
     <AssemblyName>ClassLibraryGuessWho</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <LangVersion>10.0</LangVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
@@ -168,6 +169,7 @@
     <Compile Include="Data\USER_PROFILE.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="IsExternalInit.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

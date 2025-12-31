@@ -9,28 +9,25 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
 {
     public interface IMatchRepository
     {
-        MatchSnapshot CreateMatchClassic(CreateMatchArgs matchArgs);
-        StartMatchResult StartMatch(long matchId); 
-        EndMatchResult EndMatch(EndMatchArgs matchArgs);
+        JoinMatchResult AddPlayerToMatchByCode(JoinMatchArgs matchArgs);
+        JoinMatchResult AddPlayerToPublicMatchById(long matchId, long userProfileId);
+        LeaveMatchResult LeaveMatch(MatchPlayerArgs playerArgs);
+        KickPlayerResult KickPlayer(KickPlayerArgs playerArgs);
         bool ForceLeaveAllMatchesForUser(long userId);
+
+        MatchSnapshot CreateMatchClassic(CreateMatchArgs matchArgs);
+        TournamentMatchCreationResult CreateMatchForTournamentQuick(CreateTournamentMatchArgs tournamentArgs);
+        StartMatchResult StartMatch(long matchId, long hostUserId);
+        EndMatchResult EndMatch(EndMatchArgs matchArgs);
+        MarkReadyResult MarkReady(MatchPlayerArgs playerArgs);
+        SetMatchPrivateResult SetMatchPrivate(long matchId, long hostUserId);
+
+        ChooseSecretCharacterResult ChooseSecretCharacter(ChooseSecretCharacterArgs args);
+        ChangeSecretCharacterResult ChangeSecretCharacter(ChangeSecretCharacterArgs args);
+        bool AreAllSecretCharactersChosen(long matchId);
 
         MatchSnapshot GetOpenMatchByCode(string matchCode);
         IReadOnlyList<MatchSnapshot> GetPublicLobbyMatches();
         IReadOnlyList<LobbyPlayerSnapshot> GetMatchPlayers(long matchId);
-
-        JoinMatchResult AddPlayerToMatchByCode(JoinMatchArgs matchArgs);
-        JoinMatchResult AddPlayerToPublicMatchById(long matchId, long userId);
-
-        LeaveMatchResult LeaveMatch(MatchPlayerArgs matchArgs);
-        KickPlayerResult KickPlayer(KickPlayerArgs playerArgs);
-
-        MarkReadyResult MarkReady(MatchPlayerArgs playerArgs);
-        SetMatchPrivateResult SetMatchPrivate(long matchId, long hostUserId);
-
-        ChooseSecretCharacterResult ChooseSecretCharacter(ChooseSecretCharacterArgs chooseSecretCharacterArgs);
-        ChangeSecretCharacterResult ChangeSecretCharacter(ChangeSecretCharacterArgs changeSecretCharacterArgs);
-        bool AreAllSecretCharactersChosen(long matchId);
-
-        long CreateMatchForTournamentQuick(long player1UserId, long player2UserId, DateTime nowUtc);
     }
 }

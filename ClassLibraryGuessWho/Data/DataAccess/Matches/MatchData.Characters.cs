@@ -2,6 +2,7 @@
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using System;
+using System.Data.Entity; 
 using System.Data.SqlClient;
 using System.Linq;
 
@@ -36,115 +37,109 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                                                                       WHERE C.CHARACTERID = @CharacterId
                                                                       AND C.ISACTIVE = 1);";
 
-        public ChooseSecretCharacterResult ChooseSecretCharacter(ChooseSecretCharacterArgs chooseSecretCharacterArgs)
+        public ChooseSecretCharacterResult ChooseSecretCharacter(ChooseSecretCharacterArgs args)
         {
-            if (chooseSecretCharacterArgs == null)
+            if (args == null)
             {
-                throw new ArgumentNullException(nameof(chooseSecretCharacterArgs));
+                throw new ArgumentNullException(nameof(args));
             }
 
-            if (chooseSecretCharacterArgs.MatchId <= 0)
+            if (args.MatchId <= 0)
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.MatchNotFound);
             }
 
-            if (chooseSecretCharacterArgs.UserProfileId <= 0)
+            if (args.UserProfileId <= 0)
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.PlayerNotInMatch);
             }
 
-            if (string.IsNullOrWhiteSpace(chooseSecretCharacterArgs.SecretCharacterId))
+            string characterId = (args.SecretCharacterId ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(characterId))
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.InvalidCharacter);
             }
 
-            int affectdRows = dataContext.Database.ExecuteSqlCommand(
+            int affectedRows = dataContext.Database.ExecuteSqlCommand( 
                 SQL_CHOOSE_SECRET_CHARACTER_ATOMIC,
-                new SqlParameter("@CharacterId", chooseSecretCharacterArgs.SecretCharacterId),
-                new SqlParameter("@MatchId", chooseSecretCharacterArgs.MatchId),
-                new SqlParameter("@UserId", chooseSecretCharacterArgs.UserProfileId),
+                new SqlParameter("@CharacterId", characterId), 
+                new SqlParameter("@MatchId", args.MatchId),
+                new SqlParameter("@UserId", args.UserProfileId),
                 new SqlParameter("@MatchStatusActive", MatchStatusIds.ACTIVE));
 
-            if (affectdRows > 0)
+            if (affectedRows > 0)
             {
                 return ChooseSecretCharacterResult.Success();
             }
 
-            var diagnosticData = (from m in dataContext.MATCH.AsNoTracking()
-                        where m.MATCHID == chooseSecretCharacterArgs.MatchId
-                        from mp in dataContext.MATCH_PLAYER.AsNoTracking()
-                        .Where(p => p.MATCHID == m.MATCHID && p.USERID == chooseSecretCharacterArgs.UserProfileId)
-                        .DefaultIfEmpty()
-                        select new
-                        {
-                            MatchStatusId = m.STATUSID,
-                            PlayerExists = mp != null,
-                            PlayerLeftAtUtc = mp.LEFTATUTC,
-                            CurrentSecretCharacterId = mp.SECRETCHARACTERID,
-                            CharacterExists = dataContext.CHARACTER.AsNoTracking().Any(c =>
-                            c.CHARACTERID == chooseSecretCharacterArgs.SecretCharacterId &&
-                            c.ISACTIVE)
-                        }).SingleOrDefault();
+            ChooseSecretDiagnostic diagnostic = LoadChooseSecretDiagnostic(
+                args.MatchId,
+                args.UserProfileId,
+                characterId); 
 
-            if (diagnosticData == null)
+            if (diagnostic == null)
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.MatchNotFound);
             }
 
-            if (diagnosticData.MatchStatusId != MatchStatusIds.ACTIVE)
+            if (diagnostic.MatchStatusId != MatchStatusIds.ACTIVE)
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.MatchNotInProgress);
             }
 
-            if (!diagnosticData.PlayerExists)
+            if (!diagnostic.PlayerExists)
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.PlayerNotInMatch);
             }
 
-            if (diagnosticData.PlayerLeftAtUtc != null)
+            if (diagnostic.PlayerLeftAtUtc != null)
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.PlayerAlreadyLeft);
             }
 
-            if (!string.IsNullOrWhiteSpace(diagnosticData.CurrentSecretCharacterId))
+            if (diagnostic.HasSecretCharacterChosen)
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.SecretAlreadyChosen);
             }
 
-            if (!diagnosticData.CharacterExists)
+            if (!diagnostic.CharacterExists)
             {
                 return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.InvalidCharacter);
             }
 
-            return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.TechnicalError);
+            return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.OperationConflict);
         }
 
-        public ChangeSecretCharacterResult ChangeSecretCharacter(ChangeSecretCharacterArgs changeSecretCharacterArgs)
+        public ChangeSecretCharacterResult ChangeSecretCharacter(ChangeSecretCharacterArgs args)
         {
-            if (changeSecretCharacterArgs == null)
+            if (args == null)
             {
-                throw new ArgumentNullException(nameof(changeSecretCharacterArgs));
+                throw new ArgumentNullException(nameof(args));
             }
 
-            if (changeSecretCharacterArgs.MatchId <= 0)
+            if (args.MatchId <= 0)
             {
                 return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.MatchNotFound);
             }
 
-            if (changeSecretCharacterArgs.UserId <= 0)
+            if (args.UserId <= 0)
             {
                 return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.PlayerNotInMatch);
             }
 
-            if (string.IsNullOrWhiteSpace(changeSecretCharacterArgs.SecretCharacterId))
+            string characterId = (args.SecretCharacterId ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(characterId))
             {
                 return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.InvalidCharacter);
             }
 
-            int affectedRows = dataContext.Database.ExecuteSqlCommand(SQL_CHANGE_SECRET_CHARACTER_ATOMIC,
-                new SqlParameter("@CharacterId", changeSecretCharacterArgs.SecretCharacterId),
-                new SqlParameter("@MatchId", changeSecretCharacterArgs.MatchId),
-                new SqlParameter("@UserId", changeSecretCharacterArgs.UserId),
+            int affectedRows = dataContext.Database.ExecuteSqlCommand(
+                SQL_CHANGE_SECRET_CHARACTER_ATOMIC,
+                new SqlParameter("@CharacterId", characterId),
+                new SqlParameter("@MatchId", args.MatchId),
+                new SqlParameter("@UserId", args.UserId),
                 new SqlParameter("@MatchStatusLobby", MatchStatusIds.LOBBY));
 
             if (affectedRows > 0)
@@ -152,47 +147,120 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 return ChangeSecretCharacterResult.Success();
             }
 
-            var diagnosticData = (from m in dataContext.MATCH.AsNoTracking() 
-                        where m.MATCHID == changeSecretCharacterArgs.MatchId
-                        from mp in dataContext.MATCH_PLAYER.AsNoTracking()
-                        .Where(p => p.MATCHID == m.MATCHID && p.USERID == changeSecretCharacterArgs.UserId)
-                        .DefaultIfEmpty()
-                        select new
-                        {
-                            MatchStatusId = m.STATUSID,
-                            PlayerExists = mp != null,
-                            PlayerLeftAtUtc = mp.LEFTATUTC,
-                            CharacterExists = dataContext.CHARACTER.AsNoTracking().Any(c =>
-                            c.CHARACTERID == changeSecretCharacterArgs.SecretCharacterId &&
-                            c.ISACTIVE)
-                        }).SingleOrDefault();
+            ChangeSecretDiagnostic diagnostic = LoadChangeSecretDiagnostic(
+                args.MatchId,
+                args.UserId,
+                characterId);
 
-            if (diagnosticData == null)
+            if (diagnostic == null)
             {
                 return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.MatchNotFound);
             }
 
-            if (diagnosticData.MatchStatusId != MatchStatusIds.LOBBY)
+            if (diagnostic.MatchStatusId != MatchStatusIds.LOBBY)
             {
                 return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.MatchNotInLobby);
             }
 
-            if (!diagnosticData.PlayerExists)
+            if (!diagnostic.PlayerExists)
             {
                 return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.PlayerNotInMatch);
             }
 
-            if (diagnosticData.PlayerLeftAtUtc != null)
+            if (diagnostic.PlayerLeftAtUtc != null)
             {
                 return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.PlayerAlreadyLeft);
             }
 
-            if (!diagnosticData.CharacterExists)
+            if (!diagnostic.CharacterExists)
             {
                 return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.InvalidCharacter);
             }
 
-            return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.TechnicalError);
+            return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.OperationConflict);
+        }
+
+        private sealed class ChooseSecretDiagnostic
+        {
+            public byte MatchStatusId { get; set; }
+            public bool PlayerExists { get; set; }
+            public DateTime? PlayerLeftAtUtc { get; set; }
+            public bool HasSecretCharacterChosen { get; set; }
+            public bool CharacterExists { get; set; }
+        }
+
+        private ChooseSecretDiagnostic LoadChooseSecretDiagnostic(long matchId, long userId, string characterId) 
+        {
+            byte? matchStatusId = dataContext.MATCH.AsNoTracking()
+                .Where(m => m.MATCHID == matchId)
+                .Select(m => (byte?)m.STATUSID)
+                .SingleOrDefault();
+
+            if (!matchStatusId.HasValue)
+            {
+                return null;
+            }
+
+            var player = dataContext.MATCH_PLAYER.AsNoTracking()
+                .Where(p => p.MATCHID == matchId && p.USERID == userId)
+                .Select(p => new
+                {
+                    p.LEFTATUTC,
+                    p.SECRETCHARACTERID
+                })
+                .SingleOrDefault();
+
+            bool characterExists = dataContext.CHARACTER.AsNoTracking().Any(c =>
+                c.CHARACTERID == characterId && c.ISACTIVE);
+
+            return new ChooseSecretDiagnostic
+            {
+                MatchStatusId = matchStatusId.Value,
+                PlayerExists = player != null,
+                PlayerLeftAtUtc = player != null ? player.LEFTATUTC : (DateTime?)null,
+                HasSecretCharacterChosen = player != null && !string.IsNullOrWhiteSpace((player.SECRETCHARACTERID ?? string.Empty).Trim()),
+                CharacterExists = characterExists
+            };
+        }
+
+        private sealed class ChangeSecretDiagnostic
+        {
+            public byte MatchStatusId { get; set; }
+            public bool PlayerExists { get; set; }
+            public DateTime? PlayerLeftAtUtc { get; set; }
+            public bool CharacterExists { get; set; }
+        }
+
+        private ChangeSecretDiagnostic LoadChangeSecretDiagnostic(long matchId, long userId, string characterId) 
+        {
+            byte? matchStatusId = dataContext.MATCH.AsNoTracking()
+                .Where(m => m.MATCHID == matchId)
+                .Select(m => (byte?)m.STATUSID)
+                .SingleOrDefault();
+
+            if (!matchStatusId.HasValue)
+            {
+                return null;
+            }
+
+            var player = dataContext.MATCH_PLAYER.AsNoTracking()
+                .Where(p => p.MATCHID == matchId && p.USERID == userId)
+                .Select(p => new
+                {
+                    p.LEFTATUTC
+                })
+                .SingleOrDefault();
+
+            bool characterExists = dataContext.CHARACTER.AsNoTracking().Any(c =>
+                c.CHARACTERID == characterId && c.ISACTIVE);
+
+            return new ChangeSecretDiagnostic
+            {
+                MatchStatusId = matchStatusId.Value,
+                PlayerExists = player != null,
+                PlayerLeftAtUtc = player != null ? player.LEFTATUTC : (DateTime?)null,
+                CharacterExists = characterExists
+            };
         }
     }
 }

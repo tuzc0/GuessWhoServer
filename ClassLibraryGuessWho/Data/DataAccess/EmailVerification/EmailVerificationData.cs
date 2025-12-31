@@ -1,4 +1,5 @@
-﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+﻿using ClassLibraryGuessWho.Data.Factories;
+using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.EmailVerification;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
 using GuessWhoServerDomain.Domain.Results;
@@ -48,7 +49,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
             {
                 TOKENID = Guid.NewGuid(),
                 ACCOUNTID = emailTokenArgs.AccountId,
-                CODEHASH = emailTokenArgs.CodeHash,
+                CODEHASH = emailTokenArgs.CodeHash ?? Array.Empty<byte>(),
                 CREATEDATUTC = emailTokenArgs.NowUtc,
                 EXPIRESUTC = emailTokenArgs.NowUtc.Add(emailTokenArgs.LifeSpan),
                 CONSUMEDUTC = null
@@ -61,7 +62,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
         public EmailVerificationTokenRecord GetLatestActiveTokenByAccountId(long accountId, DateTime nowUtc)
         {
-            EMAIL_VERIFICATION tokenEntity = GetLatestTokenEntity(accountId,
+            EMAIL_VERIFICATION tokenEntity = GetLatestTokenEntity(accountId, 
                 t => t.EXPIRESUTC >= nowUtc && t.CONSUMEDUTC == null);
 
             return EmailVerificationTokenRecordMapper.ToRecord(tokenEntity);
@@ -81,6 +82,11 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
                 throw new ArgumentNullException(nameof(failedAttemptArgs));
             }
 
+            if (failedAttemptArgs.TokenId == Guid.Empty)
+            {
+                throw new ArgumentException("TokenId cannot be empty.", nameof(failedAttemptArgs));
+            }
+
             return dataContext.Database.ExecuteSqlCommand(
                 SQL_INCREMENT_FAILED_ATTEMPTS_AND_MAYBE_EXPIRE,
                 failedAttemptArgs.MaxAttempts,
@@ -90,8 +96,14 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
         public int ConsumeToken(Guid tokenId)
         {
+            if (tokenId == Guid.Empty)
+            {
+                throw new ArgumentException("tokenId cannot be empty.", nameof(tokenId));
+            }
+
             return dataContext.Database.ExecuteSqlCommand(
-                SQL_CONSUME_TOKEN, tokenId);
+                SQL_CONSUME_TOKEN,
+                tokenId);
         }
 
         public EmailVerificationResendLimitsResult GetEmailVerificationResendLimits(ResendLimitsQuery limitsQuery)
@@ -101,21 +113,17 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
                 throw new ArgumentNullException(nameof(limitsQuery));
             }
 
-            int cooldownSeconds = GetCooldownSeconds(limitsQuery);
-            int hourlyMaxTokens = GetHourlyMaxTokens(limitsQuery);
-
             DateTime? lastTokenCreatedAtUtc = GetLastTokenCreatedAtUtc(limitsQuery.AccountId);
 
             DateTime windowStartUtc = limitsQuery.DateUtc.AddHours(-HOURS_BACK_FOR_LIMIT);
-
             int tokensSentInWindow = CountTokensCreatedSince(limitsQuery.AccountId, windowStartUtc);
 
             bool isPerMinuteCooldownActive = IsCooldownActive(
                 lastTokenCreatedAtUtc,
                 limitsQuery.DateUtc,
-                cooldownSeconds);
+                limitsQuery.CooldownSeconds);
 
-            bool isWithinHourlyLimit = tokensSentInWindow < hourlyMaxTokens;
+            bool isWithinHourlyLimit = tokensSentInWindow < limitsQuery.HourlyMaxTokens;
 
             return new EmailVerificationResendLimitsResult
             {
@@ -139,10 +147,10 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
                 expireTokensArgs.AccountId);
         }
 
-        private EMAIL_VERIFICATION GetLatestTokenEntity(long accountId,
-            Expression<Func<EMAIL_VERIFICATION, bool>> predicate)
+        private EMAIL_VERIFICATION GetLatestTokenEntity(long accountId, Expression<Func<EMAIL_VERIFICATION, bool>> predicate)
         {
             IQueryable<EMAIL_VERIFICATION> query = dataContext.EMAIL_VERIFICATION
+                .AsNoTracking()
                 .Where(t => t.ACCOUNTID == accountId);
 
             if (predicate != null)
@@ -158,6 +166,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
         private DateTime? GetLastTokenCreatedAtUtc(long accountId)
         {
             return dataContext.EMAIL_VERIFICATION
+                .AsNoTracking()
                 .Where(t => t.ACCOUNTID == accountId)
                 .OrderByDescending(t => t.CREATEDATUTC)
                 .Select(t => (DateTime?)t.CREATEDATUTC)
@@ -166,8 +175,9 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
 
         private int CountTokensCreatedSince(long accountId, DateTime sinceUtc)
         {
-            return dataContext.EMAIL_VERIFICATION.Count(
-                t => t.ACCOUNTID == accountId && t.CREATEDATUTC >= sinceUtc);
+            return dataContext.EMAIL_VERIFICATION
+                .AsNoTracking()
+                .Count(t => t.ACCOUNTID == accountId && t.CREATEDATUTC >= sinceUtc);
         }
 
         private static bool IsCooldownActive(DateTime? lastTokenCreatedAtUtc, DateTime nowUtc, int cooldownSeconds)
@@ -178,16 +188,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
             }
 
             return (nowUtc - lastTokenCreatedAtUtc.Value).TotalSeconds < cooldownSeconds;
-        }
-
-        private static int GetCooldownSeconds(ResendLimitsQuery limitsQuery)
-        {
-            return limitsQuery.CooldownSeconds;
-        }
-
-        private static int GetHourlyMaxTokens(ResendLimitsQuery limitsQuery)
-        {
-            return limitsQuery.HourlyMaxTokens;
         }
     }
 }

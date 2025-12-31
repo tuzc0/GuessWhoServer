@@ -1,7 +1,8 @@
-﻿using ClassLibraryGuessWho.Data.Helpers;
-using System;
+﻿using GuessWhoServerDomain.Domain.Parameters.Matches;
+using GuessWhoServerDomain.Domain.Results.Match;
 using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
+using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 {
@@ -9,69 +10,82 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
     {
         private const int MAX_MATCH_CODE_GENERATION_ATTEMPTS = 5;
 
-        public long CreateMatchForTournamentQuick(long player1UserId, long player2UserId, DateTime nowUtc)
+        public TournamentMatchCreationResult CreateMatchForTournamentQuick(CreateTournamentMatchArgs tournamentArgs)
         {
-            if (player1UserId <= 0 || player2UserId <= 0 || player1UserId == player2UserId)
+            if (tournamentArgs == null)
             {
-                return INVALID_MATCH_ID;
+                return default;
+            }
+            if (tournamentArgs.Player1UserId <= 0 || tournamentArgs.Player2UserId <= 0 || 
+                tournamentArgs.Player1UserId == tournamentArgs.Player2UserId)
+            {
+                return default;
             }
 
             for (int attempt = 0; attempt < MAX_MATCH_CODE_GENERATION_ATTEMPTS; attempt++)
             {
-                MATCH match = null;
-                MATCH_PLAYER host = null;
-                MATCH_PLAYER guest = null;
+                string matchCode = GenerateMatchCode();
 
-                try
+                if (MatchCodeExists(matchCode))
                 {
-                    match = new MATCH
-                    {
-                        VISIBILITYID = MatchVisibilityIds.PRIVATE,
-                        STATUSID = MatchStatusIds.ACTIVE,
-                        MODEID = MatchModeIds.QUICK,
-                        MATCHCODE = GenerateMatchCode(),
-                        CREATEDATUTC = nowUtc,
-                        STARTTIME = nowUtc,
-                        ISCODEJOINENABLED = false
-                    };
-
-                    host = new MATCH_PLAYER
-                    {
-                        MATCH = match,
-                        USERID = player1UserId,
-                        SLOTNUMBER = HOST_SLOT_NUMBER,
-                        ISHOST = true,
-                        ISREADY = true,
-                        JOINEDATUTC = nowUtc
-                    };
-
-                    guest = new MATCH_PLAYER
-                    {
-                        MATCH = match,
-                        USERID = player2UserId,
-                        SLOTNUMBER = GUEST_SLOT_NUMBER,
-                        ISHOST = false,
-                        ISREADY = true,
-                        JOINEDATUTC = nowUtc
-                    };
-
-                    dataContext.MATCH.Add(match);
-                    dataContext.MATCH_PLAYER.Add(host);
-                    dataContext.MATCH_PLAYER.Add(guest);
-
-                    dataContext.SaveChanges();
-
-                    return match.MATCHID;
+                    continue;
                 }
-                catch (DbUpdateException ex) when (SqlExceptionInspector.IsUniqueConstraintViolation(ex))
+
+                var match = new MATCH
                 {
-                    DetachIfTracked(match);
-                    DetachIfTracked(host);
-                    DetachIfTracked(guest);
-                }
+                    VISIBILITYID = MatchVisibilityIds.PRIVATE,
+                    STATUSID = MatchStatusIds.ACTIVE,
+                    MODEID = MatchModeIds.QUICK,
+                    MATCHCODE = GenerateMatchCode(),
+                    CREATEDATUTC = tournamentArgs.NowUtc,
+                    STARTTIME = tournamentArgs.NowUtc,
+                    ISCODEJOINENABLED = false
+                };
+
+                var host = new MATCH_PLAYER
+                {
+                    MATCH = match,
+                    USERID = tournamentArgs.Player1UserId,
+                    SLOTNUMBER = HOST_SLOT_NUMBER,
+                    ISHOST = true,
+                    ISREADY = true,
+                    JOINEDATUTC = tournamentArgs.NowUtc
+                };
+
+                var guest = new MATCH_PLAYER
+                {
+                    MATCH = match,
+                    USERID = tournamentArgs.Player2UserId,
+                    SLOTNUMBER = GUEST_SLOT_NUMBER,
+                    ISHOST = false,
+                    ISREADY = true,
+                    JOINEDATUTC = tournamentArgs.NowUtc
+                };
+
+                dataContext.MATCH.Add(match);
+                dataContext.MATCH_PLAYER.Add(host);
+                dataContext.MATCH_PLAYER.Add(guest);
+
+                return new TournamentMatchCreationResult(matchCode);
             }
 
-            return INVALID_MATCH_ID;
+            return default;
+        }
+
+        private long TryResolveMatchIdByCode(string matchCode)
+        {
+            string safeCode = (matchCode ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(safeCode))
+            {
+                return INVALID_MATCH_ID;
+            }
+
+            return dataContext.MATCH
+                .AsNoTracking()
+                .Where(m => m.MATCHCODE == matchCode)
+                .Select(m => (long?)m.MATCHID)
+                .FirstOrDefault() ?? INVALID_MATCH_ID;
         }
 
         private void DetachIfTracked(object entity)

@@ -1,6 +1,6 @@
 ﻿using GuessWhoServerDomain.Domain.Enums.Friends;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
-using GuessWhoServerDomain.Domain.Models.Friends;
+using GuessWhoServerDomain.Domain.Models.Friends; 
 using GuessWhoServerDomain.Domain.Parameters.Friends;
 using GuessWhoServerDomain.Domain.Results.Friends;
 using System;
@@ -38,15 +38,15 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
             return (from p in dataContext.USER_PROFILE.AsNoTracking()
                     join a in dataContext.ACCOUNT.AsNoTracking()
-                    on p.USERID equals a.USERID
-                    where p.ISACTIVE &&
-                      !a.ISDELETED &&
-                      p.DISPLAYNAME.Contains(trimmed)
+                        on p.USERID equals a.USERID
+                    where p.ISACTIVE
+                          && !a.ISDELETED
+                          && p.DISPLAYNAME.Contains(trimmed)
                     orderby p.DISPLAYNAME
                     select new UserProfileSearchRecord(
                         p.USERID,
                         p.DISPLAYNAME,
-                        p.AVATAR.AVATARID)
+                        p.AVATARID) 
                     )
                     .Take(MAX_PROFILE_SEARCH_RESULTS)
                     .ToList();
@@ -81,8 +81,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
             inversePendingRequest.STATUSID = FRIEND_REQUEST_STATUS_ACCEPTED;
             inversePendingRequest.RESPONDEDATUTC = timestampUtc;
 
-            dataContext.SaveChanges();
-
             return FriendRequestDataResult.AutoAccepted(inversePendingRequest.FRIENDREQUESTID);
         }
 
@@ -102,7 +100,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
             return FriendRequestDataResult.ExistingPending(existingRequest.FRIENDREQUESTID);
         }
 
-        public FriendRequestDataResult CreateNewRequest(long fromUserId, long toUserId, DateTime timestampUtc)
+        public IFriendRequestIdProvider CreateNewRequest(long fromUserId, long toUserId, DateTime timestampUtc)
         {
             var newRequest = new FRIEND_REQUEST
             {
@@ -113,9 +111,8 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
             };
 
             dataContext.FRIEND_REQUEST.Add(newRequest);
-            dataContext.SaveChanges();
 
-            return FriendRequestDataResult.Created(newRequest.FRIENDREQUESTID);
+            return new FriendRequestIdProvider(newRequest);
         }
 
         public FriendRequestDataResult AcceptFriendRequest(FriendRequestActionArgs args)
@@ -145,8 +142,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
             request.STATUSID = FRIEND_REQUEST_STATUS_ACCEPTED;
             request.RESPONDEDATUTC = args.NowUtc;
 
-            dataContext.SaveChanges();
-
             return FriendRequestDataResult.Accepted(args.FriendRequestId);
         }
 
@@ -174,8 +169,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
             request.STATUSID = FRIEND_REQUEST_STATUS_REJECTED;
             request.RESPONDEDATUTC = args.NowUtc;
-
-            dataContext.SaveChanges();
 
             return FriendRequestDataResult.Rejected(args.FriendRequestId);
         }
@@ -205,8 +198,6 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
             request.STATUSID = FRIEND_REQUEST_STATUS_CANCELED;
             request.RESPONDEDATUTC = args.NowUtc;
 
-            dataContext.SaveChanges();
-
             return FriendRequestDataResult.Canceled(args.FriendRequestId);
         }
 
@@ -214,10 +205,10 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
         {
             return (from a in dataContext.ACCOUNT.AsNoTracking()
                     join p in dataContext.USER_PROFILE.AsNoTracking()
-                    on a.USERID equals p.USERID
-                    where a.ACCOUNTID == accountId &&
-                      !a.ISDELETED &&
-                      p.ISACTIVE
+                        on a.USERID equals p.USERID
+                    where a.ACCOUNTID == accountId
+                          && !a.ISDELETED
+                          && p.ISACTIVE
                     select a.USERID
                     ).SingleOrDefault();
         }
@@ -233,7 +224,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
 
         public IList<UserProfileSearchRecord> GetFriends(long userId)
         {
-            IQueryable<UserProfileSearchRecord> friendsWhereIAmFirst = 
+            IQueryable<UserProfileSearchRecord> friendsWhereIAmFirst =
                 from f in dataContext.FRIENDSHIP.AsNoTracking()
                 where f.USER1ID == userId
                 join p in dataContext.USER_PROFILE.AsNoTracking()
@@ -241,10 +232,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
                 join a in dataContext.ACCOUNT.AsNoTracking()
                     on p.USERID equals a.USERID
                 where p.ISACTIVE && !a.ISDELETED
-                select new UserProfileSearchRecord(
-                    p.USERID,
-                    p.DISPLAYNAME,
-                    p.AVATAR.AVATARID);
+                select new UserProfileSearchRecord(p.USERID, p.DISPLAYNAME, p.AVATARID);
 
             IQueryable<UserProfileSearchRecord> friendsWhereIAmSecond =
                 from f in dataContext.FRIENDSHIP.AsNoTracking()
@@ -254,14 +242,9 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
                 join a in dataContext.ACCOUNT.AsNoTracking()
                     on p.USERID equals a.USERID
                 where p.ISACTIVE && !a.ISDELETED
-                select new UserProfileSearchRecord(
-                    p.USERID,
-                    p.DISPLAYNAME,
-                    p.AVATAR.AVATARID);
-            
-            return friendsWhereIAmFirst
-                .Concat(friendsWhereIAmSecond)
-                .ToList();
+                select new UserProfileSearchRecord(p.USERID, p.DISPLAYNAME, p.AVATARID);
+
+            return friendsWhereIAmFirst.Concat(friendsWhereIAmSecond).ToList();
         }
 
         public IList<FriendRequestRecord> GetPendingRequests(long userId)
@@ -340,6 +323,18 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Friends
                 USERIDHIGH = high,
                 CREATEDATUTC = createdAtUtc
             });
+        }
+
+        private sealed class FriendRequestIdProvider : IFriendRequestIdProvider
+        {
+            private readonly FRIEND_REQUEST friendRequest;
+
+            public FriendRequestIdProvider(FRIEND_REQUEST friendRequest)
+            {
+                this.friendRequest = friendRequest ?? throw new ArgumentNullException(nameof(friendRequest));
+            }
+
+            public long FriendRequestId => friendRequest.FRIENDREQUESTID;
         }
     }
 }

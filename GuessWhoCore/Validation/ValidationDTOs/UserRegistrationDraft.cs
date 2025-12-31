@@ -1,6 +1,9 @@
-﻿namespace GuessWhoCore.Validation.ValidationDTOs
+﻿using System;
+
+namespace GuessWhoCore.Validation.ValidationDTOs
 {
-    public class UserRegistrationDraft
+    [Obsolete("Use UserRulesDraft.")]
+    public class UserRegistrationDraft 
     {
         public UserRegistrationDraft(string email, string displayName, string password, string confirmPassword)
         {

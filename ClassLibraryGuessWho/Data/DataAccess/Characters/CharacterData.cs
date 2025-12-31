@@ -1,23 +1,28 @@
-﻿using System.Collections.Generic;
+﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Characters
 {
-    public class CharacterData
+    public class CharacterData : ICharacterRepository
     {
-        public List<CharacterDto> GetActiveCharacters()
+        private const string EMPTY = "";
+
+        private readonly GuessWhoDBEntities dataContext;
+
+        public CharacterData(GuessWhoDBEntities context)
         {
-            using (var dataBaseContext = new GuessWhoDBEntities())
-            {
-                return dataBaseContext.CHARACTER
-                    .Where(a => a.ISACTIVE)
-                    .Select(a => new CharacterDto
-                    {
-                        CharacterId = a.CHARACTERID,
-                        IsActive = a.ISACTIVE
-                    })
-                    .ToList();
-            }
+            dataContext = context ?? throw new ArgumentNullException(nameof(context));
+        }
+
+        public IReadOnlyList<string> GetActiveCharacterIds()
+        {
+            return dataContext.CHARACTER
+                .Where(c => c.ISACTIVE)
+                .Select(c => c.CHARACTERID)
+                .Where(characterId => characterId != null && characterId.Trim() != EMPTY)
+                .ToList();
         }
     }
 }

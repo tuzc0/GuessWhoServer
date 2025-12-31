@@ -1,5 +1,4 @@
-﻿using ClassLibraryGuessWho.Data.DataAccess.Accounts;
-using ClassLibraryGuessWho.Data.DataAccess.EmailVerification;
+﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using System;
 using System.Data.Entity;
 
@@ -11,22 +10,42 @@ namespace ClassLibraryGuessWho.Data.Factories
 
         public GuessWhoUnitOfWork(
             GuessWhoDBEntities context,
-            IUserAccountData userAccounts,
-            IEmailVerificationData emailVerification)
+            IUserAccountRepository userAccounts,
+            IEmailVerificationRepository emailVerification,
+            IAvatarRepository avatars,
+            ICharacterRepository characters,
+            IMatchDeckRepository matchDecks,
+            IFriendshipRepository friendships,
+            IMatchRepository matches)
         {
-            this.context = context ??
+            this.context = context ?? 
                 throw new ArgumentNullException(nameof(context));
-            UserAccounts = userAccounts ??
+
+            UserAccounts = userAccounts ?? 
                 throw new ArgumentNullException(nameof(userAccounts));
-            EmailVerification = emailVerification ??
+            EmailVerification = emailVerification ?? 
                 throw new ArgumentNullException(nameof(emailVerification));
+            Avatars = avatars ?? 
+                throw new ArgumentNullException(nameof(avatars));
+            Characters = characters ?? 
+                throw new ArgumentNullException(nameof(characters));
+            MatchDecks = matchDecks ?? 
+                throw new ArgumentNullException(nameof(matchDecks));
+            Friendships = friendships ?? 
+                throw new ArgumentNullException(nameof(friendships));
+            Matches = matches ?? 
+                throw new ArgumentNullException(nameof(matches));
         }
 
         public GuessWhoDBEntities Context => context;
 
-        public IUserAccountData UserAccounts { get; }
-
-        public IEmailVerificationData EmailVerification { get; }
+        public IUserAccountRepository UserAccounts { get; }
+        public IEmailVerificationRepository EmailVerification { get; }
+        public IAvatarRepository Avatars { get; }
+        public ICharacterRepository Characters { get; }
+        public IMatchDeckRepository MatchDecks { get; }
+        public IFriendshipRepository Friendships { get; }
+        public IMatchRepository Matches { get; }
 
         public IGuessWhoDbTransaction BeginTransaction()
         {

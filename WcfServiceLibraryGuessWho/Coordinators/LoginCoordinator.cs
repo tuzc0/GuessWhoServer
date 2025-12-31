@@ -1,6 +1,6 @@
-﻿using GuessWhoCore.Contracts.Faults;
+﻿using ClassLibraryGuessWho.Data.Factories;
+using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Dtos;
-using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.Sessions;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
@@ -15,32 +15,26 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 {
     public sealed class LoginCoordinator : ManagerBase, ILoginCoordinator
     {
-        protected override ILog Logger { get; } =
-            LogManager.GetLogger(typeof(LoginCoordinator));
+        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(LoginCoordinator));
 
         private const string LOG_CTX_LOGIN_INIT = "LoginCoordinator.LoginAndInitializeSession";
         private const string LOG_CTX_LOGOUT = "LoginCoordinator.Logout";
 
         private const int MIN_VALID_ID = 1;
 
-        private const UserSessionLoginStatus DEFAULT_FAILED_STATUS =
-            UserSessionLoginStatus.InvalidCredentials;
+        private const UserSessionLoginStatus DEFAULT_FAILED_STATUS = UserSessionLoginStatus.InvalidCredentials;
 
         private readonly ILoginManager loginManager;
-        private readonly IGameSessionManager sessionManager;
-        private readonly IUserAccountRepository accountRepository;
+        private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
 
         public LoginCoordinator(
             ILoginManager loginManager,
-            IGameSessionManager sessionManager,
-            IUserAccountRepository accountRepository)
+            IGuessWhoUnitOfWorkFactory unitOfWorkFactory)
         {
             this.loginManager = loginManager ??
                 throw new ArgumentNullException(nameof(loginManager));
-            this.sessionManager = sessionManager ??
-                throw new ArgumentNullException(nameof(sessionManager));
-            this.accountRepository = accountRepository ??
-                throw new ArgumentNullException(nameof(accountRepository));
+            this.unitOfWorkFactory = unitOfWorkFactory ??
+                throw new ArgumentNullException(nameof(unitOfWorkFactory));
         }
 
         public SessionLoginResult LoginAndInitializeSession(LoginArgs args)
@@ -53,34 +47,40 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
                     SessionLoginResult loginResult = loginManager.Login(args);
 
-                    if (loginResult == null || !loginResult.IsSuccess)
+                    if (loginResult == null || !loginResult.IsSuccess || loginResult.Profile == null)
                     {
                         return loginResult ?? SessionLoginResult.CreateFailed(DEFAULT_FAILED_STATUS);
                     }
 
                     long userId = loginResult.Profile.UserId;
+                    EnsureValidUserIdOrThrow(userId);
 
-                    bool sessionsTerminated = sessionManager.TerminateActiveSessions(userId);
-
-                    if (!sessionsTerminated)
+                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
+                    using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
                     {
-                        Logger.WarnFormat("{0}: could not terminate active sessions for userId '{1}'.",
-                            LOG_CTX_LOGIN_INIT,
-                            userId);
-                    }
+                        bool sessionsTerminated = unitOfWork.Matches.ForceLeaveAllMatchesForUser(userId);
 
-                    bool markedActive = accountRepository.MarkUserProfileActive(userId);
+                        if (!sessionsTerminated)
+                        {
+                            Logger.WarnFormat("{0}: could not terminate active sessions for userId '{1}'.",
+                                LOG_CTX_LOGIN_INIT, userId);
+                        }
 
-                    if (!markedActive)
-                    {
-                        Logger.ErrorFormat("{0}: could not mark profile active for userId '{1}'.",
-                            LOG_CTX_LOGIN_INIT,
-                            userId);
+                        bool markedActive = unitOfWork.UserAccounts.MarkUserProfileActive(userId);
 
-                        throw FaultsFactory.Create(
-                            LoginFaultKeys.CODE_UNEXPECTED_ERROR,
-                            LoginFaultKeys.MSG_UNEXPECTED_ERROR,
-                            LoginFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+                        if (!markedActive)
+                        {
+                            Logger.ErrorFormat("{0}: could not mark profile active for userId '{1}'.",
+                                LOG_CTX_LOGIN_INIT, userId);
+
+                            throw FaultsFactory.Create(
+                                LoginCoordinatorFaultKeys.CODE_PROFILE_MARK_ACTIVE_FAILED,
+                                LoginCoordinatorFaultKeys.MSG_PROFILE_MARK_ACTIVE_FAILED,
+                                LoginCoordinatorFaultKeys.FALLBACK_PROFILE_MARK_ACTIVE_FAILED);
+                        }
+
+                        unitOfWork.Flush();
+                        transaction.Commit();
                     }
 
                     return loginResult;
@@ -93,35 +93,43 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 LOG_CTX_LOGOUT,
                 () =>
                 {
-                    if (userProfileId < MIN_VALID_ID)
-                    {
-                        return false;
-                    }
+                    EnsureValidUserIdOrThrow(userProfileId);
 
-                    bool sessionsTerminated = sessionManager.TerminateActiveSessions(userProfileId);
-                    bool markedInactive = accountRepository.MarkUserProfileInactive(userProfileId);
-
-                    if (sessionsTerminated && markedInactive)
+                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
+                    using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
                     {
+                        bool sessionsTerminated = unitOfWork.Matches.ForceLeaveAllMatchesForUser(userProfileId);
+
+                        if (!sessionsTerminated)
+                        {
+                            Logger.WarnFormat("{0}: could not terminate active sessions for userProfileId '{1}'.",
+                                LOG_CTX_LOGOUT, userProfileId);
+
+                            throw FaultsFactory.Create(
+                                LoginCoordinatorFaultKeys.CODE_LOGOUT_TERMINATE_SESSIONS_FAILED,
+                                LoginCoordinatorFaultKeys.MSG_LOGOUT_TERMINATE_SESSIONS_FAILED,
+                                LoginCoordinatorFaultKeys.FALLBACK_LOGOUT_TERMINATE_SESSIONS_FAILED);
+                        }
+
+                        bool markedInactive = unitOfWork.UserAccounts.MarkUserProfileInactive(userProfileId);
+
+                        if (!markedInactive)
+                        {
+                            Logger.WarnFormat("{0}: could not mark profile inactive for userProfileId '{1}'.",
+                                LOG_CTX_LOGOUT, userProfileId);
+
+                            throw FaultsFactory.Create(
+                                LoginCoordinatorFaultKeys.CODE_LOGOUT_MARK_INACTIVE_FAILED,
+                                LoginCoordinatorFaultKeys.MSG_LOGOUT_MARK_INACTIVE_FAILED,
+                                LoginCoordinatorFaultKeys.FALLBACK_LOGOUT_MARK_INACTIVE_FAILED);
+                        }
+
+                        unitOfWork.Flush();
+                        transaction.Commit();
+
                         return true;
                     }
-
-                    Logger.WarnFormat("{0}: logout failed for userProfileId '{1}'. sessionsTerminated='{2}', markedInactive='{3}'.",
-                        LOG_CTX_LOGOUT,
-                        userProfileId,
-                        sessionsTerminated,
-                        markedInactive);
-
-                    throw FaultsFactory.Create(
-                        LoginFaultKeys.CODE_LOGOUT_FAILED,
-                        LoginFaultKeys.MSG_LOGOUT_FAILED,
-                        LoginFaultKeys.FALLBACK_LOGOUT_FAILED);
                 });
-        }
-
-        protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)
-        {
-            return FaultTranslator.ToTechnicalFault(ex, Logger);
         }
 
         private static void EnsureArgsNotNull(LoginArgs args)
@@ -135,6 +143,24 @@ namespace WcfServiceLibraryGuessWho.Coordinators
                 LoginFaultKeys.CODE_REQUEST_NULL,
                 LoginFaultKeys.MSG_REQUEST_NULL,
                 LoginFaultKeys.FALLBACK_REQUEST_NULL);
+        }
+
+        private static void EnsureValidUserIdOrThrow(long userId)
+        {
+            if (userId >= MIN_VALID_ID)
+            {
+                return;
+            }
+
+            throw FaultsFactory.Create(
+                LoginCoordinatorFaultKeys.CODE_USER_ID_INVALID,
+                LoginCoordinatorFaultKeys.MSG_USER_ID_INVALID,
+                LoginCoordinatorFaultKeys.FALLBACK_USER_ID_INVALID);
+        }
+
+        protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)
+        {
+            return FaultTranslator.ToTechnicalFault(ex, Logger);
         }
     }
 }

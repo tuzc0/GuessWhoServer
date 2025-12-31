@@ -8,6 +8,6 @@
         PlayerNotInMatch = 3,
         PlayerAlreadyLeft = 4,
         InvalidCharacter = 5,
-        TechnicalError = 6
+        OperationConflict = 6
     }
 }

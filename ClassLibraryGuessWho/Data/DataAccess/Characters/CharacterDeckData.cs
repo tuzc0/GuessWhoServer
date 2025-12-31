@@ -1,79 +1,89 @@
-﻿using GuessWhoContracts.Dtos.Dto;
+﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+using GuessWhoServerDomain.Domain.Models.Match;
+using GuessWhoServerDomain.Domain.Parameters.Matches;
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Characters
 {
-    public sealed class CharacterDeckData
+    public sealed class CharacterDeckData : IMatchDeckRepository
     {
         private const int FIRST_POSITION = 1;
 
-        public CharacterDeckDto GetCharacterDeck(long matchId)
+        private readonly GuessWhoDBEntities dataContext;
+
+        public CharacterDeckData(GuessWhoDBEntities context)
         {
-            using (var dataContext = new GuessWhoDBEntities())
-            {
-                List<string> characterIds = dataContext.MATCH_DECK_CARD
-                    .Where(deckCard => deckCard.MATCHID == matchId)
-                    .OrderBy(deckCard => deckCard.POSITION)
-                    .Select(deckCard => deckCard.CHARACTERID)
-                    .ToList();
-
-                if (characterIds.Count == 0)
-                {
-                    return CharacterDeckDto.CreateInvalid();
-                }
-
-                return new CharacterDeckDto
-                {
-                    MatchId = matchId,                      
-                    CharacterDeckIds = characterIds
-                };
-            }
+            dataContext = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public bool SaveCharacterDeck(CharacterDeckDto deck)
+        public MatchDeckRecord GetMatchDeck(long matchId)
         {
-            if (deck == null || !deck.IsValid)
+            if (matchId <= 0)
             {
-                return false;
+                return MatchDeckRecord.CreateInvalid();
             }
 
-            using (var dataContext = new GuessWhoDBEntities())
+            List<string> characterIds = dataContext.MATCH_DECK_CARD
+                .AsNoTracking()
+                .Where(deckCard => deckCard.MATCHID == matchId)
+                .OrderBy(deckCard => deckCard.POSITION)
+                .Select(deckCard => deckCard.CHARACTERID)
+                .Where(characterId => characterId != null)
+                .ToList();
+
+            if (characterIds.Count == 0)
             {
-                var existingCards = dataContext.MATCH_DECK_CARD
-                    .Where(d => d.MATCHID == deck.MatchId)
-                    .ToList();
-
-                if (existingCards.Count > 0)
-                {
-                    dataContext.MATCH_DECK_CARD.RemoveRange(existingCards);
-                }
-
-                int position = FIRST_POSITION;
-
-                foreach (string characterId in deck.CharacterDeckIds)
-                {
-                    if (string.IsNullOrWhiteSpace(characterId))
-                    {
-                        continue;
-                    }
-
-                    var entity = new MATCH_DECK_CARD
-                    {
-                        MATCHID = deck.MatchId,
-                        POSITION = position,
-                        CHARACTERID = characterId
-                    };
-
-                    dataContext.MATCH_DECK_CARD.Add(entity);
-                    position++;
-                }
-
-                int affectedRows = dataContext.SaveChanges();
-
-                return affectedRows > 0;
+                return MatchDeckRecord.CreateInvalid();
             }
+
+            return new MatchDeckRecord(matchId, characterIds);
+        }
+
+        public MatchDeckRecord CreateDeck(SaveMatchDeckArgs saveMatchDeckArgs)
+        {
+            if (saveMatchDeckArgs == null || saveMatchDeckArgs.MatchId <= 0)
+            {
+                return MatchDeckRecord.CreateInvalid();
+            }
+
+            List<string> cleanedIds = (saveMatchDeckArgs.CharacterIds ?? Array.Empty<string>())
+                .Where(characterId => !string.IsNullOrWhiteSpace(characterId))
+                .Select(characterId => characterId.Trim())
+                .ToList();
+
+            if (cleanedIds.Count == 0)
+            {
+                return MatchDeckRecord.CreateInvalid();
+            }
+
+            bool deckAlreadyExists = dataContext.MATCH_DECK_CARD
+                .AsNoTracking()
+                .Any(deckCard => deckCard.MATCHID == saveMatchDeckArgs.MatchId);
+
+            if (deckAlreadyExists)
+            {
+                return MatchDeckRecord.CreateInvalid();
+            }
+
+            int position = FIRST_POSITION;
+
+            foreach (string characterId in cleanedIds)
+            {
+                var entity = new MATCH_DECK_CARD
+                {
+                    MATCHID = saveMatchDeckArgs.MatchId,
+                    POSITION = position,
+                    CHARACTERID = characterId
+                };
+
+                dataContext.MATCH_DECK_CARD.Add(entity);
+                position++;
+            }
+
+            return new MatchDeckRecord(saveMatchDeckArgs.MatchId, cleanedIds);
         }
     }
 }

@@ -10,29 +10,31 @@ namespace GuessWhoServices.Services.ErrorHandling
         private const string EXCEPTION_TYPE_BUSINESS = "Business";
         private const string EMPTY = "";
 
-        public static FaultException<ServiceFault> Create(
-            string code,
-            string messageKey,
-            string fallbackMessage)
+        public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage)
         {
-            return Create(code, messageKey, fallbackMessage, null, null);
+            return Create(code, messageKey, fallbackMessage, null, null, null);
         }
 
-        public static FaultException<ServiceFault> Create(
-            string code,
-            string messageKey,
-            string fallbackMessage,
+        public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage,
             Exception ex)
         {
-            return Create(code, messageKey, fallbackMessage, ex, null);
+            return Create(code, messageKey, fallbackMessage, ex, null, null);
         }
 
-        public static FaultException<ServiceFault> Create(
-            string code,
-            string messageKey,
-            string fallbackMessage,
-            Exception ex,
-            string correlationId)
+        public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage,
+            Exception ex, string correlationId)
+        {
+            return Create(code, messageKey, fallbackMessage, ex, correlationId, null);
+        }
+
+        public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage,
+            string[] details)
+        {
+            return Create(code, messageKey, fallbackMessage, null, null, details);
+        }
+
+        public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage,
+            Exception ex, string correlationId, string[] details)
         {
             string effectiveCorrelationId = string.IsNullOrWhiteSpace(correlationId)
                 ? Guid.NewGuid().ToString(GUID_FORMAT_NO_HYPHENS)
@@ -52,7 +54,8 @@ namespace GuessWhoServices.Services.ErrorHandling
                 MessageKey = safeMessageKey,
                 CorrelationId = effectiveCorrelationId,
                 ExceptionType = exceptionTypeName,
-                FallbackMessage = safeFallback
+                FallbackMessage = safeFallback,
+                Details = details ?? Array.Empty<string>()
             };
 
             string reason = !string.IsNullOrWhiteSpace(fault.FallbackMessage)

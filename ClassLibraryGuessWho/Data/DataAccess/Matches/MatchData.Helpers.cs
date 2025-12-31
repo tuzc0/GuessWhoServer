@@ -64,6 +64,20 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             player.ISREADY = false;
         }
 
+        private bool MatchCodeExists(string matchCode)
+        {
+            string safeCode = (matchCode ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(safeCode))
+            {
+                return true;
+            }
+
+            return dataContext.MATCH
+                .AsNoTracking()
+                .Any(m => m.MATCHCODE == matchCode);
+        }
+
         private static string GenerateMatchCode()
         {
             byte[] buffer = new byte[MATCH_CODE_LENGTH];

@@ -1,6 +1,6 @@
-﻿using GuessWhoCore.Contracts.Faults;
+﻿using ClassLibraryGuessWho.Data.Factories;
+using GuessWhoCore.Contracts.Faults;
 using GuessWhoServerDomain.Domain.Enums;
-using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
 using GuessWhoServerDomain.Domain.Models.Sessions;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
@@ -19,8 +19,7 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 {
     public sealed class LoginManager : ManagerBase, ILoginManager
     {
-        protected override ILog Logger { get; } =
-            LogManager.GetLogger(typeof(LoginManager));
+        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(LoginManager));
 
         private const string EMPTY = "";
 
@@ -30,17 +29,17 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
         private const string DEFAULT_DUMMY_PASSWORD = "DUMMY_PASSWORD";
 
-        private readonly IUserAccountRepository accountRepository;
+        private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
         private readonly IPasswordHasher passwordHasher;
         private readonly byte[] dummyPasswordHash;
 
         public LoginManager(
-            IUserAccountRepository accountRepository,
+            IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
             IPasswordHasher passwordHasher,
             UserSecuritySettings securitySettings)
         {
-            this.accountRepository = accountRepository ??
-                throw new ArgumentNullException(nameof(accountRepository));
+            this.unitOfWorkFactory = unitOfWorkFactory ??
+                throw new ArgumentNullException(nameof(unitOfWorkFactory));
             this.passwordHasher = passwordHasher ??
                 throw new ArgumentNullException(nameof(passwordHasher));
 
@@ -70,27 +69,23 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
                     DateTime nowUtc = DateTime.UtcNow;
 
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
+
                     AccountProfileRecordResult result =
-                        accountRepository.GetAccountWithProfileForLogin(searchParams, nowUtc);
+                        unitOfWork.UserAccounts.GetAccountWithProfileForLogin(searchParams, nowUtc);
 
                     if (result == null || result.Status == AccountProfileStatus.NotFoundOrDeleted)
                     {
                         BurnTimeForTimingResistance(password);
 
-                        Logger.WarnFormat(
-                            "{0}: invalid credentials for email '{1}'.",
-                            LOG_CTX_LOGIN,
-                            normalizedEmail);
+                        Logger.WarnFormat("{0}: invalid credentials for email '{1}'.", LOG_CTX_LOGIN, normalizedEmail);
 
                         throw CreateInvalidCredentialsFault();
                     }
 
                     if (result.Status == AccountProfileStatus.Locked)
                     {
-                        Logger.WarnFormat(
-                            "{0}: account locked for email '{1}'.",
-                            LOG_CTX_LOGIN,
-                            normalizedEmail);
+                        Logger.WarnFormat("{0}: account locked for email '{1}'.", LOG_CTX_LOGIN, normalizedEmail);
 
                         throw FaultsFactory.Create(
                             LoginFaultKeys.CODE_ACCOUNT_LOCKED,
@@ -102,21 +97,22 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
                     if (!isPasswordValid)
                     {
-                        Logger.WarnFormat(
-                            "{0}: invalid credentials for email '{1}'.",
-                            LOG_CTX_LOGIN,
-                            normalizedEmail);
+                        BurnTimeForTimingResistance(password);
+
+                        Logger.WarnFormat("{0}: invalid credentials for email '{1}'.", LOG_CTX_LOGIN, normalizedEmail);
 
                         throw CreateInvalidCredentialsFault();
                     }
 
-                    bool lastLoginUpdated = accountRepository.UpdateLastLoginUtc(searchParams, nowUtc);
+                    bool lastLoginUpdated = unitOfWork.UserAccounts.UpdateLastLoginUtc(searchParams, nowUtc);
 
-                    if (!lastLoginUpdated)
+                    if (lastLoginUpdated)
                     {
-                        Logger.WarnFormat(
-                            "{0}: could not update last login utc for email '{1}'.",
-                            LOG_CTX_UPDATE_LAST_LOGIN,
+                        unitOfWork.Flush();
+                    }
+                    else
+                    {
+                        Logger.WarnFormat("{0}: could not update last login utc for email '{1}'.", LOG_CTX_UPDATE_LAST_LOGIN,
                             normalizedEmail);
                     }
 
@@ -128,49 +124,111 @@ namespace WcfServiceLibraryGuessWho.Coordinators
         {
             try
             {
-                _ = passwordHasher.VerifyPassword(password ?? EMPTY, dummyPasswordHash);
+                bool dummyResult = passwordHasher.VerifyPassword(password ?? EMPTY, dummyPasswordHash);
+
+                if (dummyResult)
+                {
+                    return;
+                }
             }
             catch (Exception ex)
             {
+                // Security note:
+                // This catch is intentionally broad to reduce timing side-channel leakage.
+                // If dummy verification throws (e.g., malformed stored hash), propagating the exception would
+                // fail fast and could reveal information about the authentication path through response time.
+                // We log the exception for diagnostics and swallow it to keep behavior/time consistent.
                 Logger.Warn(LOG_CTX_DUMMY_HASH, ex);
             }
         }
 
         private byte[] BuildDummyHashOrFallback(string dummyHashBase64)
         {
-            byte[] parsed = ParseDummyHashOrEmpty(dummyHashBase64);
+            HashAttemptResult parsed = ParseConfiguredDummyHash(dummyHashBase64);
 
-            if (parsed.Length > 0)
+            if (parsed.IsSuccess)
             {
-                return parsed;
+                return parsed.Hash;
+            }
+
+            HashAttemptResult computed = ComputeDummyHash();
+
+            if (computed.IsSuccess)
+            {
+                return computed.Hash;
+            }
+
+            return Array.Empty<byte>();
+        }
+
+        private HashAttemptResult ParseConfiguredDummyHash(string base64)
+        {
+            string trimmedBase64 = (base64 ?? EMPTY).Trim();
+
+            if (string.IsNullOrWhiteSpace(trimmedBase64))
+            {
+                return HashAttemptResult.Fail();
             }
 
             try
             {
-                return passwordHasher.HashPassword(DEFAULT_DUMMY_PASSWORD);
+                byte[] candidate = Convert.FromBase64String(trimmedBase64);
+
+                if (candidate != null && candidate.Length > 0)
+                {
+                    return HashAttemptResult.Ok(candidate);
+                }
+
+                return HashAttemptResult.Fail();
             }
-            catch
+            catch (FormatException ex)
             {
-                return Array.Empty<byte>();
+                Logger.Warn(LOG_CTX_DUMMY_HASH, ex);
+                return HashAttemptResult.Fail();
             }
         }
 
-        private static byte[] ParseDummyHashOrEmpty(string base64)
+        private HashAttemptResult ComputeDummyHash()
         {
-            string safe = (base64 ?? EMPTY).Trim();
-
-            if (string.IsNullOrWhiteSpace(safe))
-            {
-                return Array.Empty<byte>();
-            }
-
             try
             {
-                return Convert.FromBase64String(safe);
+                byte[] candidate = passwordHasher.HashPassword(DEFAULT_DUMMY_PASSWORD);
+
+                if (candidate != null && candidate.Length > 0)
+                {
+                    return HashAttemptResult.Ok(candidate);
+                }
+
+                return HashAttemptResult.Fail();
             }
-            catch (FormatException)
+            catch (ArgumentException ex)
             {
-                return Array.Empty<byte>();
+                Logger.Warn(LOG_CTX_DUMMY_HASH, ex);
+                return HashAttemptResult.Fail();
+            }
+            catch (InvalidOperationException ex)
+            {
+                Logger.Warn(LOG_CTX_DUMMY_HASH, ex);
+                return HashAttemptResult.Fail();
+            }
+            catch (System.Security.Cryptography.CryptographicException ex)
+            {
+                Logger.Warn(LOG_CTX_DUMMY_HASH, ex);
+                return HashAttemptResult.Fail();
+            }
+        }
+
+        private readonly record struct HashAttemptResult(bool IsSuccess, byte[] Hash)
+        {
+            public static HashAttemptResult Ok(byte[] hash)
+            {
+                byte[] safeHash = hash ?? Array.Empty<byte>();
+                return new HashAttemptResult(safeHash.Length > 0, safeHash);
+            }
+
+            public static HashAttemptResult Fail()
+            {
+                return new HashAttemptResult(false, Array.Empty<byte>());
             }
         }
 

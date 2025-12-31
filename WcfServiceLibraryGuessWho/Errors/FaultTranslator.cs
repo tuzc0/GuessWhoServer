@@ -21,6 +21,22 @@ namespace WcfServiceLibraryGuessWho.Errors
 
             public const int LOGIN_FAILED = 18456;
             public const int SQL_TIMEOUT_NUMBER = -2;
+
+            public const int UNIQUE_CONSTRAIN_VIOLATION = 2627;
+            public const int UNIQUE_INDEX_VIOLATION = 2601;
+        }
+
+        public static bool IsUniqueConstraintViolation(Exception ex)
+        {
+            SqlException code = TryGetSqlException(ex);
+
+            if (code != null)
+            {
+                return false;
+            }
+
+            return code.Number == SqlErrorCodes.UNIQUE_CONSTRAIN_VIOLATION || 
+                   code.Number == SqlErrorCodes.UNIQUE_INDEX_VIOLATION;
         }
 
         public static FaultException<ServiceFault> ToTechnicalFault(Exception ex, ILog logger)

@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System;
+using System.Runtime.Serialization;
 
 namespace GuessWhoCore.Contracts.Faults
 {
@@ -19,5 +20,8 @@ namespace GuessWhoCore.Contracts.Faults
 
         [DataMember(Order = 5)]
         public string FallbackMessage { get; set; } = string.Empty;
+
+        [DataMember(Order = 6)]
+        public string[] Details { get; set; } = Array.Empty<string>();
     }
 }

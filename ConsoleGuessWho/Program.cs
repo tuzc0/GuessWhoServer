@@ -1,12 +1,10 @@
-﻿using ClassLibraryGuessWho.Data.DataAccess.Characters;
-using ClassLibraryGuessWho.Data.DataAccess.Match;
-using ClassLibraryGuessWho.Data.Factories;
-using ClassLibraryGuessWho.Repositories.Implementation;
+﻿using ClassLibraryGuessWho.Data.Factories;
+using ConsoleGuessWho.Infraestructure.Settings;
 using ConsoleGuessWho.Infraestructure.Wcf;
-using GuessWho.Services.WCF.Security;
 using GuessWho.Services.WCF.Services;
-using GuessWho.Services.WCF.Services.MatchApplication;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
+using GuessWhoServerDomain.Domain.Settings;
+using GuessWhoServices.Security;
 using log4net;
 using log4net.Config;
 using System;
@@ -15,11 +13,9 @@ using WcfServiceLibraryGuessWho.Communication.Email;
 using WcfServiceLibraryGuessWho.Communication.Email.Builders;
 using WcfServiceLibraryGuessWho.Coordinators;
 using WcfServiceLibraryGuessWho.Coordinators.EmailVerification;
-using WcfServiceLibraryGuessWho.Services.MatchApplication;
-using WcfServiceLibraryGuessWho.Services.Settings;
+using WcfServiceLibraryGuessWho.Services.Configuration;
 
 [assembly: XmlConfigurator(Watch = true)]
-
 namespace ConsoleGuessWho
 {
     internal static class Program
@@ -37,108 +33,21 @@ namespace ConsoleGuessWho
 
         private static void Main(string[] args)
         {
+            XmlConfigurator.Configure();
             Logger.Info(SERVICE_HOST_STARTING_MESSAGE);
 
             try
             {
-                var contextFactory = new GuessWhoDbContextFactory();
-                var unitOfWorkFactory = new GuessWhoUnitOfWorkFactory(contextFactory);
+                HostComposition composition = BuildComposition();
 
-                UserSecuritySettings securitySettings = UserSecuritySettingsLoader.Load();
-                var verificationCodeService = new VerificationCodeService();
+                ServiceHost hostUser = CreateHost<UserService>(() => CreateUserService(composition));
+                ServiceHost hostLogin = CreateHost<LoginService>(() => CreateLoginService(composition));
 
-                Func<UserService> userServiceFactory = () =>
+                using (hostUser)
+                using (hostLogin)
                 {
-                    var accountRepo = new UserAccountRepository(contextFactory);
-                    var emailRepo = new EmailVerificationRepository(contextFactory);
-                    var avatarRepo = new AvatarRepository(contextFactory);
-
-                    IPasswordHasher passwordHasher = new Sha256PasswordHasher();
-
-                    var smtpSettings = SmtpSettingsLoader.Load();
-                    IEmailSender emailSender = new SmtpEmailSender(smtpSettings);
-
-                    var verificationCodeEmailBuilder = new VerificationCodeEmailBuilder();
-
-                    TimeSpan verificationCodeLifeTime = securitySettings.VerificationCodeLifetime;
-
-                    ILog domainLogger = LogManager.GetLogger(typeof(EmailVerificationDomainService));
-                    var emailVerificationDomainService = new EmailVerificationDomainService(
-                        emailRepo,
-                        verificationCodeService,
-                        securitySettings,
-                        domainLogger);
-
-                    var registrationManager = new UserRegistrationManager(
-                        unitOfWorkFactory,
-                        avatarRepo,
-                        emailSender,
-                        verificationCodeEmailBuilder,
-                        passwordHasher,
-                        verificationCodeService,
-                        verificationCodeLifeTime);
-
-                    var emailVerificationManager = new EmailVerificationManager(
-                        accountRepo,
-                        emailRepo,
-                        verificationCodeService,
-                        emailSender,
-                        verificationCodeEmailBuilder,
-                        securitySettings,
-                        emailVerificationDomainService);
-
-                    var passwordRecoveryManager = new PasswordRecoveryManager(
-                        accountRepo,
-                        emailRepo,
-                        emailSender,
-                        verificationCodeEmailBuilder,
-                        verificationCodeService,
-                        emailVerificationDomainService,
-                        passwordHasher,
-                        securitySettings);
-
-                    return new UserService(
-                        registrationManager,
-                        emailVerificationManager,
-                        passwordRecoveryManager);
-                };
-
-                Func<LoginService> loginServiceFactory = () =>
-                {
-                    var accountRepo = new UserAccountRepository(contextFactory);
-                    var sessionRepo = new GameSessionRepository(contextFactory);
-
-                    var loginManager = new LoginManager(accountRepo);
-                    var sessionManager = new GameSessionManager(sessionRepo);
-
-                    var loginCoordinator = new LoginCoordinator(loginManager, sessionManager, accountRepo);
-
-                    return new LoginService(loginCoordinator);
-                };
-
-                Func<MatchService> matchServiceFactory = () =>
-                {
-                    var matchData = new MatchData(contextFactory.Create());
-                    var lobbyNotifier = new LobbyNotifier(LogManager.GetLogger(typeof(LobbyNotifier)));
-                    var deckProvider = new MatchDeckProvider(new CharacterData(), new CharacterDeckData());
-
-                    return new MatchService(
-                        new MatchCreationService(matchData),
-                        new LobbyCoordinator(matchData, lobbyNotifier),
-                        new MatchLifecycleService(matchData, lobbyNotifier, deckProvider));
-                };
-
-                using (ServiceHost hostUser = new ServiceHost(typeof(UserService)))
-                using (ServiceHost hostLogin = new ServiceHost(typeof(LoginService)))
-                using (ServiceHost hostMatch = new ServiceHost(typeof(MatchService)))
-                {
-                    hostUser.Description.Behaviors.Add(new DelegateServiceBehavior(() => userServiceFactory()));
-                    hostLogin.Description.Behaviors.Add(new DelegateServiceBehavior(() => loginServiceFactory()));
-                    hostMatch.Description.Behaviors.Add(new DelegateServiceBehavior(() => matchServiceFactory()));
-
                     hostUser.Open();
                     hostLogin.Open();
-                    hostMatch.Open();
 
                     Logger.Info(SERVICE_HOST_STARTED_MESSAGE);
                     Console.WriteLine(SERVER_ONLINE_MESSAGE);
@@ -155,6 +64,172 @@ namespace ConsoleGuessWho
                 Console.WriteLine(FATAL_CONSOLE_PREFIX + ex.Message);
                 Console.ReadLine();
             }
+        }
+
+        private static HostComposition BuildComposition()
+        {
+            GuessWhoDbContextFactory contextFactory = new GuessWhoDbContextFactory();
+            IGuessWhoUnitOfWorkFactory unitOfWorkFactory = new GuessWhoUnitOfWorkFactory(contextFactory);
+
+            UserSecuritySettings securitySettings = UserSecuritySettingsLoader.Load();
+
+            IPasswordHasher passwordHasher = new PasswordHasher();
+
+            IVerificationCodeService verificationCodeService = new VerificationCodeService();
+            
+            SmtpSettings smtpSettings = SmtpSettingsLoader.Load();
+            smtpSettings.Validate();
+            IEmailSender emailSender = new SmtpEmailSender(smtpSettings);
+
+
+            VerificationCodeEmailBuilder verificationCodeEmailBuilder = new VerificationCodeEmailBuilder();
+
+            var draft = new HostCompositionDraft
+            {
+                UnitOfWorkFactory = unitOfWorkFactory,
+                SecuritySettings = securitySettings,
+                PasswordHasher = passwordHasher,
+                VerificationCodeService = verificationCodeService,
+                EmailSender = emailSender,
+                VerificationCodeEmailBuilder = verificationCodeEmailBuilder
+            };
+
+            return new HostComposition(draft);
+        }
+
+        private static ServiceHost CreateHost<TService>(Func<TService> serviceFactory)
+        {
+            if (serviceFactory == null)
+            {
+                throw new ArgumentNullException(nameof(serviceFactory));
+            }
+
+            ServiceHost host = new ServiceHost(typeof(TService));
+            host.Description.Behaviors.Add(new DelegateServiceBehavior(() => serviceFactory()));
+            return host;
+        }
+
+        private static UserService CreateUserService(HostComposition composition)
+        {
+            if (composition == null) throw new ArgumentNullException(nameof(composition));
+
+            var domainServiceArgs = new EmailVerificationDomainServiceArgs(
+                composition.UnitOfWorkFactory,
+                composition.VerificationCodeService,
+                composition.SecuritySettings,
+                LogManager.GetLogger(typeof(EmailVerificationDomainService)));
+
+            var emailVerificationDomainService = new EmailVerificationDomainService(domainServiceArgs);
+
+            TimeSpan verificationCodeLifeTime = composition.SecuritySettings.VerificationCodeLifetime;
+
+            var registrationManager = new UserRegistrationManager(
+                composition.UnitOfWorkFactory,
+                composition.EmailSender,
+                composition.VerificationCodeEmailBuilder, 
+                composition.PasswordHasher,
+                composition.VerificationCodeService,
+                verificationCodeLifeTime);
+
+            var emailVerificationManager = new EmailVerificationManager(
+                composition.UnitOfWorkFactory,
+                composition.VerificationCodeService,
+                composition.EmailSender,
+                composition.VerificationCodeEmailBuilder, 
+                emailVerificationDomainService);
+
+            var passwordRecoveryManager = new PasswordRecoveryManager(
+                composition.UnitOfWorkFactory,
+                composition.EmailSender,
+                composition.VerificationCodeEmailBuilder, 
+                composition.VerificationCodeService,
+                emailVerificationDomainService,
+                composition.PasswordHasher);
+
+            return new UserService(
+                registrationManager,
+                emailVerificationManager,
+                passwordRecoveryManager);
+        }
+
+        private static LoginService CreateLoginService(HostComposition composition)
+        {
+            if (composition == null) throw new ArgumentNullException(nameof(composition));
+
+            var loginManager = new LoginManager(
+                composition.UnitOfWorkFactory,
+                composition.PasswordHasher,
+                composition.SecuritySettings);
+
+            var loginCoordinator = new LoginCoordinator(
+                loginManager,
+                composition.UnitOfWorkFactory);
+
+            return new LoginService(loginCoordinator);
+        }
+
+        private sealed class HostCompositionDraft
+        {
+            public IGuessWhoUnitOfWorkFactory UnitOfWorkFactory { get; set; }
+            public UserSecuritySettings SecuritySettings { get; set; }
+            public IPasswordHasher PasswordHasher { get; set; }
+            public IVerificationCodeService VerificationCodeService { get; set; }
+            public IEmailSender EmailSender { get; set; }
+            public VerificationCodeEmailBuilder VerificationCodeEmailBuilder { get; set; }
+        }
+
+        private sealed class HostComposition
+        {
+            private const string ERROR_MISSING_DEPENDENCY_FORMAT = "Missing required dependency in HostCompositionDraft: {0}.";
+
+            public HostComposition(HostCompositionDraft draft)
+            {
+                if (draft == null) throw new ArgumentNullException(nameof(draft));
+
+                if (draft.UnitOfWorkFactory == null)
+                    throw new ArgumentException(
+                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.UnitOfWorkFactory)),
+                        nameof(draft));
+
+                if (draft.SecuritySettings == null)
+                    throw new ArgumentException(
+                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.SecuritySettings)),
+                        nameof(draft));
+
+                if (draft.PasswordHasher == null)
+                    throw new ArgumentException(
+                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.PasswordHasher)),
+                        nameof(draft));
+
+                if (draft.VerificationCodeService == null)
+                    throw new ArgumentException(
+                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.VerificationCodeService)),
+                        nameof(draft));
+
+                if (draft.EmailSender == null)
+                    throw new ArgumentException(
+                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.EmailSender)),
+                        nameof(draft));
+
+                if (draft.VerificationCodeEmailBuilder == null)
+                    throw new ArgumentException(
+                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.VerificationCodeEmailBuilder)),
+                        nameof(draft));
+
+                UnitOfWorkFactory = draft.UnitOfWorkFactory;
+                SecuritySettings = draft.SecuritySettings;
+                PasswordHasher = draft.PasswordHasher;
+                VerificationCodeService = draft.VerificationCodeService;
+                EmailSender = draft.EmailSender;
+                VerificationCodeEmailBuilder = draft.VerificationCodeEmailBuilder;
+            }
+
+            public IGuessWhoUnitOfWorkFactory UnitOfWorkFactory { get; }
+            public UserSecuritySettings SecuritySettings { get; }
+            public IPasswordHasher PasswordHasher { get; }
+            public IVerificationCodeService VerificationCodeService { get; }
+            public IEmailSender EmailSender { get; }
+            public VerificationCodeEmailBuilder VerificationCodeEmailBuilder { get; }
         }
     }
 }

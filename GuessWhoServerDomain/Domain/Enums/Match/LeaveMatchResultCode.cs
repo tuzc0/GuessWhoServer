@@ -6,6 +6,6 @@
         MatchNotFound = 1,
         PlayerNotInMatch = 2,
         PlayerAlreadyLeft = 3,
-        TechnicalError = 4
+        TechnicalError = 99
     }
 }
