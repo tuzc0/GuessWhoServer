@@ -70,12 +70,14 @@
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\DataAccess\Accounts\AccountRecordMapper.cs" />
+    <Compile Include="Data\DataAccess\Chat\MatchChatData.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationTokenRecordMapper.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Access.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Characters.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Discovery.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Tournament.cs" />
+    <Compile Include="Data\DataAccess\Turns\MatchTurnData.cs" />
     <Compile Include="Data\Factories\GuessWhoUnitOfWork.cs" />
     <Compile Include="Data\Factories\GuessWhoUnitOfWorkFactory.cs" />
     <Compile Include="Data\Factories\IGuessWhoUnitOfWork.cs" />
@@ -130,6 +132,9 @@
     <Compile Include="Data\MATCHVISIBILITY.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\MATCH_CHAT_MESSAGE.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
     <Compile Include="Data\MATCH_DECK_CARD.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
@@ -140,6 +145,12 @@
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\MATCH_PLAYER.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\MATCH_TURN_ORDER.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\MATCH_TURN_STATE.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\MODERATIONACTIONTYPE.cs">

@@ -29,5 +29,7 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
         MatchSnapshot GetOpenMatchByCode(string matchCode);
         IReadOnlyList<MatchSnapshot> GetPublicLobbyMatches();
         IReadOnlyList<LobbyPlayerSnapshot> GetMatchPlayers(long matchId);
+
+        IReadOnlyList<long> GetActivePlayerIds(long matchId, int takeMax);
     }
 }

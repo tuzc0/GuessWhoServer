@@ -16,7 +16,9 @@ namespace ClassLibraryGuessWho.Data.Factories
             ICharacterRepository characters,
             IMatchDeckRepository matchDecks,
             IFriendshipRepository friendships,
-            IMatchRepository matches)
+            IMatchRepository matches,
+            IMatchChatRepository matchChats,
+            IMatchTurnRepository matchTurns)
         {
             this.context = context ?? 
                 throw new ArgumentNullException(nameof(context));
@@ -35,6 +37,10 @@ namespace ClassLibraryGuessWho.Data.Factories
                 throw new ArgumentNullException(nameof(friendships));
             Matches = matches ?? 
                 throw new ArgumentNullException(nameof(matches));
+            MatchesChats = matchChats ??
+                throw new ArgumentNullException(nameof(matchChats));
+            MatchesTurns = matchTurns ??
+                throw new ArgumentNullException(nameof(matchTurns));
         }
 
         public GuessWhoDBEntities Context => context;
@@ -46,6 +52,8 @@ namespace ClassLibraryGuessWho.Data.Factories
         public IMatchDeckRepository MatchDecks { get; }
         public IFriendshipRepository Friendships { get; }
         public IMatchRepository Matches { get; }
+        public IMatchChatRepository MatchesChats { get; }
+        public IMatchTurnRepository MatchesTurns { get; }
 
         public IGuessWhoDbTransaction BeginTransaction()
         {

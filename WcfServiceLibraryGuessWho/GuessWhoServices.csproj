@@ -152,7 +152,6 @@
     <Compile Include="Coordinators\Interfaces\IPasswordRecoveryManager.cs" />
     <Compile Include="Coordinators\Interfaces\IUpdateProfileManager.cs" />
     <Compile Include="Coordinators\Interfaces\IUserRegistrationManager.cs" />
-    <Compile Include="Coordinators\InternalDtos\GetOrCreateMatchDeckArgs.cs" />
     <Compile Include="Coordinators\LoginCoordinator.cs" />
     <Compile Include="Coordinators\LoginManager.cs" />
     <Compile Include="Coordinators\InternalDtos\LoginArgs.cs" />

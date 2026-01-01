@@ -65,5 +65,21 @@
         public const string CODE_MATCH_NOT_PUBLIC = "MATCH_NOT_PUBLIC";
         public const string MSG_MATCH_NOT_PUBLIC = "Match.NotPublic";
         public const string FALLBACK_MATCH_NOT_PUBLIC = "The match is not public.";
+
+        public const string CODE_PLAYER_NOT_IN_MATCH = "MATCH_PLAYER_NOT_IN_MATCH";
+        public const string MSG_PLAYER_NOT_IN_MATCH = "Match.PlayerNotInMatch";
+        public const string FALLBACK_PLAYER_NOT_IN_MATCH = "Player does not belong to this match.";
+
+        public const string CODE_PLAYER_ALREADY_LEFT = "MATCH_PLAYER_ALREADY_LEFT";
+        public const string MSG_PLAYER_ALREADY_LEFT = "Match.PlayerAlreadyLeft";
+        public const string FALLBACK_PLAYER_ALREADY_LEFT = "Player already left the match.";
+
+        public const string CODE_INVALID_CHARACTER = "MATCH_INVALID_CHARACTER";
+        public const string MSG_INVALID_CHARACTER = "Match.InvalidCharacter";
+        public const string FALLBACK_INVALID_CHARACTER = "Selected character is not valid for this match.";
+
+        public const string CODE_SECRET_ALREADY_CHOSEN = "MATCH_SECRET_ALREADY_CHOSEN";
+        public const string MSG_SECRET_ALREADY_CHOSEN = "Match.SecretAlreadyChosen";
+        public const string FALLBACK_SECRET_ALREADY_CHOSEN = "Secret character was already chosen.";
     }
 }

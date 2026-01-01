@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Domain\Enums\Chat\AddMatchChatMessageResultCode.cs" />
     <Compile Include="Domain\Enums\Friends\FriendRequestDataStatus.cs" />
     <Compile Include="Domain\Enums\Friends\FriendRequestStatus.cs" />
     <Compile Include="Domain\Enums\Match\ChangeSecretCharacterResultCode.cs" />
@@ -52,14 +53,20 @@
     <Compile Include="Domain\Enums\Match\LeaveMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Match\JoinMatchOutcomeCode.cs" />
     <Compile Include="Domain\Enums\Match\MarkReadyResultCode.cs" />
+    <Compile Include="Domain\Enums\Match\MatchMode.cs" />
+    <Compile Include="Domain\Enums\Match\MatchStatus.cs" />
+    <Compile Include="Domain\Enums\Match\MatchVisibility.cs" />
     <Compile Include="Domain\Enums\Match\SetMatchPrivateResultCode.cs" />
     <Compile Include="Domain\Enums\Match\StartMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Security\VerificationCodeResult.cs" />
+    <Compile Include="Domain\Enums\Turns\InitializeTurnOrderResultCode.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IAvatarRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\ICharacterRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IEmailVerificationRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IFriendshipRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IMatchChatRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IMatchRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IMatchTurnRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IUserAccountRepository.cs" />
     <Compile Include="Domain\Interfaces\Security\IEmailVerificationDomainService.cs" />
     <Compile Include="Domain\Interfaces\Security\IPasswordHasher.cs" />
@@ -69,6 +76,7 @@
     <Compile Include="Domain\Models\Accounts\UpdateProfileSnapshot.cs" />
     <Compile Include="Domain\Models\Accounts\UserProfileRecord.cs" />
     <Compile Include="Domain\Models\Avatars\AvatarRecord.cs" />
+    <Compile Include="Domain\Models\Chat\MatchChatMessageRecord.cs" />
     <Compile Include="Domain\Models\EmailVerification\EmailVerificationTokenRecord.cs" />
     <Compile Include="Domain\Models\Friends\FriendRequestRecord.cs" />
     <Compile Include="Domain\Models\Friends\IFriendRequestIdProvider.cs" />
@@ -77,6 +85,10 @@
     <Compile Include="Domain\Models\Match\MatchDeckRecord.cs" />
     <Compile Include="Domain\Models\Match\LobbyPlayerSnapshot.cs" />
     <Compile Include="Domain\Models\Match\MatchSnapshot.cs" />
+    <Compile Include="Domain\Models\Turns\TurnStateSnapshot.cs" />
+    <Compile Include="Domain\Parameters\Chat\AddMatchChatMessageArgs.cs" />
+    <Compile Include="Domain\Parameters\Turns\InitializeTurnOrderArgs.cs" />
+    <Compile Include="Domain\Results\Chat\AddMatchChatMessageResult.cs" />
     <Compile Include="Domain\Results\Match\TournamentMatchCreationResult.cs" />
     <Compile Include="Domain\Models\Session\SessionLoginResult.cs" />
     <Compile Include="Domain\Parameters\Accounts\AccountSearchParameters.cs" />
@@ -117,6 +129,7 @@
     <Compile Include="Domain\Results\Match\SetMatchPrivateResult.cs" />
     <Compile Include="Domain\Results\Match\StartMatchResult.cs" />
     <Compile Include="Domain\Results\Sessions\AccountWithProfileForLoginResult.cs" />
+    <Compile Include="Domain\Results\Turns\InitializeTurnOrderResult.cs" />
     <Compile Include="Domain\Settings\UserSecuritySettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\IsExternalInit.cs" />

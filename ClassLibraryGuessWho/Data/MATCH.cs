@@ -22,6 +22,8 @@ namespace ClassLibraryGuessWho.Data
             this.MATCH_PLAYER = new HashSet<MATCH_PLAYER>();
             this.MODERATION_ACTION = new HashSet<MODERATION_ACTION>();
             this.TOURNAMENT_4P_MATCH = new HashSet<TOURNAMENT_4P_MATCH>();
+            this.MATCH_CHAT_MESSAGE = new HashSet<MATCH_CHAT_MESSAGE>();
+            this.MATCH_TURN_ORDER = new HashSet<MATCH_TURN_ORDER>();
         }
     
         public long MATCHID { get; set; }
@@ -49,5 +51,10 @@ namespace ClassLibraryGuessWho.Data
         public virtual ICollection<MODERATION_ACTION> MODERATION_ACTION { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_CHAT_MESSAGE> MATCH_CHAT_MESSAGE { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_TURN_ORDER> MATCH_TURN_ORDER { get; set; }
+        public virtual MATCH_TURN_STATE MATCH_TURN_STATE { get; set; }
     }
 }

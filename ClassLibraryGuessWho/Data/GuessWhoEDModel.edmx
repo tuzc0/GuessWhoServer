@@ -103,6 +103,16 @@
           <Property Name="MODEID" Type="tinyint" Nullable="false" />
           <Property Name="ISCODEJOINENABLED" Type="bit" Nullable="false" />
         </EntityType>
+        <EntityType Name="MATCH_CHAT_MESSAGE">
+          <Key>
+            <PropertyRef Name="MESSAGEID" />
+          </Key>
+          <Property Name="MESSAGEID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="MATCHID" Type="bigint" Nullable="false" />
+          <Property Name="SENDERUSERID" Type="bigint" Nullable="false" />
+          <Property Name="MESSAGE" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
         <EntityType Name="MATCH_DECK_CARD">
           <Key>
             <PropertyRef Name="MATCHID" />
@@ -155,6 +165,28 @@
           <Property Name="ISHOST" Type="bit" Nullable="false" />
           <Property Name="ISREADY" Type="bit" Nullable="false" />
           <Property Name="SECRETCHARACTERID" Type="nvarchar" MaxLength="100" />
+        </EntityType>
+        <EntityType Name="MATCH_TURN_ORDER">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+            <PropertyRef Name="POSITION" />
+          </Key>
+          <Property Name="MATCHID" Type="bigint" Nullable="false" />
+          <Property Name="POSITION" Type="tinyint" Nullable="false" />
+          <Property Name="USERID" Type="bigint" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
+        </EntityType>
+        <EntityType Name="MATCH_TURN_STATE">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+          </Key>
+          <Property Name="MATCHID" Type="bigint" Nullable="false" />
+          <Property Name="TURNNUMBER" Type="int" Nullable="false" />
+          <Property Name="CURRENTPOSITION" Type="tinyint" Nullable="false" />
+          <Property Name="CURRENTUSERID" Type="bigint" Nullable="false" />
+          <Property Name="TURNSTARTEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="TURNEXPIRESATUTC" Type="datetime2" Precision="0" />
+          <Property Name="ROWVERSION" Type="timestamp" StoreGeneratedPattern="Computed" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCHSTATUS">
           <Key>
@@ -336,6 +368,30 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_MATCH_CHAT_MESSAGE_MATCH">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1" />
+          <End Role="MATCH_CHAT_MESSAGE" Type="Self.MATCH_CHAT_MESSAGE" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_CHAT_MESSAGE">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_CHAT_MESSAGE_USER_PROFILE">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MATCH_CHAT_MESSAGE" Type="Self.MATCH_CHAT_MESSAGE" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_CHAT_MESSAGE">
+              <PropertyRef Name="SENDERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_MATCH_DECK_CARD_CHARACTER">
           <End Role="CHARACTER" Type="Self.CHARACTER" Multiplicity="1" />
           <End Role="MATCH_DECK_CARD" Type="Self.MATCH_DECK_CARD" Multiplicity="*" />
@@ -457,6 +513,54 @@
             </Principal>
             <Dependent Role="MATCH">
               <PropertyRef Name="STATUSID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_TURN_ORDER_MATCH">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1" />
+          <End Role="MATCH_TURN_ORDER" Type="Self.MATCH_TURN_ORDER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_TURN_ORDER">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_TURN_ORDER_USER_PROFILE">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MATCH_TURN_ORDER" Type="Self.MATCH_TURN_ORDER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_TURN_ORDER">
+              <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_TURN_STATE_MATCH">
+          <End Role="MATCH" Type="Self.MATCH" Multiplicity="1" />
+          <End Role="MATCH_TURN_STATE" Type="Self.MATCH_TURN_STATE" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_TURN_STATE">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_TURN_STATE_USER_PROFILE">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="1" />
+          <End Role="MATCH_TURN_STATE" Type="Self.MATCH_TURN_STATE" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_TURN_STATE">
+              <PropertyRef Name="CURRENTUSERID" />
             </Dependent>
           </ReferentialConstraint>
         </Association>
@@ -633,10 +737,13 @@
           <EntitySet Name="FRIENDSHIP" EntityType="Self.FRIENDSHIP" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="GUEST_SESSION" EntityType="Self.GUEST_SESSION" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH" EntityType="Self.MATCH" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCH_CHAT_MESSAGE" EntityType="Self.MATCH_CHAT_MESSAGE" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH_DECK_CARD" EntityType="Self.MATCH_DECK_CARD" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH_INVITATION" EntityType="Self.MATCH_INVITATION" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH_MODE" EntityType="Self.MATCH_MODE" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCH_PLAYER" EntityType="Self.MATCH_PLAYER" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCH_TURN_ORDER" EntityType="Self.MATCH_TURN_ORDER" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="MATCH_TURN_STATE" EntityType="Self.MATCH_TURN_STATE" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCHSTATUS" EntityType="Self.MATCHSTATUS" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCHVISIBILITY" EntityType="Self.MATCHVISIBILITY" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MODERATION_ACTION" EntityType="Self.MODERATION_ACTION" Schema="dbo" store:Type="Tables" />
@@ -678,6 +785,14 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="GUEST_SESSION" EntitySet="GUEST_SESSION" />
           </AssociationSet>
+          <AssociationSet Name="FK_MATCH_CHAT_MESSAGE_MATCH" Association="Self.FK_MATCH_CHAT_MESSAGE_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_CHAT_MESSAGE" EntitySet="MATCH_CHAT_MESSAGE" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_CHAT_MESSAGE_USER_PROFILE" Association="Self.FK_MATCH_CHAT_MESSAGE_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_CHAT_MESSAGE" EntitySet="MATCH_CHAT_MESSAGE" />
+          </AssociationSet>
           <AssociationSet Name="FK_MATCH_DECK_CARD_CHARACTER" Association="Self.FK_MATCH_DECK_CARD_CHARACTER">
             <End Role="CHARACTER" EntitySet="CHARACTER" />
             <End Role="MATCH_DECK_CARD" EntitySet="MATCH_DECK_CARD" />
@@ -717,6 +832,22 @@
           <AssociationSet Name="FK_MATCH_STATUS" Association="Self.FK_MATCH_STATUS">
             <End Role="MATCHSTATUS" EntitySet="MATCHSTATUS" />
             <End Role="MATCH" EntitySet="MATCH" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_TURN_ORDER_MATCH" Association="Self.FK_MATCH_TURN_ORDER_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_TURN_ORDER" EntitySet="MATCH_TURN_ORDER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_TURN_ORDER_USER_PROFILE" Association="Self.FK_MATCH_TURN_ORDER_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_TURN_ORDER" EntitySet="MATCH_TURN_ORDER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_TURN_STATE_MATCH" Association="Self.FK_MATCH_TURN_STATE_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_TURN_STATE" EntitySet="MATCH_TURN_STATE" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_TURN_STATE_USER_PROFILE" Association="Self.FK_MATCH_TURN_STATE_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_TURN_STATE" EntitySet="MATCH_TURN_STATE" />
           </AssociationSet>
           <AssociationSet Name="FK_MATCH_VISIBILITY" Association="Self.FK_MATCH_VISIBILITY">
             <End Role="MATCHVISIBILITY" EntitySet="MATCHVISIBILITY" />
@@ -966,6 +1097,33 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="GUEST_SESSION" EntitySet="GUEST_SESSION" />
           </AssociationSet>
+          <EntitySet Name="MATCH_CHAT_MESSAGE" EntityType="GuessWhoDBModel.MATCH_CHAT_MESSAGE" />
+          <EntitySet Name="MATCH_TURN_ORDER" EntityType="GuessWhoDBModel.MATCH_TURN_ORDER" />
+          <EntitySet Name="MATCH_TURN_STATE" EntityType="GuessWhoDBModel.MATCH_TURN_STATE" />
+          <AssociationSet Name="FK_MATCH_CHAT_MESSAGE_MATCH" Association="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_CHAT_MESSAGE" EntitySet="MATCH_CHAT_MESSAGE" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_TURN_ORDER_MATCH" Association="GuessWhoDBModel.FK_MATCH_TURN_ORDER_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_TURN_ORDER" EntitySet="MATCH_TURN_ORDER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_TURN_STATE_MATCH" Association="GuessWhoDBModel.FK_MATCH_TURN_STATE_MATCH">
+            <End Role="MATCH" EntitySet="MATCH" />
+            <End Role="MATCH_TURN_STATE" EntitySet="MATCH_TURN_STATE" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_CHAT_MESSAGE_USER_PROFILE" Association="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_CHAT_MESSAGE" EntitySet="MATCH_CHAT_MESSAGE" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_TURN_ORDER_USER_PROFILE" Association="GuessWhoDBModel.FK_MATCH_TURN_ORDER_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_TURN_ORDER" EntitySet="MATCH_TURN_ORDER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_MATCH_TURN_STATE_USER_PROFILE" Association="GuessWhoDBModel.FK_MATCH_TURN_STATE_USER_PROFILE">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="MATCH_TURN_STATE" EntitySet="MATCH_TURN_STATE" />
+          </AssociationSet>
           </EntityContainer>
         <ComplexType Name="sp_helpdiagramdefinition_Result">
           <Property Type="Int32" Name="version" Nullable="true" />
@@ -1087,6 +1245,9 @@
           <NavigationProperty Name="MODERATION_ACTION" Relationship="GuessWhoDBModel.FK_MODERATION_ACTION_MATCH" FromRole="MATCH" ToRole="MODERATION_ACTION" />
           <NavigationProperty Name="TOURNAMENT_4P_MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH" FromRole="MATCH" ToRole="TOURNAMENT_4P_MATCH" />
           <Property Name="ISCODEJOINENABLED" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="MATCH_CHAT_MESSAGE" Relationship="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_MATCH" FromRole="MATCH" ToRole="MATCH_CHAT_MESSAGE" />
+          <NavigationProperty Name="MATCH_TURN_ORDER" Relationship="GuessWhoDBModel.FK_MATCH_TURN_ORDER_MATCH" FromRole="MATCH" ToRole="MATCH_TURN_ORDER" />
+          <NavigationProperty Name="MATCH_TURN_STATE" Relationship="GuessWhoDBModel.FK_MATCH_TURN_STATE_MATCH" FromRole="MATCH" ToRole="MATCH_TURN_STATE" />
         </EntityType>
         <EntityType Name="MATCH_DECK_CARD">
           <Key>
@@ -1264,6 +1425,9 @@
           <NavigationProperty Name="TOURNAMENT_4P_PLAYER" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_USER" FromRole="USER_PROFILE" ToRole="TOURNAMENT_4P_PLAYER" />
           <Property Name="ISGUEST" Type="Boolean" Nullable="false" />
           <NavigationProperty Name="GUEST_SESSION" Relationship="GuessWhoDBModel.FK_GUEST_SESSION_USER_PROFILE" FromRole="USER_PROFILE" ToRole="GUEST_SESSION" />
+          <NavigationProperty Name="MATCH_CHAT_MESSAGE" Relationship="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_USER_PROFILE" FromRole="USER_PROFILE" ToRole="MATCH_CHAT_MESSAGE" />
+          <NavigationProperty Name="MATCH_TURN_ORDER" Relationship="GuessWhoDBModel.FK_MATCH_TURN_ORDER_USER_PROFILE" FromRole="USER_PROFILE" ToRole="MATCH_TURN_ORDER" />
+          <NavigationProperty Name="MATCH_TURN_STATE" Relationship="GuessWhoDBModel.FK_MATCH_TURN_STATE_USER_PROFILE" FromRole="USER_PROFILE" ToRole="MATCH_TURN_STATE" />
         </EntityType>
         <Association Name="FK_ACCOUNT_USER_PROFILE">
           <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
@@ -1651,6 +1815,116 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="MATCH_CHAT_MESSAGE">
+          <Key>
+            <PropertyRef Name="MESSAGEID" />
+          </Key>
+          <Property Name="MESSAGEID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="MATCHID" Type="Int64" Nullable="false" />
+          <Property Name="SENDERUSERID" Type="Int64" Nullable="false" />
+          <Property Name="MESSAGE" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_MATCH" FromRole="MATCH_CHAT_MESSAGE" ToRole="MATCH" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_USER_PROFILE" FromRole="MATCH_CHAT_MESSAGE" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="MATCH_TURN_ORDER">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+            <PropertyRef Name="POSITION" />
+          </Key>
+          <Property Name="MATCHID" Type="Int64" Nullable="false" />
+          <Property Name="POSITION" Type="Byte" Nullable="false" />
+          <Property Name="USERID" Type="Int64" Nullable="false" />
+          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_MATCH_TURN_ORDER_MATCH" FromRole="MATCH_TURN_ORDER" ToRole="MATCH" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_MATCH_TURN_ORDER_USER_PROFILE" FromRole="MATCH_TURN_ORDER" ToRole="USER_PROFILE" />
+        </EntityType>
+        <EntityType Name="MATCH_TURN_STATE">
+          <Key>
+            <PropertyRef Name="MATCHID" />
+          </Key>
+          <Property Name="MATCHID" Type="Int64" Nullable="false" />
+          <Property Name="TURNNUMBER" Type="Int32" Nullable="false" />
+          <Property Name="CURRENTPOSITION" Type="Byte" Nullable="false" />
+          <Property Name="CURRENTUSERID" Type="Int64" Nullable="false" />
+          <Property Name="TURNSTARTEDATUTC" Type="DateTime" Nullable="false" Precision="0" />
+          <Property Name="TURNEXPIRESATUTC" Type="DateTime" Precision="0" />
+          <Property Name="ROWVERSION" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" annotation:StoreGeneratedPattern="Computed" />
+          <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_MATCH_TURN_STATE_MATCH" FromRole="MATCH_TURN_STATE" ToRole="MATCH" />
+          <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_MATCH_TURN_STATE_USER_PROFILE" FromRole="MATCH_TURN_STATE" ToRole="USER_PROFILE" />
+        </EntityType>
+        <Association Name="FK_MATCH_CHAT_MESSAGE_MATCH">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_CHAT_MESSAGE" Role="MATCH_CHAT_MESSAGE" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_CHAT_MESSAGE">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_TURN_ORDER_MATCH">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_TURN_ORDER" Role="MATCH_TURN_ORDER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_TURN_ORDER">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_TURN_STATE_MATCH">
+          <End Type="GuessWhoDBModel.MATCH" Role="MATCH" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_TURN_STATE" Role="MATCH_TURN_STATE" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="MATCH">
+              <PropertyRef Name="MATCHID" />
+            </Principal>
+            <Dependent Role="MATCH_TURN_STATE">
+              <PropertyRef Name="MATCHID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_CHAT_MESSAGE_USER_PROFILE">
+          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_CHAT_MESSAGE" Role="MATCH_CHAT_MESSAGE" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_CHAT_MESSAGE">
+              <PropertyRef Name="SENDERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_TURN_ORDER_USER_PROFILE">
+          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_TURN_ORDER" Role="MATCH_TURN_ORDER" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_TURN_ORDER">
+              <PropertyRef Name="USERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_MATCH_TURN_STATE_USER_PROFILE">
+          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
+          <End Type="GuessWhoDBModel.MATCH_TURN_STATE" Role="MATCH_TURN_STATE" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="MATCH_TURN_STATE">
+              <PropertyRef Name="CURRENTUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -1910,6 +2184,40 @@
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
                 <ScalarProperty Name="USERID" ColumnName="USERID" />
                 <ScalarProperty Name="GUESTTOKEN" ColumnName="GUESTTOKEN" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH_CHAT_MESSAGE">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_CHAT_MESSAGE">
+              <MappingFragment StoreEntitySet="MATCH_CHAT_MESSAGE">
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="MESSAGE" ColumnName="MESSAGE" />
+                <ScalarProperty Name="SENDERUSERID" ColumnName="SENDERUSERID" />
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+                <ScalarProperty Name="MESSAGEID" ColumnName="MESSAGEID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH_TURN_ORDER">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_TURN_ORDER">
+              <MappingFragment StoreEntitySet="MATCH_TURN_ORDER">
+                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
+                <ScalarProperty Name="USERID" ColumnName="USERID" />
+                <ScalarProperty Name="POSITION" ColumnName="POSITION" />
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="MATCH_TURN_STATE">
+            <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_TURN_STATE">
+              <MappingFragment StoreEntitySet="MATCH_TURN_STATE">
+                <ScalarProperty Name="ROWVERSION" ColumnName="ROWVERSION" />
+                <ScalarProperty Name="TURNEXPIRESATUTC" ColumnName="TURNEXPIRESATUTC" />
+                <ScalarProperty Name="TURNSTARTEDATUTC" ColumnName="TURNSTARTEDATUTC" />
+                <ScalarProperty Name="CURRENTUSERID" ColumnName="CURRENTUSERID" />
+                <ScalarProperty Name="CURRENTPOSITION" ColumnName="CURRENTPOSITION" />
+                <ScalarProperty Name="TURNNUMBER" ColumnName="TURNNUMBER" />
+                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

@@ -1,4 +1,6 @@
-﻿namespace GuessWhoCore.Dtos
+﻿using GuessWhoCore.Enums;
+
+namespace GuessWhoCore.Dtos
 {
     public sealed class AccountProfileResult
     {

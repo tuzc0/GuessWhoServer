@@ -14,6 +14,9 @@ namespace ClassLibraryGuessWho.Data.Factories
         IMatchDeckRepository MatchDecks { get; }
         IFriendshipRepository Friendships { get; }
         IMatchRepository Matches { get; }
+        IMatchChatRepository MatchesChats { get; }
+        IMatchTurnRepository MatchesTurns { get; }
+
         IGuessWhoDbTransaction BeginTransaction();
         void Flush();
     }

@@ -2,12 +2,23 @@
 using GuessWhoServerDomain.Domain.Models.Matches;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 
 namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 {
     public sealed partial class MatchData
     {
+        private const int MAX_TAKE = 10;
+
+        private const string SQL_GET_ACTIVE_PLAYER_IDS =
+            @"SELECT TOP (@TakeMax)
+                    MP.USERID AS UserId
+              FROM dbo.MATCH_PLAYER MP
+              WHERE MP.MATCHID = @MatchId
+                AND MP.LEFTATUTC IS NULL
+              ORDER BY MP.USERID ASC;";
+
         public MatchSnapshot GetOpenMatchByCode(string matchCode)
         {
             string safeCode = NormalizeMatchCode(matchCode);
@@ -89,6 +100,43 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 .ToList();
 
             return players;
+        }
+
+        public IReadOnlyList<long> GetActivePlayerIds(long matchId, int takeMax)
+        {
+            if (matchId <= 0)
+            {
+                return Array.Empty<long>();
+            }
+
+            int safeTake = NormalizeTake(takeMax);
+            if (safeTake <= 0)
+            {
+                return Array.Empty<long>();
+            }
+
+            List<long> rows = dataContext.Database.SqlQuery<long>(
+                    SQL_GET_ACTIVE_PLAYER_IDS,
+                    new SqlParameter("@MatchId", matchId),
+                    new SqlParameter("@TakeMax", safeTake))
+                .ToList();
+
+            if (rows.Count == 0)
+            {
+                return Array.Empty<long>();
+            }
+
+            return rows;
+        }
+
+        private static int NormalizeTake(int takeMax)
+        {
+            if (takeMax <= 0)
+            {
+                return 0;
+            }
+
+            return takeMax > MAX_TAKE ? MAX_TAKE : takeMax;
         }
 
         private static string NormalizeMatchCode(string matchCode) 

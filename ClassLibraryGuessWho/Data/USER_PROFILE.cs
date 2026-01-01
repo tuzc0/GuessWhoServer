@@ -31,6 +31,9 @@ namespace ClassLibraryGuessWho.Data
             this.TOURNAMENT_4P = new HashSet<TOURNAMENT_4P>();
             this.TOURNAMENT_4P_PLAYER = new HashSet<TOURNAMENT_4P_PLAYER>();
             this.GUEST_SESSION = new HashSet<GUEST_SESSION>();
+            this.MATCH_CHAT_MESSAGE = new HashSet<MATCH_CHAT_MESSAGE>();
+            this.MATCH_TURN_ORDER = new HashSet<MATCH_TURN_ORDER>();
+            this.MATCH_TURN_STATE = new HashSet<MATCH_TURN_STATE>();
         }
     
         public long USERID { get; set; }
@@ -70,5 +73,11 @@ namespace ClassLibraryGuessWho.Data
         public virtual ICollection<TOURNAMENT_4P_PLAYER> TOURNAMENT_4P_PLAYER { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<GUEST_SESSION> GUEST_SESSION { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_CHAT_MESSAGE> MATCH_CHAT_MESSAGE { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_TURN_ORDER> MATCH_TURN_ORDER { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_TURN_STATE> MATCH_TURN_STATE { get; set; }
     }
 }
