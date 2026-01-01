@@ -5,7 +5,7 @@ namespace GuessWhoServices.Infrastructure
 {
     public interface ILobbySubscriptionStore
     {
-        bool Subscribe(long matchId, IMatchCallback callbackChannel);
+        bool Subscribe(long matchId, long userId, IMatchCallback callbackChannel);
         void Unsubscribe(long matchId, IMatchCallback callbackChannel);
         IReadOnlyList<IMatchCallback> GetSubscribers(long matchId);
     }

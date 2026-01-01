@@ -33,6 +33,9 @@ namespace ClassLibraryGuessWho.Data.Factories
             IMatchRepository matches = new MatchData(context);
             IMatchChatRepository matchChat = new MatchChatData(context);
             IMatchTurnRepository matchTurns = new MatchTurnData(context);
+            IMatchChessClockRepository matchChessClock = new MatchChessClockData(context);
+            IMatchTurnAdvanceRepository matchTurnAdvance = new MatchTurnAdvanceData(context);
+            IMatchGuessingRepository matchGuessing = new MatchGuessingData(context);
 
             return new GuessWhoUnitOfWork(
                 context,
@@ -44,7 +47,10 @@ namespace ClassLibraryGuessWho.Data.Factories
                 friendships,
                 matches,
                 matchChat,
-                matchTurns);
+                matchTurns,
+                matchChessClock,
+                matchTurnAdvance,
+                matchGuessing);
         }
     }
 }

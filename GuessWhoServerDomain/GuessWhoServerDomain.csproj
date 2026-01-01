@@ -42,30 +42,44 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Domain\Enums\Chat\AddMatchChatMessageResultCode.cs" />
+    <Compile Include="Domain\Enums\Accounts\LoginStatus.cs" />
+    <Compile Include="Domain\Enums\Chats\AddMatchChatMessageResultCode.cs" />
     <Compile Include="Domain\Enums\Friends\FriendRequestDataStatus.cs" />
     <Compile Include="Domain\Enums\Friends\FriendRequestStatus.cs" />
-    <Compile Include="Domain\Enums\Match\ChangeSecretCharacterResultCode.cs" />
-    <Compile Include="Domain\Enums\Match\ChooseSecretCharacterResultCode.cs" />
-    <Compile Include="Domain\Enums\Match\EndMatchResultCode.cs" />
-    <Compile Include="Domain\Enums\Match\JoinMatchResultCode.cs" />
-    <Compile Include="Domain\Enums\Match\KickPlayerResultCode.cs" />
-    <Compile Include="Domain\Enums\Match\LeaveMatchResultCode.cs" />
-    <Compile Include="Domain\Enums\Match\JoinMatchOutcomeCode.cs" />
-    <Compile Include="Domain\Enums\Match\MarkReadyResultCode.cs" />
-    <Compile Include="Domain\Enums\Match\MatchMode.cs" />
-    <Compile Include="Domain\Enums\Match\MatchStatus.cs" />
-    <Compile Include="Domain\Enums\Match\MatchVisibility.cs" />
-    <Compile Include="Domain\Enums\Match\SetMatchPrivateResultCode.cs" />
-    <Compile Include="Domain\Enums\Match\StartMatchResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\ChangeSecretCharacterResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\ChooseSecretCharacterResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\EndMatchResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\FinalGuessResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\FinalGuessSnapshot.cs" />
+    <Compile Include="Domain\Enums\Matches\JoinMatchResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\KickPlayerResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\LeaveMatchResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\JoinMatchOutcomeCode.cs" />
+    <Compile Include="Domain\Enums\Matches\LoadFinalGuessSnapshotResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\MarkReadyResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\MatchDeckResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\MatchMode.cs" />
+    <Compile Include="Domain\Enums\Matches\MatchStatus.cs" />
+    <Compile Include="Domain\Enums\Matches\MatchVisibility.cs" />
+    <Compile Include="Domain\Enums\Matches\Outcomes\JoinMatchOutcomeCode.cs" />
+    <Compile Include="Domain\Enums\Matches\Outcomes\LeaveMatchOutcomeCode.cs" />
+    <Compile Include="Domain\Enums\Matches\Outcomes\SetReadyOutcomeCode.cs" />
+    <Compile Include="Domain\Enums\Matches\SetMatchPrivateResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\StartMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Security\VerificationCodeResult.cs" />
+    <Compile Include="Domain\Enums\Turns\AdvanceTurnResultCode.cs" />
+    <Compile Include="Domain\Enums\Turns\ApplyChessClockResultCode.cs" />
     <Compile Include="Domain\Enums\Turns\InitializeTurnOrderResultCode.cs" />
+    <Compile Include="Domain\Enums\Turns\PassTurnOutcomeCode.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IAvatarRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\ICharacterRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IEmailVerificationRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IFriendshipRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IMatchChatRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IMatchChessClockRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IMatchGuessingRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IMatchRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IMatchTurnAdvanceRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IMatchTurnRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IUserAccountRepository.cs" />
     <Compile Include="Domain\Interfaces\Security\IEmailVerificationDomainService.cs" />
@@ -81,14 +95,23 @@
     <Compile Include="Domain\Models\Friends\FriendRequestRecord.cs" />
     <Compile Include="Domain\Models\Friends\IFriendRequestIdProvider.cs" />
     <Compile Include="Domain\Models\Friends\UserProfileSearchRecord.cs" />
-    <Compile Include="Domain\Models\Match\CharacterRecord.cs" />
-    <Compile Include="Domain\Models\Match\MatchDeckRecord.cs" />
-    <Compile Include="Domain\Models\Match\LobbyPlayerSnapshot.cs" />
-    <Compile Include="Domain\Models\Match\MatchSnapshot.cs" />
+    <Compile Include="Domain\Models\Matches\CharacterRecord.cs" />
+    <Compile Include="Domain\Models\Matches\JoinMatchSnapshot.cs" />
+    <Compile Include="Domain\Results\Match\MatchDeckResult.cs" />
+    <Compile Include="Domain\Models\Matches\LobbyPlayerSnapshot.cs" />
+    <Compile Include="Domain\Models\Matches\MatchSnapshot.cs" />
     <Compile Include="Domain\Models\Turns\TurnStateSnapshot.cs" />
     <Compile Include="Domain\Parameters\Chat\AddMatchChatMessageArgs.cs" />
+    <Compile Include="Domain\Parameters\Turns\AdvanceTurnArgs.cs" />
+    <Compile Include="Domain\Parameters\Turns\ApplyChessClockArgs.cs" />
     <Compile Include="Domain\Parameters\Turns\InitializeTurnOrderArgs.cs" />
+    <Compile Include="Domain\Parameters\Turns\PassTurnArgs.cs" />
     <Compile Include="Domain\Results\Chat\AddMatchChatMessageResult.cs" />
+    <Compile Include="Domain\Results\Match\FinalGuessResult.cs" />
+    <Compile Include="Domain\Results\Match\LoadFinalGuessSnapshotResult.cs" />
+    <Compile Include="Domain\Results\Match\Outcomes\JoinMatchOutcome.cs" />
+    <Compile Include="Domain\Results\Match\Outcomes\LeaveMatchOutCome.cs" />
+    <Compile Include="Domain\Results\Match\Outcomes\SetReadyOutcome.cs" />
     <Compile Include="Domain\Results\Match\TournamentMatchCreationResult.cs" />
     <Compile Include="Domain\Models\Session\SessionLoginResult.cs" />
     <Compile Include="Domain\Parameters\Accounts\AccountSearchParameters.cs" />
@@ -102,7 +125,7 @@
     <Compile Include="Domain\Parameters\Accounts\Email\CreateEmailTokenArgs.cs" />
     <Compile Include="Domain\Parameters\Matches\CreateMatchArgs.cs" />
     <Compile Include="Domain\Parameters\Matches\CreateTournamentMatchArgs.cs" />
-    <Compile Include="Domain\Enums\AccountProfileStatus.cs" />
+    <Compile Include="Domain\Enums\Accounts\AccountProfileStatus.cs" />
     <Compile Include="Domain\Parameters\Matches\SaveMatchDeckArgs.cs" />
     <Compile Include="Domain\Results\Accounts\AccountProfileRecordResult.cs" />
     <Compile Include="Domain\Results\Accounts\AccountWithProfileResult.cs" />
@@ -129,17 +152,14 @@
     <Compile Include="Domain\Results\Match\SetMatchPrivateResult.cs" />
     <Compile Include="Domain\Results\Match\StartMatchResult.cs" />
     <Compile Include="Domain\Results\Sessions\AccountWithProfileForLoginResult.cs" />
+    <Compile Include="Domain\Results\Turns\AdvanceTurnResult.cs" />
+    <Compile Include="Domain\Results\Turns\ApplyChessClockResult.cs" />
     <Compile Include="Domain\Results\Turns\InitializeTurnOrderResult.cs" />
+    <Compile Include="Domain\Results\Turns\PassTurnOutcome.cs" />
     <Compile Include="Domain\Settings\UserSecuritySettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\IsExternalInit.cs" />
   </ItemGroup>
   <ItemGroup />
-  <ItemGroup>
-    <ProjectReference Include="..\GuessWhoCore\GuessWhoCore.csproj">
-      <Project>{e0c21307-032a-49c0-a33d-e6ca2f6c0e5e}</Project>
-      <Name>GuessWhoCore</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

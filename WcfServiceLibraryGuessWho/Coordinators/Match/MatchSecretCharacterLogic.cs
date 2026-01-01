@@ -1,8 +1,4 @@
 ﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Faults;
-using GuessWhoCore.Contracts.Faults.Match;
-using GuessWhoCore.Contracts.Requests;
-using GuessWhoCore.Contracts.Response;
 using GuessWhoServerDomain.Domain.Enums.Match;
 using GuessWhoServerDomain.Domain.Enums.Turns;
 using GuessWhoServerDomain.Domain.Models.Turns;
@@ -11,7 +7,6 @@ using GuessWhoServerDomain.Domain.Parameters.Turns;
 using GuessWhoServerDomain.Domain.Results.Match;
 using GuessWhoServerDomain.Domain.Results.Turns;
 using GuessWhoServices.Infrastructure;
-using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -23,101 +18,31 @@ namespace GuessWhoServices.Services.MatchApplication
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(MatchSecretCharacterLogic));
 
-        private const string CONTEXT_CHOOSE_SECRET = "MatchSecretCharacterLogic.ChooseSecretCharacter";
-        private const string CONTEXT_CHANGE_SECRET = "MatchSecretCharacterLogic.ChangeSecretCharacter";
-        private const string CONTEXT_TURN_INIT = "MatchSecretCharacterLogic.TryInitializeFirstTurnIfReady";
-
         private const long INVALID_ID = 0;
         private const int TURN_PLAYERS_REQUIRED = 2;
+
+        private const int TURN_INIT_VERIFY_ATTEMPTS = 2;
 
         private const int RANDOM_BYTE_COUNT = 1;
         private const int RANDOM_BIT_MASK = 1;
 
+        private const string CONTEXT_TURN_INIT = "MatchSecretCharacterLogic.TryInitializeFirstTurnIfReady";
+
         private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
         private readonly IMatchCallbackDispatcher callbackDispatcher;
 
-        private readonly record struct FaultTriplet(string Code, string MessageKey, string Fallback);
+        private enum TurnInitOutcome
+        {
+            NotNeeded = 0,
+            SuccessOrAlreadyInitialized = 1,
+            Failed = 2
+        }
 
         private readonly record struct RandomBoolResult(bool IsSuccess, bool Value)
         {
             public static RandomBoolResult Success(bool value) => new(true, value);
             public static RandomBoolResult Fail() => new(false, false);
         }
-
-        private static readonly IReadOnlyDictionary<ChooseSecretCharacterResultCode, FaultTriplet> FaultChooseMap =
-            new Dictionary<ChooseSecretCharacterResultCode, FaultTriplet>
-            {
-                { ChooseSecretCharacterResultCode.MatchNotFound,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_MATCH_NOT_FOUND,
-                        MatchLifecycleFaultKeys.MSG_MATCH_NOT_FOUND,
-                        MatchLifecycleFaultKeys.FALLBACK_MATCH_NOT_FOUND) },
-                { ChooseSecretCharacterResultCode.MatchNotInProgress,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_MATCH_NOT_IN_PROGRESS,
-                        MatchLifecycleFaultKeys.MSG_MATCH_NOT_IN_PROGRESS,
-                        MatchLifecycleFaultKeys.FALLBACK_MATCH_NOT_IN_PROGRESS) },
-                { ChooseSecretCharacterResultCode.PlayerNotInMatch,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_PLAYER_NOT_IN_MATCH,
-                        MatchLifecycleFaultKeys.MSG_PLAYER_NOT_IN_MATCH,
-                        MatchLifecycleFaultKeys.FALLBACK_PLAYER_NOT_IN_MATCH) },
-                { ChooseSecretCharacterResultCode.PlayerAlreadyLeft,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_PLAYER_ALREADY_LEFT,
-                        MatchLifecycleFaultKeys.MSG_PLAYER_ALREADY_LEFT,
-                        MatchLifecycleFaultKeys.FALLBACK_PLAYER_ALREADY_LEFT) },
-                { ChooseSecretCharacterResultCode.InvalidCharacter,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_INVALID_CHARACTER,
-                        MatchLifecycleFaultKeys.MSG_INVALID_CHARACTER,
-                        MatchLifecycleFaultKeys.FALLBACK_INVALID_CHARACTER) },
-                { ChooseSecretCharacterResultCode.SecretAlreadyChosen,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_SECRET_ALREADY_CHOSEN,
-                        MatchLifecycleFaultKeys.MSG_SECRET_ALREADY_CHOSEN,
-                        MatchLifecycleFaultKeys.FALLBACK_SECRET_ALREADY_CHOSEN) },
-                { ChooseSecretCharacterResultCode.OperationConflict,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_OPERATION_CONFLICT,
-                        MatchLifecycleFaultKeys.MSG_OPERATION_CONFLICT,
-                        MatchLifecycleFaultKeys.FALLBACK_OPERATION_CONFLICT) }
-            };
-
-        private static readonly IReadOnlyDictionary<ChangeSecretCharacterResultCode, FaultTriplet> FaultChangeMap =
-            new Dictionary<ChangeSecretCharacterResultCode, FaultTriplet>
-            {
-                { ChangeSecretCharacterResultCode.MatchNotFound,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_MATCH_NOT_FOUND,
-                        MatchLifecycleFaultKeys.MSG_MATCH_NOT_FOUND,
-                        MatchLifecycleFaultKeys.FALLBACK_MATCH_NOT_FOUND) },
-                { ChangeSecretCharacterResultCode.MatchNotInLobby,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_MATCH_NOT_IN_LOBBY,
-                        MatchLifecycleFaultKeys.MSG_MATCH_NOT_IN_LOBBY,
-                        MatchLifecycleFaultKeys.FALLBACK_MATCH_NOT_IN_LOBBY) },
-                { ChangeSecretCharacterResultCode.PlayerNotInMatch,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_PLAYER_NOT_IN_MATCH,
-                        MatchLifecycleFaultKeys.MSG_PLAYER_NOT_IN_MATCH,
-                        MatchLifecycleFaultKeys.FALLBACK_PLAYER_NOT_IN_MATCH) },
-                { ChangeSecretCharacterResultCode.PlayerAlreadyLeft,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_PLAYER_ALREADY_LEFT,
-                        MatchLifecycleFaultKeys.MSG_PLAYER_ALREADY_LEFT,
-                        MatchLifecycleFaultKeys.FALLBACK_PLAYER_ALREADY_LEFT) },
-                { ChangeSecretCharacterResultCode.InvalidCharacter,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_INVALID_CHARACTER,
-                        MatchLifecycleFaultKeys.MSG_INVALID_CHARACTER,
-                        MatchLifecycleFaultKeys.FALLBACK_INVALID_CHARACTER) },
-                { ChangeSecretCharacterResultCode.OperationConflict,
-                    new FaultTriplet(
-                        MatchLifecycleFaultKeys.CODE_OPERATION_CONFLICT,
-                        MatchLifecycleFaultKeys.MSG_OPERATION_CONFLICT,
-                        MatchLifecycleFaultKeys.FALLBACK_OPERATION_CONFLICT) }
-            };
 
         public MatchSecretCharacterLogic(
             IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
@@ -129,212 +54,171 @@ namespace GuessWhoServices.Services.MatchApplication
                 throw new ArgumentNullException(nameof(callbackDispatcher));
         }
 
-        public BasicResponse ChooseSecretCharacter(ChooseSecretCharacterRequest request)
+        public ChooseSecretCharacterResult ChooseSecretCharacter(ChooseSecretCharacterArgs secretCharacterArgs)
         {
-            if (request == null)
+            if (secretCharacterArgs == null)
             {
-                throw FaultsFactory.Create(
-                    MatchLifecycleFaultKeys.CODE_INVALID_REQUEST,
-                    MatchLifecycleFaultKeys.MSG_INVALID_REQUEST,
-                    MatchLifecycleFaultKeys.FALLBACK_INVALID_REQUEST);
+                throw new ArgumentNullException(nameof(secretCharacterArgs));
             }
 
-            string trimmedCharacterId = ValidateAndTrimInput(request, request.MatchId, request.UserId);
-
-            using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
-
-            var chooseArgs = new ChooseSecretCharacterArgs
+            if (secretCharacterArgs.MatchId <= INVALID_ID)
             {
-                MatchId = request.MatchId,
-                UserProfileId = request.UserId,
-                SecretCharacterId = trimmedCharacterId
-            };
-
-            ChooseSecretCharacterResult chooseResult = unitOfWork.Matches.ChooseSecretCharacter(chooseArgs);
-
-            if (!chooseResult.IsSuccess)
-            {
-                string logMessage = string.Format("ChooseSecret failed. MatchId={0}, UserId={1}, Code={2}.",
-                    request.MatchId, request.UserId, chooseResult.Code);
-
-                ThrowMappedFault(
-                    FaultChooseMap,
-                    chooseResult.Code,
-                    CONTEXT_CHOOSE_SECRET,
-                    logMessage);
+                return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.MatchNotFound);
             }
 
-            FinalizeSelection(unitOfWork, request.MatchId, request.UserId);
-
-            return new BasicResponse { Success = true };
-        }
-
-        public BasicResponse ChangeSecretCharacter(ChangeSecretCharacterRequest request)
-        {
-            if (request == null)
+            if (secretCharacterArgs.UserProfileId <= INVALID_ID)
             {
-                throw FaultsFactory.Create(
-                    MatchLifecycleFaultKeys.CODE_INVALID_REQUEST,
-                    MatchLifecycleFaultKeys.MSG_INVALID_REQUEST,
-                    MatchLifecycleFaultKeys.FALLBACK_INVALID_REQUEST);
+                return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.PlayerNotInMatch);
             }
 
-            string trimmedCharacterId = ValidateAndTrimInput(request, request.MatchId, request.ProfileId);
-
-            using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
-
-            var changeArgs = new ChangeSecretCharacterArgs(
-                request.MatchId,
-                request.ProfileId,
-                trimmedCharacterId
-            );
-
-            ChangeSecretCharacterResult changeResult = unitOfWork.Matches.ChangeSecretCharacter(changeArgs);
-
-            if (!changeResult.IsSuccess)
-            {
-                string logMessage = string.Format("ChangeSecret failed. MatchId={0}, ProfileId={1}, Code={2}.",
-                    request.MatchId, request.ProfileId, changeResult.Code);
-
-                ThrowMappedFault(
-                    FaultChangeMap,
-                    changeResult.Code,
-                    CONTEXT_CHANGE_SECRET,
-                    logMessage);
-            }
-
-            FinalizeSelection(unitOfWork, request.MatchId, request.ProfileId);
-
-            return new BasicResponse { Success = true };
-        }
-
-        private static string ValidateAndTrimInput(object request, long matchId, long userId)
-        {
-            if (matchId <= INVALID_ID)
-            {
-                throw FaultsFactory.Create(
-                    MatchLifecycleFaultKeys.CODE_INVALID_MATCH_ID,
-                    MatchLifecycleFaultKeys.MSG_INVALID_MATCH_ID,
-                    MatchLifecycleFaultKeys.FALLBACK_INVALID_MATCH_ID);
-            }
-
-            if (userId <= INVALID_ID)
-            {
-                throw FaultsFactory.Create(
-                    MatchLifecycleFaultKeys.CODE_INVALID_USER_ID,
-                    MatchLifecycleFaultKeys.MSG_INVALID_USER_ID,
-                    MatchLifecycleFaultKeys.FALLBACK_INVALID_USER_ID);
-            }
-
-            string rawCharacterId;
-
-            if (request is ChooseSecretCharacterRequest chooseRequest)
-            {
-                rawCharacterId = chooseRequest.CharacterId;
-            }
-            else if (request is ChangeSecretCharacterRequest changeRequest)
-            {
-                rawCharacterId = changeRequest.CharacterId;
-            }
-            else
-            {
-                throw FaultsFactory.Create(
-                    MatchLifecycleFaultKeys.CODE_INVALID_REQUEST,
-                    MatchLifecycleFaultKeys.MSG_INVALID_REQUEST,
-                    MatchLifecycleFaultKeys.FALLBACK_INVALID_REQUEST);
-            }
-
-            string trimmedCharacterId = (rawCharacterId ?? string.Empty).Trim();
+            string trimmedCharacterId = (secretCharacterArgs.SecretCharacterId ?? string.Empty).Trim();
 
             if (string.IsNullOrWhiteSpace(trimmedCharacterId))
             {
-                throw FaultsFactory.Create(
-                    MatchLifecycleFaultKeys.CODE_INVALID_CHARACTER,
-                    MatchLifecycleFaultKeys.MSG_INVALID_CHARACTER,
-                    MatchLifecycleFaultKeys.FALLBACK_INVALID_CHARACTER);
+                return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.InvalidCharacter);
             }
 
-            return trimmedCharacterId;
-        }
+            using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
+            using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
 
-        private void FinalizeSelection(IGuessWhoUnitOfWork unitOfWork, long matchId, long userId)
-        {
-            unitOfWork.Flush();
+            ChooseSecretCharacterResult chooseResult = unitOfWork.Matches.ChooseSecretCharacter(
+                new ChooseSecretCharacterArgs
+                {
+                    MatchId = secretCharacterArgs.MatchId,
+                    UserProfileId = secretCharacterArgs.UserProfileId,
+                    SecretCharacterId = trimmedCharacterId
+                }
+            );
 
-            callbackDispatcher.Broadcast(
-                matchId,
-                callback => callback.OnSecretCharacterChosen(matchId, userId));
-
-            if (!unitOfWork.Matches.AreAllSecretCharactersChosen(matchId))
+            if (!chooseResult.IsSuccess)
             {
-                return;
+                transaction.Rollback();
+
+                return chooseResult;
             }
 
-            TryInitializeFirstTurnIfReady(unitOfWork, matchId);
+            bool areAllChosen = unitOfWork.Matches.AreAllSecretCharactersChosen(secretCharacterArgs.MatchId);
+
+            if (areAllChosen)
+            {
+                TurnInitOutcome turnInitOutcome = TurnInitOutcome.NotNeeded;
+
+                turnInitOutcome = TryInitializeFirstTurnIfReady(unitOfWork, secretCharacterArgs.MatchId);
+
+                if (turnInitOutcome == TurnInitOutcome.Failed)
+                {
+                    Logger.WarnFormat("{0}: turn init failed after all secrets chosen. matchId={1}. Rolling back.",
+                        CONTEXT_TURN_INIT, secretCharacterArgs.MatchId);
+
+                    transaction.Rollback();
+
+                    return ChooseSecretCharacterResult.Fail(ChooseSecretCharacterResultCode.OperationConflict);
+                }
+            }
+
+            unitOfWork.Flush();
+            transaction.Commit();
 
             callbackDispatcher.Broadcast(
-                matchId,
-                callback => callback.OnAllSecretCharactersChosen(matchId));
+                secretCharacterArgs.MatchId,
+                callback => callback.OnSecretCharacterChosen(secretCharacterArgs.MatchId, secretCharacterArgs.UserProfileId));
+
+            if (areAllChosen)
+            {
+                callbackDispatcher.Broadcast(
+                    secretCharacterArgs.MatchId,
+                    callback => callback.OnAllSecretCharactersChosen(secretCharacterArgs.MatchId));
+            }
+
+            return ChooseSecretCharacterResult.Success();
         }
 
-        private void TryInitializeFirstTurnIfReady(IGuessWhoUnitOfWork unitOfWork, long matchId)
+        public ChangeSecretCharacterResult ChangeSecretCharacter(ChangeSecretCharacterArgs changeCharacterArgs)
+        {
+            if (changeCharacterArgs == null)
+            {
+                throw new ArgumentNullException(nameof(changeCharacterArgs));
+            }
+
+            if (changeCharacterArgs.MatchId <= INVALID_ID)
+            {
+                return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.MatchNotFound);
+            }
+
+            if (changeCharacterArgs.UserId <= INVALID_ID)
+            {
+                return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.PlayerNotInMatch);
+            }
+
+            string trimmedCharacterId = (changeCharacterArgs.SecretCharacterId ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(trimmedCharacterId))
+            {
+                return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.InvalidCharacter);
+            }
+
+            using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
+            using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+
+            ChangeSecretCharacterResult changeResult = unitOfWork.Matches.ChangeSecretCharacter(
+                new ChangeSecretCharacterArgs( 
+                    changeCharacterArgs.MatchId, 
+                    changeCharacterArgs.UserId, 
+                    trimmedCharacterId)
+            );
+
+            if (!changeResult.IsSuccess)
+            {
+                transaction.Rollback();
+                return changeResult;
+            }
+
+            unitOfWork.Flush();
+            transaction.Commit();
+
+            callbackDispatcher.Broadcast(
+                changeCharacterArgs.MatchId,
+                callback => callback.OnSecretCharacterChosen(changeCharacterArgs.MatchId, changeCharacterArgs.UserId));
+
+            return ChangeSecretCharacterResult.Success();
+        }
+
+        private TurnInitOutcome TryInitializeFirstTurnIfReady(IGuessWhoUnitOfWork unitOfWork, long matchId)
         {
             if (unitOfWork == null || matchId <= INVALID_ID)
             {
-                return;
+                return TurnInitOutcome.Failed;
             }
 
             TurnStateSnapshot existingTurnState = unitOfWork.MatchesTurns.GetTurnState(matchId);
 
-            if (existingTurnState != null && existingTurnState.MatchId > 0)
+            if (existingTurnState != null && existingTurnState.MatchId > INVALID_ID)
             {
-                return;
+                return TurnInitOutcome.SuccessOrAlreadyInitialized;
             }
 
-            IReadOnlyList<long> activePlayerUserIds = unitOfWork.Matches.GetActivePlayerIds(matchId, TURN_PLAYERS_REQUIRED);
+            IReadOnlyList<long> activePlayerUserIds =
+                unitOfWork.Matches.GetActivePlayerIds(matchId, TURN_PLAYERS_REQUIRED) ?? Array.Empty<long>();
 
             if (activePlayerUserIds.Count != TURN_PLAYERS_REQUIRED)
             {
-                Logger.WarnFormat(
-                    "{0}: skipping turn init. Expected {1} active players but got {2}. matchId={3}.",
-                    CONTEXT_TURN_INIT,
-                    TURN_PLAYERS_REQUIRED,
-                    activePlayerUserIds.Count,
-                    matchId);
-
-                return;
+                return TurnInitOutcome.Failed;
             }
 
             long firstCandidateUserId = activePlayerUserIds[0];
             long secondCandidateUserId = activePlayerUserIds[1];
 
-            if (firstCandidateUserId <= 0 || secondCandidateUserId <= 0 || 
+            if (firstCandidateUserId <= INVALID_ID || secondCandidateUserId <= INVALID_ID ||
                 firstCandidateUserId == secondCandidateUserId)
             {
-                Logger.WarnFormat(
-                    "{0}: skipping turn init. Expected {1} active players but got {2}. matchId={3}.",
-                    CONTEXT_TURN_INIT,
-                    TURN_PLAYERS_REQUIRED,
-                    activePlayerUserIds.Count,
-                    matchId);
-
-                return;
+                return TurnInitOutcome.Failed;
             }
 
             RandomBoolResult randomStartDecision = TryGetRandomBool();
-
             bool shouldFirstCandidateStart = !randomStartDecision.IsSuccess || randomStartDecision.Value;
 
-            if (!randomStartDecision.IsSuccess)
-            {
-                Logger.WarnFormat("{0}: RNG unavailable. Using deterministic first player. matchId={1}.", 
-                    CONTEXT_TURN_INIT, matchId);
-            }
-
-            long startingPlayerUserId =
-                shouldFirstCandidateStart ? firstCandidateUserId : secondCandidateUserId;
-            long nonStartingPlayerUserId =
-                shouldFirstCandidateStart ? secondCandidateUserId : firstCandidateUserId;
+            long startingPlayerUserId = shouldFirstCandidateStart ? firstCandidateUserId : secondCandidateUserId;
+            long nonStartingPlayerUserId = shouldFirstCandidateStart ? secondCandidateUserId : firstCandidateUserId;
 
             var initializeTurnOrderArgs = new InitializeTurnOrderArgs
             {
@@ -343,23 +227,36 @@ namespace GuessWhoServices.Services.MatchApplication
                 NowUtc = DateTime.UtcNow
             };
 
-            InitializeTurnOrderResult initializeTurnOrderResult =
-                unitOfWork.MatchesTurns.InitializeTurnOrder(initializeTurnOrderArgs);
+            InitializeTurnOrderResult initResult = unitOfWork.MatchesTurns.InitializeTurnOrder(initializeTurnOrderArgs);
 
-            Logger.InfoFormat("{0}: turn init result. matchId={1} code={2}.", 
-                CONTEXT_TURN_INIT, matchId, initializeTurnOrderResult.Code);
+            if (initResult.IsSuccess ||
+                initResult.Code == InitializeTurnOrderResultCode.AlreadyInitialized)
+            {
+                return TurnInitOutcome.SuccessOrAlreadyInitialized;
+            }
 
-            if (initializeTurnOrderResult.IsSuccess)
+            if (initResult.Code == InitializeTurnOrderResultCode.OperationConflict)
             {
-                unitOfWork.Flush();
+                for (int attempt = 0; attempt < TURN_INIT_VERIFY_ATTEMPTS; attempt++)
+                {
+                    TurnStateSnapshot state = unitOfWork.MatchesTurns.GetTurnState(matchId);
+
+                    if (state != null && state.MatchId > INVALID_ID)
+                    {
+                        return TurnInitOutcome.SuccessOrAlreadyInitialized; 
+                    }
+                }
+
+                Logger.WarnFormat("{0}: init turn conflict but state not found after verification. matchId={1}.",
+                    CONTEXT_TURN_INIT, matchId);
+
+                return TurnInitOutcome.Failed;
             }
-            else if (initializeTurnOrderResult.Code ==
-                InitializeTurnOrderResultCode.AlreadyInitialized ||
-                initializeTurnOrderResult.Code ==
-                InitializeTurnOrderResultCode.OperationConflict)
-            {
-                _ = unitOfWork.MatchesTurns.GetTurnState(matchId);
-            }
+
+            Logger.WarnFormat("{0}: init turn failed. matchId={1} code={2}.", CONTEXT_TURN_INIT,
+                matchId, initResult.Code);
+
+            return TurnInitOutcome.Failed;
         }
 
         private static RandomBoolResult TryGetRandomBool()
@@ -368,45 +265,22 @@ namespace GuessWhoServices.Services.MatchApplication
             {
                 byte[] randomByteBuffer = new byte[RANDOM_BYTE_COUNT];
 
-                using (RandomNumberGenerator randomNumberGenerator = RandomNumberGenerator.Create())
+                using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
                 {
-                    randomNumberGenerator.GetBytes(randomByteBuffer);
+                    rng.GetBytes(randomByteBuffer);
                 }
 
                 bool generatedValue = (randomByteBuffer[0] & RANDOM_BIT_MASK) == RANDOM_BIT_MASK;
-
                 return RandomBoolResult.Success(generatedValue);
             }
-            catch (CryptographicException ex)
+            catch (CryptographicException)
             {
-                Logger.Debug("RandomNumberGenerator failed.", ex);
                 return RandomBoolResult.Fail();
             }
-            catch (PlatformNotSupportedException ex)
+            catch (PlatformNotSupportedException)
             {
-                Logger.Debug("RandomNumberGenerator failed.", ex);
                 return RandomBoolResult.Fail();
             }
-        }
-
-        private static void ThrowMappedFault<TCode>(
-            IReadOnlyDictionary<TCode, FaultTriplet> map,
-            TCode code,
-            string context,
-            string logMessage)
-        {
-            if (map.TryGetValue(code, out FaultTriplet triplet))
-            {
-                Logger.InfoFormat("{0}: {1}", context, logMessage);
-                throw FaultsFactory.Create(triplet.Code, triplet.MessageKey, triplet.Fallback);
-            }
-
-            Logger.ErrorFormat("{0}: unmapped result code. code={1}.", context, code);
-
-            throw FaultsFactory.Create(
-                InfrastructureFaultKeys.CODE_UNEXPECTED_ERROR,
-                InfrastructureFaultKeys.MSG_UNEXPECTED_ERROR,
-                InfrastructureFaultKeys.FALLBACK_UNEXPECTED_ERROR);
         }
     }
 }

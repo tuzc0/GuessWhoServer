@@ -1,9 +1,8 @@
 ﻿using GuessWhoContracts.Services;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
-using WcfServiceLibraryGuessWho.Coordinators.InternalDtos;
 
-namespace WcfServiceLibraryGuessWho.Services.MatchApplication
+namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
 {
     public interface IMatchManager
     {

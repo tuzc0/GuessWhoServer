@@ -8,6 +8,7 @@
         HostNotAuthorized = 3,
         AlreadyPrivate = 4,
         InvalidArgs = 5,
-        ConcurrentUpdate = 6
+        ConcurrentUpdate = 6,
+        UnexpectedError = 7
     }
 }

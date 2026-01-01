@@ -180,6 +180,25 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
             return ChangeSecretCharacterResult.Fail(ChangeSecretCharacterResultCode.OperationConflict);
         }
 
+        public bool AreAllSecretCharactersChosen(long matchId)
+        {
+            if (matchId <= 0)
+            {
+                return false;
+            }
+
+            int readyPlayersCount = dataContext.MATCH_PLAYER
+                .AsNoTracking() 
+                .Count(p =>
+                    p.MATCHID == matchId &&
+                    p.LEFTATUTC == null && 
+                    p.SECRETCHARACTERID != null &&
+                    p.SECRETCHARACTERID != "" 
+                );
+
+            return readyPlayersCount == MIN_PLAYERS;
+        }
+
         private sealed class ChooseSecretDiagnostic
         {
             public byte MatchStatusId { get; set; }

@@ -77,6 +77,9 @@
     <Compile Include="Data\DataAccess\Matches\MatchData.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Discovery.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Tournament.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchGuessingData.cs" />
+    <Compile Include="Data\DataAccess\Turns\MatchChessClockData.cs" />
+    <Compile Include="Data\DataAccess\Turns\MatchTurnAdvanceData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchTurnData.cs" />
     <Compile Include="Data\Factories\GuessWhoUnitOfWork.cs" />
     <Compile Include="Data\Factories\GuessWhoUnitOfWorkFactory.cs" />

@@ -1,6 +1,7 @@
-﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
-using GuessWhoServerDomain.Domain.Models.Match;
+﻿using GuessWhoServerDomain.Domain.Enums.Matches;
+using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
+using GuessWhoServerDomain.Domain.Results.Match;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
@@ -19,11 +20,11 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Characters
             dataContext = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public MatchDeckRecord GetMatchDeck(long matchId)
+        public MatchDeckResult GetMatchDeck(long matchId)
         {
             if (matchId <= 0)
             {
-                return MatchDeckRecord.CreateInvalid();
+                return MatchDeckResult.Fail(MatchDeckResultCode.InvalidMatchId);
             }
 
             List<string> characterIds = dataContext.MATCH_DECK_CARD
@@ -36,17 +37,17 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Characters
 
             if (characterIds.Count == 0)
             {
-                return MatchDeckRecord.CreateInvalid();
+                return MatchDeckResult.Fail(MatchDeckResultCode.DeckNotFound);
             }
 
-            return new MatchDeckRecord(matchId, characterIds);
+            return MatchDeckResult.Success(matchId, characterIds);
         }
 
-        public MatchDeckRecord CreateDeck(SaveMatchDeckArgs saveMatchDeckArgs)
+        public MatchDeckResult CreateDeck(SaveMatchDeckArgs saveMatchDeckArgs)
         {
             if (saveMatchDeckArgs == null || saveMatchDeckArgs.MatchId <= 0)
             {
-                return MatchDeckRecord.CreateInvalid();
+                return MatchDeckResult.Fail(MatchDeckResultCode.InvalidArgs);
             }
 
             List<string> cleanedIds = (saveMatchDeckArgs.CharacterIds ?? Array.Empty<string>())
@@ -56,7 +57,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Characters
 
             if (cleanedIds.Count == 0)
             {
-                return MatchDeckRecord.CreateInvalid();
+                return MatchDeckResult.Fail(MatchDeckResultCode.InvalidArgs);
             }
 
             bool deckAlreadyExists = dataContext.MATCH_DECK_CARD
@@ -65,7 +66,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Characters
 
             if (deckAlreadyExists)
             {
-                return MatchDeckRecord.CreateInvalid();
+                return MatchDeckResult.Fail(MatchDeckResultCode.DeckAlreadyExists);
             }
 
             int position = FIRST_POSITION;
@@ -83,7 +84,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Characters
                 position++;
             }
 
-            return new MatchDeckRecord(saveMatchDeckArgs.MatchId, cleanedIds);
+            return MatchDeckResult.Success(saveMatchDeckArgs.MatchId, cleanedIds);
         }
     }
 }

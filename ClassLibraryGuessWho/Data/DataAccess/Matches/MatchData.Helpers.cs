@@ -9,13 +9,13 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
         private const byte HOST_SLOT_NUMBER = 1;
         private const byte GUEST_SLOT_NUMBER = 2;
 
-        private const int MIN_PLAYERS_TO_START = 2;
+        private const int MIN_PLAYERS = 2;
         private const int MAX_PLAYERS_BY_SCHEMA = 2;
 
-        private const int MATCH_CODE_LENGTH = 10;
-        private const string MATCH_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        private const string MATCH_CODE_LENGTH = "D6";
 
         private const long INVALID_MATCH_ID = -1;
+        private const long INVALID_USER = 0;
 
         private static class MatchStatusIds
         {
@@ -80,22 +80,18 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
 
         private static string GenerateMatchCode()
         {
-            byte[] buffer = new byte[MATCH_CODE_LENGTH];
+            byte[] buffer = new byte[4];
 
-            using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+            using (RandomNumberGenerator randomGenerator = RandomNumberGenerator.Create())
             {
-                rng.GetBytes(buffer);
+                randomGenerator.GetBytes(buffer);
             }
 
-            char[] chars = new char[MATCH_CODE_LENGTH];
+            int randomInt = BitConverter.ToInt32(buffer, 0) & int.MaxValue;
 
-            for (int i = 0; i < MATCH_CODE_LENGTH; i++)
-            {
-                int index = buffer[i] % MATCH_CODE_ALPHABET.Length;
-                chars[i] = MATCH_CODE_ALPHABET[index];
-            }
+            int codeValue = randomInt % 1000000;
 
-            return new string(chars);
+            return codeValue.ToString(MATCH_CODE_LENGTH);
         }
     }
 }

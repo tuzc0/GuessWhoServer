@@ -1,4 +1,5 @@
 ﻿using GuessWhoContracts.Services;
+using log4net;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -7,17 +8,29 @@ using System.ServiceModel;
 
 namespace GuessWhoServices.Infrastructure
 {
+    public interface IMatchDisconnectHandler
+    {
+        void HandleMatchDisconnect(long userId, DateTime nowUtc);
+    }
+
     public sealed class LobbySubscriptionStore : ILobbySubscriptionStore
     {
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(LobbySubscriptionStore));
+
+        private const long INVALID_ID = 0;
+
         private sealed class SessionEntry
         {
             public ICommunicationObject ChannelObject { get; }
+            public long UserId { get; }
 
-            public SessionEntry(ICommunicationObject channelObject)
+            public SessionEntry(ICommunicationObject channelObject, long userId)
             {
                 ChannelObject = channelObject ?? throw new ArgumentNullException(nameof(channelObject));
+                UserId = userId;
             }
         }
+        private readonly IMatchDisconnectHandler disconnectHandler;
 
         private readonly ConcurrentDictionary<long, ConcurrentDictionary<string, IMatchCallback>> subscribersByMatchId =
             new ConcurrentDictionary<long, ConcurrentDictionary<string, IMatchCallback>>();
@@ -25,14 +38,20 @@ namespace GuessWhoServices.Infrastructure
         private readonly ConcurrentDictionary<string, SessionEntry> sessionEntries =
             new ConcurrentDictionary<string, SessionEntry>();
 
-        public bool Subscribe(long matchId, IMatchCallback callbackChannel)
+        public LobbySubscriptionStore(IMatchDisconnectHandler disconnectHandler)
         {
-            if (matchId <= 0 || callbackChannel == null)
+            this.disconnectHandler = disconnectHandler ?? throw new ArgumentNullException(nameof(disconnectHandler));
+        }
+
+        public bool Subscribe(long matchId, long userId, IMatchCallback callbackChannel)
+        {
+            if (matchId <= 0 || userId <= INVALID_ID || callbackChannel == null)
             {
                 return false;
             }
 
             string sessionId = TryGetSessionId(callbackChannel);
+
             if (string.IsNullOrWhiteSpace(sessionId))
             {
                 return false;
@@ -43,7 +62,7 @@ namespace GuessWhoServices.Infrastructure
                 return false;
             }
 
-            EnsureSessionEntry(sessionId, channelObject);
+            EnsureSessionEntry(sessionId, channelObject, userId);
 
             ConcurrentDictionary<string, IMatchCallback> subscribersForMatch = subscribersByMatchId.GetOrAdd(
                 matchId,
@@ -93,13 +112,13 @@ namespace GuessWhoServices.Infrastructure
             return subscribersForMatch.Values.ToList();
         }
 
-        private void EnsureSessionEntry(string sessionId, ICommunicationObject channelObject)
+        private void EnsureSessionEntry(string sessionId, ICommunicationObject channelObject, long userId)
         {
             sessionEntries.GetOrAdd(
                 sessionId,
                 _ =>
                 {
-                    var entry = new SessionEntry(channelObject);
+                    var entry = new SessionEntry(channelObject, userId);
                     AttachAutoCleanupOnce(sessionId, entry);
                     return entry;
                 });
@@ -120,7 +139,10 @@ namespace GuessWhoServices.Infrastructure
                 return;
             }
 
-            sessionEntries.TryRemove(sessionId, out _);
+            if (sessionEntries.TryRemove(sessionId, out SessionEntry removedEntry))
+            {
+                TryHandleDisconnect(removedEntry.UserId);
+            }
 
             foreach (KeyValuePair<long, ConcurrentDictionary<string, IMatchCallback>> kvp in subscribersByMatchId)
             {
@@ -132,6 +154,23 @@ namespace GuessWhoServices.Infrastructure
                 {
                     subscribersByMatchId.TryRemove(kvp.Key, out _);
                 }
+            }
+        }
+
+        private void TryHandleDisconnect(long userId)
+        {
+            if (userId <= INVALID_ID)
+            {
+                return;
+            }
+
+            try
+            {
+                disconnectHandler.HandleMatchDisconnect(userId, DateTime.UtcNow);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("LobbySubscriptionStore.HandleDisconnect failed.", ex);
             }
         }
 

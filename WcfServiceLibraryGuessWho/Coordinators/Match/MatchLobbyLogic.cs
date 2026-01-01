@@ -1,23 +1,22 @@
 ﻿using ClassLibraryGuessWho.Data.Factories;
 using GuessWhoContracts.Services;
-using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
 using GuessWhoServerDomain.Domain.Enums.Match;
+using GuessWhoServerDomain.Domain.Enums.Matches.Outcomes;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.Match;
 using GuessWhoServerDomain.Domain.Models.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
+using GuessWhoServerDomain.Domain.Results.Match.Outcomes;
 using GuessWhoServices.Infrastructure;
-using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.ServiceModel;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Match
+namespace GuessWhoServices.Services.MatchApplication
 {
     public sealed class MatchLobbyLogic
     {
@@ -31,33 +30,36 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
 
         private const long INVALID_ID = 0;
 
-        private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
-        private readonly ILobbySubscriptionStore subscriptionStore;
-        private readonly IMatchCallbackDispatcher callbackDispatcher;
+        private readonly IGuessWhoUnitOfWorkFactory _unitOfWorkFactory;
+        private readonly ILobbySubscriptionStore _subscriptionStore;
+        private readonly IMatchCallbackDispatcher _callbackDispatcher;
 
         public MatchLobbyLogic(
             IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
             ILobbySubscriptionStore subscriptionStore,
             IMatchCallbackDispatcher callbackDispatcher)
         {
-            this.unitOfWorkFactory = unitOfWorkFactory ??
-                throw new ArgumentNullException(nameof(unitOfWorkFactory));
-            this.subscriptionStore = subscriptionStore ??
-                throw new ArgumentNullException(nameof(subscriptionStore));
-            this.callbackDispatcher = callbackDispatcher ??
-                throw new ArgumentNullException(nameof(callbackDispatcher));
+            _unitOfWorkFactory = unitOfWorkFactory ?? throw new ArgumentNullException(nameof(unitOfWorkFactory));
+            _subscriptionStore = subscriptionStore ?? throw new ArgumentNullException(nameof(subscriptionStore));
+            _callbackDispatcher = callbackDispatcher ?? throw new ArgumentNullException(nameof(callbackDispatcher));
         }
 
-        public JoinMatchResponse JoinMatch(JoinMatchRequest request)
+        public JoinMatchOutcome JoinMatch(JoinMatchRequest request)
         {
-            EnsureRequestNotNull(request);
+            if (request == null)
+            {
+                return JoinMatchOutcome.Fail(JoinMatchOutcomeCode.InvalidRequest);
+            }
 
             string matchCode = NormalizeMatchCode(request.MatchCode);
             long userId = request.UserId;
 
-            EnsureJoinInputs(matchCode, userId);
+            if (string.IsNullOrWhiteSpace(matchCode) || userId <= INVALID_ID)
+            {
+                return JoinMatchOutcome.Fail(JoinMatchOutcomeCode.InvalidInputs);
+            }
 
-            using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
+            using IGuessWhoUnitOfWork unitOfWork = _unitOfWorkFactory.Create();
             using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
 
             IMatchRepository matchRepository = unitOfWork.Matches;
@@ -67,11 +69,7 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
             if (!openMatch.IsValid)
             {
                 transaction.Rollback();
-
-                throw CreateMatchFault(
-                    MatchFaultKeys.CODE_MATCH_NOT_FOUND,
-                    MatchFaultKeys.MSG_MATCH_NOT_FOUND,
-                    MatchFaultKeys.FALLBACK_MATCH_NOT_FOUND);
+                return JoinMatchOutcome.Fail(JoinMatchOutcomeCode.MatchNotFound);
             }
 
             var joinArgs = new JoinMatchArgs
@@ -86,7 +84,7 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
             if (!joinResult.IsValid)
             {
                 transaction.Rollback();
-                ThrowJoinFault(joinResult.Code, openMatch.MatchId, userId);
+                return JoinMatchOutcome.Fail(MapJoinCode(joinResult.Code));
             }
 
             unitOfWork.Flush();
@@ -98,18 +96,18 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
 
             if (hostPlayer == null)
             {
-                Logger.ErrorFormat("{0}: host not found. MatchId={1}", CONTEXT_JOIN, openMatch.MatchId);
-                throw CreateInfrastructureUnexpectedFault();
+                Logger.ErrorFormat("{0}: host not found. MatchId={1}.", CONTEXT_JOIN, openMatch.MatchId);
+                return JoinMatchOutcome.Fail(JoinMatchOutcomeCode.HostNotFound);
             }
 
             LobbyPlayerDto joinedPlayer = players.FirstOrDefault(player => player != null && player.UserId == userId);
 
             if (joinedPlayer != null)
             {
-                callbackDispatcher.Broadcast(openMatch.MatchId, cb => cb.OnPlayerJoined(joinedPlayer));
+                _callbackDispatcher.Broadcast(openMatch.MatchId, cb => cb.OnPlayerJoined(joinedPlayer));
             }
 
-            return new JoinMatchResponse
+            var response = new JoinMatchResponse
             {
                 MatchId = openMatch.MatchId,
                 Code = openMatch.MatchCode ?? string.Empty,
@@ -120,122 +118,121 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
                 HostUserId = hostPlayer.UserId,
                 Players = players
             };
+
+            return JoinMatchOutcome.Success(response);
         }
 
-        public BasicResponse LeaveMatch(LeaveMatchRequest request)
+        public LeaveMatchOutcome LeaveMatch(LeaveMatchRequest request)
         {
-            EnsureRequestNotNull(request);
+            if (request == null)
+            {
+                return LeaveMatchOutcome.Fail(LeaveMatchOutcomeCode.InvalidRequest);
+            }
 
             long matchId = request.MatchId;
             long userId = request.UserId;
 
-            EnsureMatchAndUser(matchId, userId);
-
-            using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
-            using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
+            if (matchId <= INVALID_ID || userId <= INVALID_ID)
             {
-                var leaveArgs = new MatchPlayerArgs
-                {
-                    MatchId = matchId,
-                    UserProfileId = userId
-                };
-
-                LeaveMatchResult leaveResult = unitOfWork.Matches.LeaveMatch(leaveArgs);
-
-                if (!leaveResult.IsSuccess)
-                {
-                    transaction.Rollback();
-                    ThrowLeaveFault(leaveResult.Code, matchId, userId);
-                }
-
-                unitOfWork.Flush();
-                transaction.Commit();
+                return LeaveMatchOutcome.Fail(LeaveMatchOutcomeCode.InvalidInputs);
             }
 
-            callbackDispatcher.Broadcast(matchId, cb => cb.OnPlayerLeft(new LobbyPlayerDto
+            using IGuessWhoUnitOfWork unitOfWork = _unitOfWorkFactory.Create();
+            using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+
+            var leaveArgs = new MatchPlayerArgs
+            {
+                MatchId = matchId,
+                UserProfileId = userId
+            };
+
+            LeaveMatchResult leaveResult = unitOfWork.Matches.LeaveMatch(leaveArgs);
+
+            if (!leaveResult.IsSuccess)
+            {
+                transaction.Rollback();
+                return LeaveMatchOutcome.Fail(MapLeaveCode(leaveResult.Code));
+            }
+
+            unitOfWork.Flush();
+            transaction.Commit();
+
+            _callbackDispatcher.Broadcast(matchId, cb => cb.OnPlayerLeft(new LobbyPlayerDto
             {
                 MatchId = matchId,
                 UserId = userId
             }));
 
-            return new BasicResponse { Success = true };
+            return LeaveMatchOutcome.Success();
         }
 
-        public BasicResponse SetPlayerReadyStatus(SetPlayerReadyStatusRequest request)
+        public SetReadyOutcome SetPlayerReadyStatus(SetPlayerReadyStatusRequest request)
         {
-            EnsureRequestNotNull(request);
+            if (request == null)
+            {
+                return SetReadyOutcome.Fail(SetReadyOutcomeCode.InvalidRequest);
+            }
 
             long matchId = request.MatchId;
             long userId = request.UserId;
 
-            EnsureMatchAndUser(matchId, userId);
-
-            using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
-            using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
+            if (matchId <= INVALID_ID || userId <= INVALID_ID)
             {
-                var markReadyArgs = new MatchPlayerArgs
-                {
-                    MatchId = matchId,
-                    UserProfileId = userId
-                };
-
-                MarkReadyResult readyResult = unitOfWork.Matches.MarkReady(markReadyArgs);
-
-                if (!readyResult.IsSuccess)
-                {
-                    transaction.Rollback();
-                    ThrowReadyFault(readyResult.Code, matchId, userId);
-                }
-
-                unitOfWork.Flush();
-                transaction.Commit();
+                return SetReadyOutcome.Fail(SetReadyOutcomeCode.InvalidInputs);
             }
 
-            callbackDispatcher.Broadcast(matchId, cb => cb.OnReadyChanged(new LobbyPlayerDto
+            using IGuessWhoUnitOfWork unitOfWork = _unitOfWorkFactory.Create();
+            using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+
+            var markReadyArgs = new MatchPlayerArgs
+            {
+                MatchId = matchId,
+                UserProfileId = userId
+            };
+
+            MarkReadyResult readyResult = unitOfWork.Matches.MarkReady(markReadyArgs);
+
+            if (!readyResult.IsSuccess)
+            {
+                transaction.Rollback();
+                return SetReadyOutcome.Fail(MapReadyCode(readyResult.Code));
+            }
+
+            unitOfWork.Flush();
+            transaction.Commit();
+
+            _callbackDispatcher.Broadcast(matchId, cb => cb.OnReadyChanged(new LobbyPlayerDto
             {
                 MatchId = matchId,
                 UserId = userId,
                 IsReady = true
             }));
 
-            return new BasicResponse { Success = true };
+            return SetReadyOutcome.Success();
         }
 
         public void SubscribeLobby(long matchId, IMatchCallback callbackChannel)
         {
             if (matchId <= INVALID_ID || callbackChannel == null)
             {
-                Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, HasCallback={2}",
+                Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, HasCallback={2}.",
                     CONTEXT_SUBSCRIBE, matchId, callbackChannel != null);
                 return;
             }
 
-            subscriptionStore.Subscribe(matchId, callbackChannel);
+            _subscriptionStore.Subscribe(matchId, callbackChannel);
         }
 
         public void UnsubscribeLobby(long matchId, IMatchCallback callbackChannel)
         {
             if (matchId <= INVALID_ID || callbackChannel == null)
             {
-                Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, HasCallback={2}", 
+                Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, HasCallback={2}.",
                     CONTEXT_UNSUBSCRIBE, matchId, callbackChannel != null);
                 return;
             }
 
-            subscriptionStore.Unsubscribe(matchId, callbackChannel);
-        }
-
-        private static void EnsureRequestNotNull(object request)
-        {
-            if (request != null)
-            {
-                return;
-            }
-
-            throw FaultsFactory.Create(
-                InfrastructureFaultKeys.CODE_REQUEST_NULL,
-                InfrastructureFaultKeys.MSG_REQUEST_NULL,
-                InfrastructureFaultKeys.FALLBACK_REQUEST_NULL);
+            _subscriptionStore.Unsubscribe(matchId, callbackChannel);
         }
 
         private static string NormalizeMatchCode(string matchCode)
@@ -243,155 +240,64 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
             return (matchCode ?? string.Empty).Trim().ToUpperInvariant();
         }
 
-        private static void EnsureJoinInputs(string matchCode, long userId)
-        {
-            if (!string.IsNullOrWhiteSpace(matchCode) && userId > INVALID_ID)
-            {
-                return;
-            }
-
-            throw FaultsFactory.Create(
-                MatchFaultKeys.CODE_MATCH_NOT_JOINABLE,
-                MatchFaultKeys.MSG_MATCH_NOT_JOINABLE,
-                MatchFaultKeys.FALLBACK_MATCH_NOT_JOINABLE);
-        }
-
-        private static void EnsureMatchAndUser(long matchId, long userId)
-        {
-            if (matchId > INVALID_ID && userId > INVALID_ID)
-            {
-                return;
-            }
-
-            throw FaultsFactory.Create(
-                MatchFaultKeys.CODE_PLAYER_NOT_IN_MATCH,
-                MatchFaultKeys.MSG_PLAYER_NOT_IN_MATCH,
-                MatchFaultKeys.FALLBACK_PLAYER_NOT_IN_MATCH);
-        }
-
-        private void ThrowJoinFault(JoinMatchResultCode code, long matchId, long userId)
+        private static JoinMatchOutcomeCode MapJoinCode(JoinMatchResultCode code)
         {
             switch (code)
             {
                 case JoinMatchResultCode.MatchNotFound:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_MATCH_NOT_FOUND, 
-                        MatchFaultKeys.MSG_MATCH_NOT_FOUND, 
-                        MatchFaultKeys.FALLBACK_MATCH_NOT_FOUND);
+                    return JoinMatchOutcomeCode.MatchNotFound;
 
                 case JoinMatchResultCode.MatchNotJoinable:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_MATCH_NOT_JOINABLE, 
-                        MatchFaultKeys.MSG_MATCH_NOT_JOINABLE, 
-                        MatchFaultKeys.FALLBACK_MATCH_NOT_JOINABLE);
+                    return JoinMatchOutcomeCode.MatchNotJoinable;
 
                 case JoinMatchResultCode.GuestSlotTaken:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_MATCH_FULL, 
-                        MatchFaultKeys.MSG_MATCH_FULL, 
-                        MatchFaultKeys.FALLBACK_MATCH_FULL);
+                    return JoinMatchOutcomeCode.MatchFull;
 
                 case JoinMatchResultCode.PlayerAlreadyInMatch:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_PLAYER_ALREADY_IN_MATCH, 
-                        MatchFaultKeys.MSG_PLAYER_ALREADY_IN_MATCH, 
-                        MatchFaultKeys.FALLBACK_PLAYER_ALREADY_IN_MATCH);
+                    return JoinMatchOutcomeCode.PlayerAlreadyInMatch;
 
                 case JoinMatchResultCode.InOtherActiveMatch:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_IN_OTHER_ACTIVE_MATCH, 
-                        MatchFaultKeys.MSG_IN_OTHER_ACTIVE_MATCH, 
-                        MatchFaultKeys.FALLBACK_IN_OTHER_ACTIVE_MATCH);
+                    return JoinMatchOutcomeCode.InOtherActiveMatch;
 
                 default:
-                    
-                    Logger.ErrorFormat("{0}: unexpected JoinMatchResultCode. MatchId={1}, UserId={2}, Code={3}",
-                        CONTEXT_JOIN, matchId, userId, code);
-                    throw CreateInfrastructureUnexpectedFault();
+                    return JoinMatchOutcomeCode.OperationConflict;
             }
         }
 
-        private void ThrowLeaveFault(LeaveMatchResultCode code, long matchId, long userId)
+        private static LeaveMatchOutcomeCode MapLeaveCode(LeaveMatchResultCode code)
         {
             switch (code)
             {
                 case LeaveMatchResultCode.MatchNotFound:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_MATCH_NOT_FOUND, 
-                        MatchFaultKeys.MSG_MATCH_NOT_FOUND, 
-                        MatchFaultKeys.FALLBACK_MATCH_NOT_FOUND);
+                    return LeaveMatchOutcomeCode.MatchNotFound;
 
                 case LeaveMatchResultCode.PlayerNotInMatch:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_PLAYER_NOT_IN_MATCH, 
-                        MatchFaultKeys.MSG_PLAYER_NOT_IN_MATCH, 
-                        MatchFaultKeys.FALLBACK_PLAYER_NOT_IN_MATCH);
+                    return LeaveMatchOutcomeCode.PlayerNotInMatch;
 
                 case LeaveMatchResultCode.PlayerAlreadyLeft:
-
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_PLAYER_ALREADY_LEFT, 
-                        MatchFaultKeys.MSG_PLAYER_ALREADY_LEFT, 
-                        MatchFaultKeys.FALLBACK_PLAYER_ALREADY_LEFT);
+                    return LeaveMatchOutcomeCode.PlayerAlreadyLeft;
 
                 default:
-                    Logger.ErrorFormat("{0}: unexpected LeaveMatchResultCode. MatchId={1}, UserId={2}, Code={3}",
-                        CONTEXT_LEAVE, matchId, userId, code);
-                    throw CreateInfrastructureUnexpectedFault();
+                    return LeaveMatchOutcomeCode.OperationConflict;
             }
         }
 
-        private void ThrowReadyFault(MarkReadyResultCode code, long matchId, long userId)
+        private static SetReadyOutcomeCode MapReadyCode(MarkReadyResultCode code)
         {
             switch (code)
             {
                 case MarkReadyResultCode.PlayerNotFound:
-
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_PLAYER_NOT_IN_MATCH, 
-                        MatchFaultKeys.MSG_PLAYER_NOT_IN_MATCH, 
-                        MatchFaultKeys.FALLBACK_PLAYER_NOT_IN_MATCH);
+                    return SetReadyOutcomeCode.PlayerNotInMatch;
 
                 case MarkReadyResultCode.PlayerAlreadyLeft:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_PLAYER_ALREADY_LEFT, 
-                        MatchFaultKeys.MSG_PLAYER_ALREADY_LEFT, 
-                        MatchFaultKeys.FALLBACK_PLAYER_ALREADY_LEFT);
+                    return SetReadyOutcomeCode.PlayerAlreadyLeft;
 
                 case MarkReadyResultCode.MatchNotInLobby:
-                    
-                    throw CreateMatchFault(
-                        MatchFaultKeys.CODE_MATCH_NOT_IN_LOBBY, 
-                        MatchFaultKeys.MSG_MATCH_NOT_IN_LOBBY, 
-                        MatchFaultKeys.FALLBACK_MATCH_NOT_IN_LOBBY);
+                    return SetReadyOutcomeCode.MatchNotInLobby;
 
                 default:
-                    
-                    Logger.ErrorFormat("{0}: unexpected MarkReadyResultCode. MatchId={1}, UserId={2}, Code={3}", 
-                        CONTEXT_READY, matchId, userId, code);
-                    throw CreateInfrastructureUnexpectedFault();
+                    return SetReadyOutcomeCode.OperationConflict;
             }
-        }
-
-        private static FaultException<ServiceFault> CreateMatchFault(string code, string messageKey, string fallbackMessage)
-        {
-            return FaultsFactory.Create(code, messageKey, fallbackMessage);
-        }
-
-        private static FaultException<ServiceFault> CreateInfrastructureUnexpectedFault()
-        {
-            return FaultsFactory.Create(
-                InfrastructureFaultKeys.CODE_UNEXPECTED_ERROR,
-                InfrastructureFaultKeys.MSG_UNEXPECTED_ERROR,
-                InfrastructureFaultKeys.FALLBACK_UNEXPECTED_ERROR);
         }
 
         private static IReadOnlyList<LobbyPlayerDto> MapPlayers(IReadOnlyList<LobbyPlayerSnapshot> snapshots)

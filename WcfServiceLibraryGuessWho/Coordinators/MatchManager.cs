@@ -7,9 +7,9 @@ using log4net;
 using System;
 using System.ServiceModel;
 using WcfServiceLibraryGuessWho.Coordinators.Base;
+using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
 using WcfServiceLibraryGuessWho.Coordinators.Match;
 using WcfServiceLibraryGuessWho.Errors;
-using WcfServiceLibraryGuessWho.Services.MatchApplication;
 
 namespace WcfServiceLibraryGuessWho.Coordinators
 {

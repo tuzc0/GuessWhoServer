@@ -54,7 +54,6 @@
     <Compile Include="Contracts\Faults\Match\MatchDeckFaultKeys.cs" />
     <Compile Include="Contracts\Faults\Match\ChooseSecretFaultKeys.cs" />
     <Compile Include="Contracts\Faults\Match\MatchLifecycleFaultKeys.cs" />
-    <Compile Include="Contracts\Faults\Match\MatchSecretFaultKeys.cs" />
     <Compile Include="Contracts\Faults\PasswordRecoveryFaultKeys.cs" />
     <Compile Include="Contracts\Faults\SecurityFaultsCodes.cs" />
     <Compile Include="Contracts\Faults\ServiceFault.cs" />

@@ -1,5 +1,5 @@
-﻿using GuessWhoServerDomain.Domain.Models.Match;
-using GuessWhoServerDomain.Domain.Parameters.Matches;
+﻿using GuessWhoServerDomain.Domain.Parameters.Matches;
+using GuessWhoServerDomain.Domain.Results.Match;
 using System.Collections.Generic;
 
 namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
@@ -11,7 +11,7 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
 
     public interface IMatchDeckRepository
     {
-        MatchDeckRecord GetMatchDeck(long matchId);
-        MatchDeckRecord CreateDeck(SaveMatchDeckArgs saveMatchDeckArgs);
+        MatchDeckResult GetMatchDeck(long matchId);
+        MatchDeckResult CreateDeck(SaveMatchDeckArgs saveMatchDeckArgs);
     }
 }

@@ -1,5 +1,4 @@
-﻿using GuessWhoCore.Dtos;
-using GuessWhoServerDomain.Domain.Enums;
+﻿using GuessWhoServerDomain.Domain.Enums.Accounts;
 using GuessWhoServerDomain.Domain.Models.Accounts;
 using System;
 
@@ -7,14 +6,14 @@ namespace GuessWhoServerDomain.Domain.Models.Sessions
 {
     public sealed class SessionLoginResult
     {
-        public UserSessionLoginStatus Status { get; }
+        public LoginStatus Status { get; }
         public AccountRecord Account { get; }
         public UserProfileRecord Profile { get; }
 
-        public bool IsSuccess => Status == UserSessionLoginStatus.Success;
+        public bool IsSuccess => Status == LoginStatus.Success;
 
         private SessionLoginResult(
-            UserSessionLoginStatus status,
+            LoginStatus status,
             AccountRecord account,
             UserProfileRecord profile)
         {
@@ -36,12 +35,12 @@ namespace GuessWhoServerDomain.Domain.Models.Sessions
             }
 
             return new SessionLoginResult(
-                UserSessionLoginStatus.Success,
+                LoginStatus.Success,
                 account,
                 profile);
         }
 
-        public static SessionLoginResult CreateFailed(UserSessionLoginStatus status)
+        public static SessionLoginResult CreateFailed(LoginStatus status)
         {
             return new SessionLoginResult(
                 status,

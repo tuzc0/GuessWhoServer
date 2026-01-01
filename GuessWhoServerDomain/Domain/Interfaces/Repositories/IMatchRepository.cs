@@ -12,6 +12,7 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
         JoinMatchResult AddPlayerToMatchByCode(JoinMatchArgs matchArgs);
         JoinMatchResult AddPlayerToPublicMatchById(long matchId, long userProfileId);
         LeaveMatchResult LeaveMatch(MatchPlayerArgs playerArgs);
+        DisconnectMatchResult HandleDisconnect(long userId, DateTime nowUtc);
         KickPlayerResult KickPlayer(KickPlayerArgs playerArgs);
         bool ForceLeaveAllMatchesForUser(long userId);
 

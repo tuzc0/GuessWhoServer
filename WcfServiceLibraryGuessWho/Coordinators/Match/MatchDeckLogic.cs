@@ -1,10 +1,8 @@
 ﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Faults.Match;
 using GuessWhoCore.Contracts.Requests;
-using GuessWhoCore.Contracts.Response;
-using GuessWhoServerDomain.Domain.Models.Match;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
-using GuessWhoServices.Services.ErrorHandling;
+using GuessWhoServerDomain.Domain.Results.Match;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -14,63 +12,91 @@ using System.Security.Cryptography;
 using WcfServiceLibraryGuessWho.Errors;
 using WcfServiceLibraryGuessWho.Services.MatchApplication;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Match
+namespace GuessWhoServices.Services.MatchApplication
 {
     public sealed class MatchDeckLogic
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(MatchDeckLogic));
 
         private const string CONTEXT_GET_OR_CREATE = "MatchDeckLogic.GetOrCreateMatchDeck";
+
         private const long INVALID_MATCH_ID = 0;
+        private const int RANDOM_INT_BUFFER_LENGTH = 4;
 
         private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
 
         public MatchDeckLogic(IGuessWhoUnitOfWorkFactory unitOfWorkFactory)
         {
-            this.unitOfWorkFactory = unitOfWorkFactory ??
-                throw new ArgumentNullException(nameof(unitOfWorkFactory));
+            this.unitOfWorkFactory = unitOfWorkFactory ?? throw new ArgumentNullException(nameof(unitOfWorkFactory));
         }
 
-        public MatchDeckResponse GetOrCreateMatchDeck(GetOrCreateMatchDeckRequest args)
+        public MatchDeckResult GetOrCreateMatchDeck(GetOrCreateMatchDeckRequest createDeckRequest)
         {
-            ValidateArgsOrThrow(args);
+            if (createDeckRequest == null)
+            {
+                return MatchDeckResult.Fail(MatchDeckResultCode.InvalidArgs);
+            }
+
+            if (createDeckRequest.MatchId <= INVALID_MATCH_ID)
+            {
+                return MatchDeckResult.Fail(MatchDeckResultCode.InvalidMatchId);
+            }
 
             using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-            MatchDeckRecord existingDeck = SafeGetDeck(unitOfWork, args.MatchId);
+            MatchDeckResult existingDeck = unitOfWork.MatchDecks.GetMatchDeck(createDeckRequest.MatchId);
 
-            if (existingDeck.IsValid)
+            if (existingDeck.IsSuccess)
             {
-                return BuildResponse(existingDeck);
+                return existingDeck;
+            }
+
+            int deckSize = ResolveDeckSize(createDeckRequest.ModeId);
+
+            List<string> candidates = LoadCandidateCharacters(unitOfWork);
+
+            if (candidates.Count < deckSize)
+            {
+                Logger.WarnFormat("{0}: insufficient active characters. MatchId={1}, Required={2}, Available={3}.",
+                    CONTEXT_GET_OR_CREATE, createDeckRequest.MatchId, deckSize, candidates.Count);
+
+                return MatchDeckResult.Fail(MatchDeckResultCode.InsufficientCharacters);
             }
 
             using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
 
-            MatchDeckRecord recheckedDeck = SafeGetDeck(unitOfWork, args.MatchId);
+            MatchDeckResult recheckedDeck = unitOfWork.MatchDecks.GetMatchDeck(createDeckRequest.MatchId);
 
-            if (recheckedDeck.IsValid)
+            if (recheckedDeck.IsSuccess)
             {
                 transaction.Commit();
-                return BuildResponse(recheckedDeck);
+                return recheckedDeck;
             }
-
-            int deckSize = ResolveDeckSize(args.ModeId);
-
-            List<string> candidates = LoadCandidateCharacters(unitOfWork);
-            EnsureEnoughCharactersOrThrow(args.MatchId, deckSize, candidates.Count);
 
             List<string> selected = SelectRandomCharacters(candidates, deckSize);
 
             var saveArgs = new SaveMatchDeckArgs
             {
-                MatchId = args.MatchId,
+                MatchId = createDeckRequest.MatchId,
                 CharacterIds = selected
             };
 
+            MatchDeckResult createResult = unitOfWork.MatchDecks.CreateDeck(saveArgs);
+
+            if (!createResult.IsSuccess && createResult.Code == MatchDeckResultCode.DeckAlreadyExists)
+            {
+                transaction.Rollback();
+                return ReloadDeckAfterConflict(createDeckRequest.MatchId);
+            }
+
+            if (!createResult.IsSuccess)
+            {
+                transaction.Rollback();
+                return createResult;
+            }
+
             try
             {
-                unitOfWork.MatchDecks.CreateDeck(saveArgs);
-
                 unitOfWork.Flush();
                 transaction.Commit();
             }
@@ -78,74 +104,34 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
             {
                 transaction.Rollback();
 
-                Logger.InfoFormat("{0}: deck already created by concurrent request. MatchId={1}. Returning existing deck.",
-                    CONTEXT_GET_OR_CREATE, args.MatchId);
+                Logger.InfoFormat("{0}: deck already created by concurrent request. MatchId={1}.",
+                    CONTEXT_GET_OR_CREATE, createDeckRequest.MatchId);
 
-                MatchDeckRecord deckExisting = SafeGetDeck(unitOfWork, args.MatchId);
-
-                if (deckExisting.IsValid)
-                {
-                    return BuildResponse(deckExisting);
-                }
-
-                throw FaultsFactory.Create(
-                    MatchDeckFaultKeys.CODE_OPERATION_CONFLICT,
-                    MatchDeckFaultKeys.MSG_OPERATION_CONFLICT,
-                    MatchDeckFaultKeys.FALLBACK_OPERATION_CONFLICT,
-                    ex);
+                return ReloadDeckAfterConflict(createDeckRequest.MatchId);
             }
 
-            MatchDeckRecord createdDeck = SafeGetDeck(unitOfWork, args.MatchId);
+            MatchDeckResult createdDeck = unitOfWork.MatchDecks.GetMatchDeck(createDeckRequest.MatchId);
 
-            if (createdDeck.IsValid)
+            if (createdDeck.IsSuccess)
             {
-                return BuildResponse(createdDeck);
+                return createdDeck;
             }
 
-            throw FaultsFactory.Create(
-                MatchDeckFaultKeys.CODE_DECK_GENERATION_FAILED,
-                MatchDeckFaultKeys.MSG_DECK_GENERATION_FAILED,
-                MatchDeckFaultKeys.FALLBACK_DECK_GENERATION_FAILED);
+            return MatchDeckResult.Fail(MatchDeckResultCode.DeckGenerationFailed);
         }
 
-        private static void ValidateArgsOrThrow(GetOrCreateMatchDeckRequest args)
+        private MatchDeckResult ReloadDeckAfterConflict(long matchId)
         {
-            if (args == null)
+            using IGuessWhoUnitOfWork retryUnitOfWork = unitOfWorkFactory.Create();
+
+            MatchDeckResult deck = retryUnitOfWork.MatchDecks.GetMatchDeck(matchId);
+
+            if (deck.IsSuccess)
             {
-                throw FaultsFactory.Create(
-                    MatchDeckFaultKeys.CODE_INVALID_REQUEST,
-                    MatchDeckFaultKeys.MSG_INVALID_REQUEST,
-                    MatchDeckFaultKeys.FALLBACK_INVALID_REQUEST);
+                return deck;
             }
 
-            if (args.MatchId <= INVALID_MATCH_ID)
-            {
-                throw FaultsFactory.Create(
-                    MatchDeckFaultKeys.CODE_INVALID_MATCH_ID,
-                    MatchDeckFaultKeys.MSG_INVALID_MATCH_ID,
-                    MatchDeckFaultKeys.FALLBACK_INVALID_MATCH_ID);
-            }
-        }
-
-        private static MatchDeckRecord SafeGetDeck(IGuessWhoUnitOfWork unitOfWork, long matchId)
-        {
-            MatchDeckRecord record = unitOfWork.MatchDecks.GetMatchDeck(matchId);
-
-            if (record == null)
-            {
-                return MatchDeckRecord.CreateInvalid();
-            }
-
-            return record;
-        }
-
-        private static MatchDeckResponse BuildResponse(MatchDeckRecord record)
-        {
-            string[] characterIds = record.CharacterDeckIds != null
-                ? record.CharacterDeckIds.ToArray()
-                : Array.Empty<string>();
-
-            return new MatchDeckResponse { CharacterIds = characterIds };
+            return MatchDeckResult.Fail(MatchDeckResultCode.OperationConflict);
         }
 
         private static int ResolveDeckSize(byte modeId)
@@ -169,29 +155,14 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
 
             return universe
                 .Where(characterId => !string.IsNullOrWhiteSpace(characterId))
+                .Select(characterId => characterId.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
 
-        private static void EnsureEnoughCharactersOrThrow(long matchId, int required, int available)
-        {
-            if (available >= required)
-            {
-                return;
-            }
-
-            Logger.WarnFormat("{0}: insufficient active characters. MatchId={1}, Required={2}, Available={3}.",
-                CONTEXT_GET_OR_CREATE, matchId, required, available);
-
-            throw FaultsFactory.Create(
-                MatchDeckFaultKeys.CODE_INSUFFICIENT_CHARACTERS,
-                MatchDeckFaultKeys.MSG_INSUFFICIENT_CHARACTERS,
-                MatchDeckFaultKeys.FALLBACK_INSUFFICIENT_CHARACTERS);
-        }
-
         private static List<string> SelectRandomCharacters(List<string> candidates, int deckSize)
         {
-            if (candidates == null || candidates.Count == 0)
+            if (candidates == null || candidates.Count == 0 || deckSize <= 0)
             {
                 return new List<string>();
             }
@@ -208,16 +179,15 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
                 return;
             }
 
-            using (RandomNumberGenerator randomNumber = RandomNumberGenerator.Create())
-            {
-                for (int index = items.Count - 1; index > 0; index--)
-                {
-                    int swapIndex = GetRandomInt(randomNumber, index + 1);
+            using RandomNumberGenerator randomNumber = RandomNumberGenerator.Create();
 
-                    string temp = items[index];
-                    items[index] = items[swapIndex];
-                    items[swapIndex] = temp;
-                }
+            for (int index = items.Count - 1; index > 0; index--)
+            {
+                int swapIndex = GetRandomInt(randomNumber, index + 1);
+
+                string temp = items[index];
+                items[index] = items[swapIndex];
+                items[swapIndex] = temp;
             }
         }
 
@@ -233,11 +203,12 @@ namespace WcfServiceLibraryGuessWho.Coordinators.Match
                 throw new ArgumentOutOfRangeException(nameof(maxExclusive));
             }
 
-            byte[] buffer = new byte[4];
+            byte[] buffer = new byte[RANDOM_INT_BUFFER_LENGTH];
 
             while (true)
             {
                 randomNumber.GetBytes(buffer);
+
                 int value = BitConverter.ToInt32(buffer, 0) & int.MaxValue;
 
                 int remainder = value % maxExclusive;

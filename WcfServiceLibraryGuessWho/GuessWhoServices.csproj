@@ -9,7 +9,7 @@
     <ProjectGuid>{BE89004B-A0AF-4A7B-A4C9-A712EAB8B994}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>WcfServiceLibraryGuessWho</RootNamespace>
+    <RootNamespace>GuessWhoServices</RootNamespace>
     <AssemblyName>WcfServiceLibraryGuessWho</AssemblyName>
     <ProjectTypeGuids>{3D9AD99F-2412-4246-B90B-4EAA41C64699};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <StartArguments>/client:"WcfTestClient.exe"</StartArguments>
@@ -156,7 +156,9 @@
     <Compile Include="Coordinators\LoginManager.cs" />
     <Compile Include="Coordinators\InternalDtos\LoginArgs.cs" />
     <Compile Include="Coordinators\InternalDtos\RegisterUserArgs.cs" />
+    <Compile Include="Coordinators\Match\MatchGuessingLogic.cs" />
     <Compile Include="Coordinators\Match\MatchLifecycleLogic.cs" />
+    <Compile Include="Coordinators\Match\MatchPassTurnLogic.cs" />
     <Compile Include="Coordinators\Match\MatchSecretCharacterLogic.cs" />
     <Compile Include="Coordinators\PasswordRecoveryManager.cs" />
     <Compile Include="Coordinators\UpdateProfileManager.cs" />
@@ -177,14 +179,9 @@
     <Compile Include="Services\FriendService.cs" />
     <Compile Include="Services\ChatService.cs" />
     <Compile Include="Services\LoginService.cs" />
-    <Compile Include="Services\MatchApplication\IMatchManager.cs" />
-    <Compile Include="Services\MatchApplication\LobbyCoordinator.cs" />
-    <Compile Include="Services\MatchApplication\LobbyNotifier.cs" />
-    <Compile Include="Services\MatchApplication\MatchCreationService.cs" />
+    <Compile Include="Coordinators\Interfaces\IMatchManager.cs" />
     <Compile Include="Services\MatchApplication\MatchDeckConstants.cs" />
     <Compile Include="Coordinators\Match\MatchDeckLogic.cs" />
-    <Compile Include="Services\MatchApplication\MatchDeckProvider.cs" />
-    <Compile Include="Services\MatchApplication\MatchLifecycleService.cs" />
     <Compile Include="Coordinators\Match\MatchLobbyLogic.cs" />
     <Compile Include="Coordinators\MatchManager.cs" />
     <Compile Include="Services\MatchService.cs" />

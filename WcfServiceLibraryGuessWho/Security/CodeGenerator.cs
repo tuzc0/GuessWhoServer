@@ -6,12 +6,14 @@ namespace GuessWhoServer.Security
 {
     public static class CodeGenerator
     {
+        private const string CODE_LENGTH = "D6";
+
         public static string GenerateNumericCode()
         {
             using (var cryptographicRandomNumberGenerator = RandomNumberGenerator.Create())
             {
                 int randomNumber = GetInt32Compat(cryptographicRandomNumberGenerator, 0, 1_000_000); 
-                return randomNumber.ToString("D6");
+                return randomNumber.ToString(CODE_LENGTH);
             }
         }
 
