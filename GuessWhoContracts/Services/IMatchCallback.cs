@@ -26,5 +26,12 @@ namespace GuessWhoContracts.Services
 
         [OperationContract(IsOneWay = true)]
         void OnGameEnded(long matchId, long winnerUserId);
+
+        [OperationContract(IsOneWay = true)]
+        void OnQuestionAsked(long matchId, long askingUserId, long attributeId);
+
+        [OperationContract(IsOneWay = true)]
+        void OnQuestionAnswered(long matchId, long answeringUserId, int answerOptionId);
+
     }
 }

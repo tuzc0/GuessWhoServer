@@ -55,11 +55,11 @@ namespace GuessWhoDataAccess.Data.DataAccess.Chat
                 CASE WHEN EXISTS (SELECT 1 FROM dbo.MATCH_PLAYER MP WHERE MP.MATCHID = @MatchId AND MP.USERID = @SenderUserId) THEN 1 ELSE 0 END AS SenderIsMember,
                 CASE WHEN EXISTS (SELECT 1 FROM dbo.MATCH_PLAYER MP WHERE MP.MATCHID = @MatchId AND MP.USERID = @SenderUserId AND MP.LEFTATUTC IS NULL) THEN 1 ELSE 0 END AS SenderIsActive;";
 
-        private readonly GuessWhoDBEntities _dataContext;
+        private readonly GuessWhoDBEntities dataContext;
 
         public MatchChatData(GuessWhoDBEntities dataContext)
         {
-            _dataContext = dataContext ?? throw new ArgumentNullException(nameof(dataContext));
+            this.dataContext = dataContext ?? throw new ArgumentNullException(nameof(dataContext));
         }
 
         public AddMatchChatMessageResult AddMessage(AddMatchChatMessageArgs chatMessageArgs)
@@ -73,7 +73,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Chat
             int rowsAffected;
             try
             {
-                rowsAffected = _dataContext.Database.ExecuteSqlCommand(
+                rowsAffected = dataContext.Database.ExecuteSqlCommand(
                     SQL_INSERT_MESSAGE_ATOMIC,
                     new SqlParameter("@MatchId", plan.MatchId),
                     new SqlParameter("@SenderUserId", plan.SenderUserId),
@@ -107,7 +107,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Chat
                 return Array.Empty<MatchChatMessageRecord>();
             }
 
-            List<ChatMessageRow> rows = _dataContext.Database.SqlQuery<ChatMessageRow>(
+            List<ChatMessageRow> rows = dataContext.Database.SqlQuery<ChatMessageRow>(
                     SQL_SELECT_LAST_MESSAGES,
                     new SqlParameter("@MatchId", matchId),
                     new SqlParameter("@TakeLast", safeTakeLast))
@@ -179,7 +179,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Chat
 
         private AddMessageDiagnostic LoadAddMessageDiagnostic(AddMessagePlan plan)
         {
-            List<AddMessageDiagnostic> rows = _dataContext.Database.SqlQuery<AddMessageDiagnostic>(
+            List<AddMessageDiagnostic> rows = dataContext.Database.SqlQuery<AddMessageDiagnostic>(
                     SQL_DIAGNOSTIC,
                     new SqlParameter("@MatchId", plan.MatchId),
                     new SqlParameter("@SenderUserId", plan.SenderUserId))
