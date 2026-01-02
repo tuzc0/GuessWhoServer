@@ -1,238 +1,361 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoContracts.Services;
-using GuessWhoCore.Contracts.Requests;
-using GuessWhoCore.Contracts.Response;
-using GuessWhoServerDomain.Domain.Enums.Match;
-using GuessWhoServerDomain.Domain.Enums.Matches.Outcomes;
+﻿using GuessWhoDataAccess.Data.Factories;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
-using GuessWhoServerDomain.Domain.Models.Match;
 using GuessWhoServerDomain.Domain.Models.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
-using GuessWhoServerDomain.Domain.Results.Match.Outcomes;
-using GuessWhoServices.Infrastructure;
+using GuessWhoServices.Coordinators.InternalDtos;
 using log4net;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
-namespace GuessWhoServices.Services.MatchApplication
+namespace GuessWhoServices.Coordinators.Match
 {
     public sealed class MatchLobbyLogic
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(MatchLobbyLogic));
 
         private const string CONTEXT_JOIN = nameof(MatchLobbyLogic) + "." + nameof(JoinMatch);
-        private const string CONTEXT_LEAVE = nameof(MatchLobbyLogic) + "." + nameof(LeaveMatch);
-        private const string CONTEXT_READY = nameof(MatchLobbyLogic) + "." + nameof(SetPlayerReadyStatus);
         private const string CONTEXT_SUBSCRIBE = nameof(MatchLobbyLogic) + "." + nameof(SubscribeLobby);
         private const string CONTEXT_UNSUBSCRIBE = nameof(MatchLobbyLogic) + "." + nameof(UnsubscribeLobby);
 
         private const long INVALID_ID = 0;
 
-        private readonly IGuessWhoUnitOfWorkFactory _unitOfWorkFactory;
-        private readonly ILobbySubscriptionStore _subscriptionStore;
-        private readonly IMatchCallbackDispatcher _callbackDispatcher;
+        private readonly IGuessWhoUnitOfWorkFactory guessWhoUnitOfWorkFactory;
+        private readonly ILobbySubscriptionOperations lobbySubscriptionOperations;
 
         public MatchLobbyLogic(
-            IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
-            ILobbySubscriptionStore subscriptionStore,
-            IMatchCallbackDispatcher callbackDispatcher)
+            IGuessWhoUnitOfWorkFactory guessWhoUnitOfWorkFactory,
+            ILobbySubscriptionOperations lobbySubscriptionOperations)
         {
-            _unitOfWorkFactory = unitOfWorkFactory ?? throw new ArgumentNullException(nameof(unitOfWorkFactory));
-            _subscriptionStore = subscriptionStore ?? throw new ArgumentNullException(nameof(subscriptionStore));
-            _callbackDispatcher = callbackDispatcher ?? throw new ArgumentNullException(nameof(callbackDispatcher));
+            this.guessWhoUnitOfWorkFactory = guessWhoUnitOfWorkFactory ??
+                throw new ArgumentNullException(nameof(guessWhoUnitOfWorkFactory));
+
+            this.lobbySubscriptionOperations = lobbySubscriptionOperations ??
+                throw new ArgumentNullException(nameof(lobbySubscriptionOperations));
         }
 
-        public JoinMatchOutcome JoinMatch(JoinMatchRequest request)
+        public JoinLobbyLogicResult JoinMatch(JoinLobbyArgs joinLobbyArgs)
         {
-            if (request == null)
+            JoinInput joinInput = BuildJoinInputOrInvalid(joinLobbyArgs);
+
+            if (!joinInput.IsValid)
             {
-                return JoinMatchOutcome.Fail(JoinMatchOutcomeCode.InvalidRequest);
+                return CreateJoinFailure(JoinMatchResultCode.InvalidArgs);
             }
 
-            string matchCode = NormalizeMatchCode(request.MatchCode);
-            long userId = request.UserId;
-
-            if (string.IsNullOrWhiteSpace(matchCode) || userId <= INVALID_ID)
-            {
-                return JoinMatchOutcome.Fail(JoinMatchOutcomeCode.InvalidInputs);
-            }
-
-            using IGuessWhoUnitOfWork unitOfWork = _unitOfWorkFactory.Create();
-            using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
-
+            using IGuessWhoUnitOfWork unitOfWork = guessWhoUnitOfWorkFactory.Create();
             IMatchRepository matchRepository = unitOfWork.Matches;
 
-            MatchSnapshot openMatch = matchRepository.GetOpenMatchByCode(matchCode);
+            MatchSnapshot openLobbyMatch = matchRepository.GetOpenMatchByCode(joinInput.MatchCode);
 
-            if (!openMatch.IsValid)
+            if (!openLobbyMatch.IsValid)
             {
-                transaction.Rollback();
-                return JoinMatchOutcome.Fail(JoinMatchOutcomeCode.MatchNotFound);
+                return CreateJoinFailure(JoinMatchResultCode.MatchNotFound);
             }
 
-            var joinArgs = new JoinMatchArgs
+            var joinMatchArgs = new JoinMatchArgs
             {
-                MatchId = openMatch.MatchId,
-                MatchCode = matchCode,
-                UserProfileId = userId
+                MatchId = openLobbyMatch.MatchId,
+                MatchCode = joinInput.MatchCode,
+                UserProfileId = joinInput.UserId
             };
 
-            JoinMatchResult joinResult = matchRepository.AddPlayerToMatchByCode(joinArgs);
+            JoinMatchResult joinMatchResult;
 
-            if (!joinResult.IsValid)
+            using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
             {
-                transaction.Rollback();
-                return JoinMatchOutcome.Fail(MapJoinCode(joinResult.Code));
+                joinMatchResult = ExecuteJoinMatch(matchRepository, joinMatchArgs);
+
+                if (!joinMatchResult.IsValid)
+                {
+                    transaction.Rollback();
+                    return CreateJoinDbFailure(joinMatchResult);
+                }
+
+                unitOfWork.Flush();
+                transaction.Commit();
             }
 
-            unitOfWork.Flush();
-            transaction.Commit();
+            IReadOnlyList<LobbyPlayerSnapshot> lobbyPlayers =
+                matchRepository.GetMatchPlayers(openLobbyMatch.MatchId) ?? Array.Empty<LobbyPlayerSnapshot>();
 
-            List<LobbyPlayerDto> players = MapPlayers(matchRepository.GetMatchPlayers(openMatch.MatchId)).ToList();
+            ResolvedLobbyPlayers resolvedPlayers = ResolveHostAndJoined(lobbyPlayers, joinInput.UserId);
 
-            LobbyPlayerDto hostPlayer = players.FirstOrDefault(player => player != null && player.IsHost);
-
-            if (hostPlayer == null)
+            if (!resolvedPlayers.HasHostPlayer)
             {
-                Logger.ErrorFormat("{0}: host not found. MatchId={1}.", CONTEXT_JOIN, openMatch.MatchId);
-                return JoinMatchOutcome.Fail(JoinMatchOutcomeCode.HostNotFound);
+                Logger.ErrorFormat("{0}: host not found. MatchId={1}.", CONTEXT_JOIN, openLobbyMatch.MatchId);
+
+                return CreateJoinHostNotFoundFailure(openLobbyMatch.MatchId, lobbyPlayers, resolvedPlayers);
             }
 
-            LobbyPlayerDto joinedPlayer = players.FirstOrDefault(player => player != null && player.UserId == userId);
-
-            if (joinedPlayer != null)
-            {
-                _callbackDispatcher.Broadcast(openMatch.MatchId, cb => cb.OnPlayerJoined(joinedPlayer));
-            }
-
-            var response = new JoinMatchResponse
-            {
-                MatchId = openMatch.MatchId,
-                Code = openMatch.MatchCode ?? string.Empty,
-                StatusId = openMatch.StatusId,
-                Mode = openMatch.ModeId,
-                Visibility = openMatch.VisibilityId,
-                CreateAtUtc = openMatch.CreatedAtUtc,
-                HostUserId = hostPlayer.UserId,
-                Players = players
-            };
-
-            return JoinMatchOutcome.Success(response);
+            return new JoinLobbyLogicResult(
+                result: joinMatchResult,
+                match: openLobbyMatch,
+                players: lobbyPlayers,
+                hasHostPlayer: resolvedPlayers.HasHostPlayer,
+                hostPlayer: resolvedPlayers.HostPlayer,
+                hasJoinedPlayer: resolvedPlayers.HasJoinedPlayer,
+                joinedPlayer: resolvedPlayers.JoinedPlayer);
         }
 
-        public LeaveMatchOutcome LeaveMatch(LeaveMatchRequest request)
+        public LeaveLobbyLogicResult LeaveMatch(long matchId, long userId)
         {
-            if (request == null)
-            {
-                return LeaveMatchOutcome.Fail(LeaveMatchOutcomeCode.InvalidRequest);
-            }
-
-            long matchId = request.MatchId;
-            long userId = request.UserId;
-
             if (matchId <= INVALID_ID || userId <= INVALID_ID)
             {
-                return LeaveMatchOutcome.Fail(LeaveMatchOutcomeCode.InvalidInputs);
+                return new LeaveLobbyLogicResult(
+                    result: LeaveMatchResult.Fail(LeaveMatchResultCode.PlayerNotInMatch),
+                    wasHost: false,
+                    playersAfter: Array.Empty<LobbyPlayerSnapshot>());
             }
 
-            using IGuessWhoUnitOfWork unitOfWork = _unitOfWorkFactory.Create();
-            using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+            using IGuessWhoUnitOfWork unitOfWork = guessWhoUnitOfWorkFactory.Create();
+            IMatchRepository matchRepository = unitOfWork.Matches;
 
-            var leaveArgs = new MatchPlayerArgs
+            IReadOnlyList<LobbyPlayerSnapshot> playersBeforeLeave =
+                matchRepository.GetMatchPlayers(matchId) ?? Array.Empty<LobbyPlayerSnapshot>();
+
+            bool wasHost = ResolveWasHost(playersBeforeLeave, userId);
+
+            var matchPlayerArgs = new MatchPlayerArgs
             {
                 MatchId = matchId,
                 UserProfileId = userId
             };
 
-            LeaveMatchResult leaveResult = unitOfWork.Matches.LeaveMatch(leaveArgs);
+            LeaveMatchResult leaveMatchResult;
 
-            if (!leaveResult.IsSuccess)
+            using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
             {
-                transaction.Rollback();
-                return LeaveMatchOutcome.Fail(MapLeaveCode(leaveResult.Code));
+                leaveMatchResult = ExecuteLeaveMatch(matchRepository, matchPlayerArgs);
+
+                if (!leaveMatchResult.IsSuccess)
+                {
+                    transaction.Rollback();
+
+                    return new LeaveLobbyLogicResult(
+                        result: leaveMatchResult,
+                        wasHost: wasHost,
+                        playersAfter: Array.Empty<LobbyPlayerSnapshot>());
+                }
+
+                unitOfWork.Flush();
+                transaction.Commit();
             }
 
-            unitOfWork.Flush();
-            transaction.Commit();
+            IReadOnlyList<LobbyPlayerSnapshot> playersAfterLeave =
+                matchRepository.GetMatchPlayers(matchId) ?? Array.Empty<LobbyPlayerSnapshot>();
 
-            _callbackDispatcher.Broadcast(matchId, cb => cb.OnPlayerLeft(new LobbyPlayerDto
-            {
-                MatchId = matchId,
-                UserId = userId
-            }));
-
-            return LeaveMatchOutcome.Success();
+            return new LeaveLobbyLogicResult(
+                result: leaveMatchResult,
+                wasHost: wasHost,
+                playersAfter: playersAfterLeave);
         }
 
-        public SetReadyOutcome SetPlayerReadyStatus(SetPlayerReadyStatusRequest request)
+        public ReadyLobbyLogicResult SetPlayerReadyStatus(long matchId, long userId)
         {
-            if (request == null)
-            {
-                return SetReadyOutcome.Fail(SetReadyOutcomeCode.InvalidRequest);
-            }
-
-            long matchId = request.MatchId;
-            long userId = request.UserId;
-
             if (matchId <= INVALID_ID || userId <= INVALID_ID)
             {
-                return SetReadyOutcome.Fail(SetReadyOutcomeCode.InvalidInputs);
+                return new ReadyLobbyLogicResult(
+                    result: MarkReadyResult.Fail(MarkReadyResultCode.PlayerNotFound),
+                    playersAfter: Array.Empty<LobbyPlayerSnapshot>(),
+                    hasReadyPlayer: false,
+                    readyPlayer: default);
             }
 
-            using IGuessWhoUnitOfWork unitOfWork = _unitOfWorkFactory.Create();
-            using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+            using IGuessWhoUnitOfWork unitOfWork = guessWhoUnitOfWorkFactory.Create();
+            IMatchRepository matchRepository = unitOfWork.Matches;
 
-            var markReadyArgs = new MatchPlayerArgs
+            var matchPlayerArgs = new MatchPlayerArgs
             {
                 MatchId = matchId,
                 UserProfileId = userId
             };
 
-            MarkReadyResult readyResult = unitOfWork.Matches.MarkReady(markReadyArgs);
+            MarkReadyResult markReadyResult;
 
-            if (!readyResult.IsSuccess)
+            using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
             {
-                transaction.Rollback();
-                return SetReadyOutcome.Fail(MapReadyCode(readyResult.Code));
+                markReadyResult = ExecuteMarkReady(matchRepository, matchPlayerArgs);
+
+                if (!markReadyResult.IsSuccess)
+                {
+                    transaction.Rollback();
+
+                    return new ReadyLobbyLogicResult(
+                        result: markReadyResult,
+                        playersAfter: Array.Empty<LobbyPlayerSnapshot>(),
+                        hasReadyPlayer: false,
+                        readyPlayer: default);
+                }
+
+                unitOfWork.Flush();
+                transaction.Commit();
             }
 
-            unitOfWork.Flush();
-            transaction.Commit();
+            IReadOnlyList<LobbyPlayerSnapshot> playersAfterReady =
+                matchRepository.GetMatchPlayers(matchId) ?? Array.Empty<LobbyPlayerSnapshot>();
 
-            _callbackDispatcher.Broadcast(matchId, cb => cb.OnReadyChanged(new LobbyPlayerDto
-            {
-                MatchId = matchId,
-                UserId = userId,
-                IsReady = true
-            }));
+            ResolvedReadyPlayer resolvedReadyPlayer = ResolveReadyPlayer(playersAfterReady, userId);
 
-            return SetReadyOutcome.Success();
+            return new ReadyLobbyLogicResult(
+                result: markReadyResult,
+                playersAfter: playersAfterReady,
+                hasReadyPlayer: resolvedReadyPlayer.HasReadyPlayer,
+                readyPlayer: resolvedReadyPlayer.ReadyPlayer);
         }
 
-        public void SubscribeLobby(long matchId, IMatchCallback callbackChannel)
+        public void SubscribeLobby(LobbySubscriptionArgs lobbySubscriptionArgs)
         {
-            if (matchId <= INVALID_ID || callbackChannel == null)
+            if (lobbySubscriptionArgs == null ||
+                lobbySubscriptionArgs.MatchId <= INVALID_ID ||
+                lobbySubscriptionArgs.UserId <= INVALID_ID)
             {
-                Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, HasCallback={2}.",
-                    CONTEXT_SUBSCRIBE, matchId, callbackChannel != null);
+                long matchId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.MatchId;
+                long userId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.UserId;
+
+                Logger.WarnFormat(
+                    "{0}: invalid inputs. MatchId={1}, UserId={2}.",
+                    CONTEXT_SUBSCRIBE,
+                    matchId,
+                    userId);
+
                 return;
             }
 
-            _subscriptionStore.Subscribe(matchId, callbackChannel);
+            lobbySubscriptionOperations.Subscribe(lobbySubscriptionArgs);
         }
 
-        public void UnsubscribeLobby(long matchId, IMatchCallback callbackChannel)
+        public void UnsubscribeLobby(LobbySubscriptionArgs lobbySubscriptionArgs)
         {
-            if (matchId <= INVALID_ID || callbackChannel == null)
+            if (lobbySubscriptionArgs == null ||
+                lobbySubscriptionArgs.MatchId <= INVALID_ID ||
+                lobbySubscriptionArgs.UserId <= INVALID_ID)
             {
-                Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, HasCallback={2}.",
-                    CONTEXT_UNSUBSCRIBE, matchId, callbackChannel != null);
+                long matchId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.MatchId;
+                long userId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.UserId;
+
+                Logger.WarnFormat(
+                    "{0}: invalid inputs. MatchId={1}, UserId={2}.",
+                    CONTEXT_UNSUBSCRIBE,
+                    matchId,
+                    userId);
+
                 return;
             }
 
-            _subscriptionStore.Unsubscribe(matchId, callbackChannel);
+            lobbySubscriptionOperations.Unsubscribe(lobbySubscriptionArgs);
+        }
+
+        private static JoinInput BuildJoinInputOrInvalid(JoinLobbyArgs joinLobbyArgs)
+        {
+            if (joinLobbyArgs == null)
+            {
+                return JoinInput.Invalid();
+            }
+
+            long userId = joinLobbyArgs.UserId;
+            string matchCode = NormalizeMatchCode(joinLobbyArgs.MatchCode);
+
+            if (userId <= INVALID_ID || string.IsNullOrWhiteSpace(matchCode))
+            {
+                return JoinInput.Invalid();
+            }
+
+            return JoinInput.Valid(userId, matchCode);
+        }
+
+        private static JoinMatchResult ExecuteJoinMatch(IMatchRepository matchRepository, JoinMatchArgs joinMatchArgs)
+        {
+            return matchRepository.AddPlayerToMatchByCode(joinMatchArgs);
+        }
+
+        private static LeaveMatchResult ExecuteLeaveMatch(IMatchRepository matchRepository, MatchPlayerArgs matchPlayerArgs)
+        {
+            return matchRepository.LeaveMatch(matchPlayerArgs);
+        }
+
+        private static MarkReadyResult ExecuteMarkReady(IMatchRepository matchRepository, MatchPlayerArgs matchPlayerArgs)
+        {
+            return matchRepository.MarkReady(matchPlayerArgs);
+        }
+
+        private static ResolvedLobbyPlayers ResolveHostAndJoined(IReadOnlyList<LobbyPlayerSnapshot> lobbyPlayers, long userId)
+        {
+            if (lobbyPlayers == null || lobbyPlayers.Count == 0 || userId <= INVALID_ID)
+            {
+                return ResolvedLobbyPlayers.Empty();
+            }
+
+            bool hasHostPlayer = false;
+            LobbyPlayerSnapshot hostPlayer = default;
+
+            bool hasJoinedPlayer = false;
+            LobbyPlayerSnapshot joinedPlayer = default;
+
+            for (int i = 0; i < lobbyPlayers.Count; i++)
+            {
+                LobbyPlayerSnapshot player = lobbyPlayers[i];
+
+                if (!hasHostPlayer && player.IsHost && player.UserId > INVALID_ID)
+                {
+                    hostPlayer = player;
+                    hasHostPlayer = true;
+                }
+
+                if (!hasJoinedPlayer && player.UserId == userId)
+                {
+                    joinedPlayer = player;
+                    hasJoinedPlayer = true;
+                }
+
+                if (hasHostPlayer && hasJoinedPlayer)
+                {
+                    break;
+                }
+            }
+
+            return new ResolvedLobbyPlayers(hasHostPlayer, hostPlayer, hasJoinedPlayer, joinedPlayer);
+        }
+
+        private static bool ResolveWasHost(IReadOnlyList<LobbyPlayerSnapshot> lobbyPlayers, long userId)
+        {
+            if (lobbyPlayers == null || lobbyPlayers.Count == 0 || userId <= INVALID_ID)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < lobbyPlayers.Count; i++)
+            {
+                LobbyPlayerSnapshot player = lobbyPlayers[i];
+
+                if (player.UserId == userId)
+                {
+                    return player.IsHost;
+                }
+            }
+
+            return false;
+        }
+
+        private static ResolvedReadyPlayer ResolveReadyPlayer(IReadOnlyList<LobbyPlayerSnapshot> lobbyPlayers, long userId)
+        {
+            if (lobbyPlayers == null || lobbyPlayers.Count == 0 || userId <= INVALID_ID)
+            {
+                return ResolvedReadyPlayer.Empty();
+            }
+
+            for (int i = 0; i < lobbyPlayers.Count; i++)
+            {
+                LobbyPlayerSnapshot player = lobbyPlayers[i];
+
+                if (player.UserId == userId)
+                {
+                    return new ResolvedReadyPlayer(true, player);
+                }
+            }
+
+            return ResolvedReadyPlayer.Empty();
         }
 
         private static string NormalizeMatchCode(string matchCode)
@@ -240,86 +363,99 @@ namespace GuessWhoServices.Services.MatchApplication
             return (matchCode ?? string.Empty).Trim().ToUpperInvariant();
         }
 
-        private static JoinMatchOutcomeCode MapJoinCode(JoinMatchResultCode code)
+        private static JoinLobbyLogicResult CreateJoinFailure(JoinMatchResultCode joinMatchResultCode)
         {
-            switch (code)
-            {
-                case JoinMatchResultCode.MatchNotFound:
-                    return JoinMatchOutcomeCode.MatchNotFound;
-
-                case JoinMatchResultCode.MatchNotJoinable:
-                    return JoinMatchOutcomeCode.MatchNotJoinable;
-
-                case JoinMatchResultCode.GuestSlotTaken:
-                    return JoinMatchOutcomeCode.MatchFull;
-
-                case JoinMatchResultCode.PlayerAlreadyInMatch:
-                    return JoinMatchOutcomeCode.PlayerAlreadyInMatch;
-
-                case JoinMatchResultCode.InOtherActiveMatch:
-                    return JoinMatchOutcomeCode.InOtherActiveMatch;
-
-                default:
-                    return JoinMatchOutcomeCode.OperationConflict;
-            }
+            return new JoinLobbyLogicResult(
+                result: JoinMatchResult.Fail(joinMatchResultCode, INVALID_ID),
+                match: MatchSnapshot.CreateInvalid(),
+                players: Array.Empty<LobbyPlayerSnapshot>(),
+                hasHostPlayer: false,
+                hostPlayer: default,
+                hasJoinedPlayer: false,
+                joinedPlayer: default);
         }
 
-        private static LeaveMatchOutcomeCode MapLeaveCode(LeaveMatchResultCode code)
+        private static JoinLobbyLogicResult CreateJoinDbFailure(JoinMatchResult joinMatchResult)
         {
-            switch (code)
-            {
-                case LeaveMatchResultCode.MatchNotFound:
-                    return LeaveMatchOutcomeCode.MatchNotFound;
-
-                case LeaveMatchResultCode.PlayerNotInMatch:
-                    return LeaveMatchOutcomeCode.PlayerNotInMatch;
-
-                case LeaveMatchResultCode.PlayerAlreadyLeft:
-                    return LeaveMatchOutcomeCode.PlayerAlreadyLeft;
-
-                default:
-                    return LeaveMatchOutcomeCode.OperationConflict;
-            }
+            return new JoinLobbyLogicResult(
+                result: joinMatchResult,
+                match: MatchSnapshot.CreateInvalid(),
+                players: Array.Empty<LobbyPlayerSnapshot>(),
+                hasHostPlayer: false,
+                hostPlayer: default,
+                hasJoinedPlayer: false,
+                joinedPlayer: default);
         }
 
-        private static SetReadyOutcomeCode MapReadyCode(MarkReadyResultCode code)
+        private static JoinLobbyLogicResult CreateJoinHostNotFoundFailure(
+            long matchId,
+            IReadOnlyList<LobbyPlayerSnapshot> lobbyPlayers,
+            ResolvedLobbyPlayers resolvedPlayers)
         {
-            switch (code)
-            {
-                case MarkReadyResultCode.PlayerNotFound:
-                    return SetReadyOutcomeCode.PlayerNotInMatch;
+            IReadOnlyList<LobbyPlayerSnapshot> safePlayers = lobbyPlayers ?? Array.Empty<LobbyPlayerSnapshot>();
 
-                case MarkReadyResultCode.PlayerAlreadyLeft:
-                    return SetReadyOutcomeCode.PlayerAlreadyLeft;
-
-                case MarkReadyResultCode.MatchNotInLobby:
-                    return SetReadyOutcomeCode.MatchNotInLobby;
-
-                default:
-                    return SetReadyOutcomeCode.OperationConflict;
-            }
+            return new JoinLobbyLogicResult(
+                result: JoinMatchResult.Fail(JoinMatchResultCode.OperationConflict, matchId),
+                match: MatchSnapshot.CreateInvalid(),
+                players: safePlayers,
+                hasHostPlayer: false,
+                hostPlayer: default,
+                hasJoinedPlayer: resolvedPlayers.HasJoinedPlayer,
+                joinedPlayer: resolvedPlayers.JoinedPlayer);
         }
 
-        private static IReadOnlyList<LobbyPlayerDto> MapPlayers(IReadOnlyList<LobbyPlayerSnapshot> snapshots)
+        private readonly struct JoinInput
         {
-            if (snapshots == null || snapshots.Count == 0)
+            public readonly bool IsValid;
+            public readonly long UserId;
+            public readonly string MatchCode;
+
+            private JoinInput(bool isValid, long userId, string matchCode)
             {
-                return Array.Empty<LobbyPlayerDto>();
+                IsValid = isValid;
+                UserId = userId;
+                MatchCode = matchCode ?? string.Empty;
             }
 
-            return snapshots
-                .Where(snapshot => snapshot != null)
-                .Select(snapshot => new LobbyPlayerDto
-                {
-                    MatchId = snapshot.MatchId,
-                    UserId = snapshot.UserId,
-                    DisplayName = snapshot.DisplayName ?? string.Empty,
-                    AvatarId = snapshot.AvatarId ?? string.Empty,
-                    SlotNumber = snapshot.SlotNumber,
-                    IsReady = snapshot.IsReady,
-                    IsHost = snapshot.IsHost
-                })
-                .ToList();
+            public static JoinInput Invalid() => new JoinInput(false, INVALID_ID, string.Empty);
+
+            public static JoinInput Valid(long userId, string matchCode) => new(true, userId, matchCode);
+        }
+
+        private readonly struct ResolvedLobbyPlayers
+        {
+            public readonly bool HasHostPlayer;
+            public readonly LobbyPlayerSnapshot HostPlayer;
+            public readonly bool HasJoinedPlayer;
+            public readonly LobbyPlayerSnapshot JoinedPlayer;
+
+            public ResolvedLobbyPlayers(
+                bool hasHostPlayer,
+                LobbyPlayerSnapshot hostPlayer,
+                bool hasJoinedPlayer,
+                LobbyPlayerSnapshot joinedPlayer)
+            {
+                HasHostPlayer = hasHostPlayer;
+                HostPlayer = hostPlayer;
+                HasJoinedPlayer = hasJoinedPlayer;
+                JoinedPlayer = joinedPlayer;
+            }
+
+            public static ResolvedLobbyPlayers Empty() => new(false, default, false, default);
+        }
+
+        private readonly struct ResolvedReadyPlayer
+        {
+            public readonly bool HasReadyPlayer;
+            public readonly LobbyPlayerSnapshot ReadyPlayer;
+
+            public ResolvedReadyPlayer(bool hasReadyPlayer, LobbyPlayerSnapshot readyPlayer)
+            {
+                HasReadyPlayer = hasReadyPlayer;
+                ReadyPlayer = readyPlayer;
+            }
+
+            public static ResolvedReadyPlayer Empty() => new ResolvedReadyPlayer(false, default);
         }
     }
 }

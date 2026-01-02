@@ -1,21 +1,21 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Faults;
-using GuessWhoServerDomain.Domain.Enums;
+﻿using GuessWhoCore.Contracts.Faults;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
-using GuessWhoServerDomain.Domain.Models.Sessions;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
 using GuessWhoServerDomain.Domain.Results.Accounts;
 using GuessWhoServerDomain.Domain.Settings;
+using GuessWhoServices.Errors;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Coordinators.Parameters.InternalDtos;
-using WcfServiceLibraryGuessWho.Errors;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
+using GuessWhoServices.Coordinators.InternalDtos;
+using GuessWhoServerDomain.Domain.Models.Session;
+using GuessWhoServerDomain.Domain.Enums.Accounts;
+using GuessWhoDataAccess.Data.Factories;
 
-namespace WcfServiceLibraryGuessWho.Coordinators
+namespace GuessWhoServices.Coordinators
 {
     public sealed class LoginManager : ManagerBase, ILoginManager
     {

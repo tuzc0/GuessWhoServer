@@ -5,7 +5,7 @@ using System;
 using GuessWhoServerDomain.Domain.Models.Avatars;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Avatars
+namespace GuessWhoDataAccess.Data.DataAccess.Avatars
 {
     public class AvatarData : IAvatarRepository
     {

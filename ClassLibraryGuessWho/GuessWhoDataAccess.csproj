@@ -8,7 +8,7 @@
     <ProjectGuid>{728D9EDC-629D-4716-926D-C4493DA16C7F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ClassLibraryGuessWho</RootNamespace>
+    <RootNamespace>GuessWhoDataAccess</RootNamespace>
     <AssemblyName>ClassLibraryGuessWho</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <LangVersion>10.0</LangVersion>
@@ -185,6 +185,10 @@
     </Compile>
     <Compile Include="IsExternalInit.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="RootNamespace" />
+    <CompilerVisibleProperty Include="ProjectDir" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="..\SharedSecrets\ConnectionStrings.local.config">

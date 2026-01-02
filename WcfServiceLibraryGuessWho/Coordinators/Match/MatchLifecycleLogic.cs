@@ -1,14 +1,14 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoServer.Security;
-using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoDataAccess.Data.Factories;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Models.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using GuessWhoServices.Infrastructure;
+using GuessWhoServices.Security;
 using log4net;
 using System;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Match
+namespace GuessWhoServices.Coordinators.Match
 {
     public sealed class MatchLifecycleLogic
     {

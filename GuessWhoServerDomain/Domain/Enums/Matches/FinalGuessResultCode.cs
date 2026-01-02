@@ -1,4 +1,4 @@
-﻿namespace GuessWhoServerDomain.Domain.Enums.Match
+﻿namespace GuessWhoServerDomain.Domain.Enums.Matches
 {
     public enum FinalGuessResultCode
     {

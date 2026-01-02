@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.InternalDtos
+namespace GuessWhoServices.Coordinators.InternalDtos
 {
     public sealed class RegisterUserArgs
     {

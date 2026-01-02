@@ -1,7 +1,7 @@
 ﻿using GuessWhoServerDomain.Domain.Models.Accounts;
 using System;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
+namespace GuessWhoDataAccess.Data.DataAccess.Accounts
 {
     internal static class AccountRecordMapper
     {

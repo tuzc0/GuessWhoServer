@@ -1,5 +1,4 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Faults;
+﻿using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
 using GuessWhoServerDomain.Domain.Enums.Security;
@@ -8,19 +7,20 @@ using GuessWhoServerDomain.Domain.Models.EmailVerification;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
 using GuessWhoServerDomain.Domain.Parameters.EmailVerification;
+using GuessWhoServices.Errors;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
 using System.Text.RegularExpressions;
-using WcfServiceLibraryGuessWho.Communication.Email;
-using WcfServiceLibraryGuessWho.Communication.Email.Builders;
-using WcfServiceLibraryGuessWho.Communication.Email.Builders.Context;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Errors;
+using GuessWhoServices.Communication.Email;
+using GuessWhoServices.Communication.Email.Builders;
+using GuessWhoServices.Communication.Email.Builders.Context;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
+using GuessWhoDataAccess.Data.Factories;
 
-namespace WcfServiceLibraryGuessWho.Coordinators
+namespace GuessWhoServices.Coordinators
 {
     public sealed class PasswordRecoveryManager : ManagerBase, IPasswordRecoveryManager
     {

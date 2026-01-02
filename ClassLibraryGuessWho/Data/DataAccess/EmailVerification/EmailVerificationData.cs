@@ -1,13 +1,12 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.EmailVerification;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
-using GuessWhoServerDomain.Domain.Results;
+using GuessWhoServerDomain.Domain.Results.Accounts;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
+namespace GuessWhoDataAccess.Data.DataAccess.EmailVerification
 {
     public sealed class EmailVerificationData : IEmailVerificationRepository
     {

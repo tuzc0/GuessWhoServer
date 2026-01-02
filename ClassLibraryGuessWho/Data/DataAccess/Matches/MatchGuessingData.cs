@@ -1,4 +1,4 @@
-﻿using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Results.Match;
 using System;
@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Matches
+namespace GuessWhoDataAccess.Data.DataAccess.Matches
 {
     public sealed class MatchGuessingData : IMatchGuessingRepository
     {

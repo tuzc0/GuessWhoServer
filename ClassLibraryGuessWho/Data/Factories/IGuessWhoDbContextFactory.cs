@@ -1,4 +1,4 @@
-﻿namespace ClassLibraryGuessWho.Data.Factories
+﻿namespace GuessWhoDataAccess.Data.Factories
 {
     public interface IGuessWhoDbContextFactory
     {

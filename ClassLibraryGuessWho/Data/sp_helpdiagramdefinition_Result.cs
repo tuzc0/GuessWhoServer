@@ -7,7 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ClassLibraryGuessWho.Data
+namespace GuessWhoDataAccess.Data
 {
     using System;
     

@@ -1,6 +1,7 @@
-﻿using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Enums.Turns;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+using GuessWhoServerDomain.Domain.Models.Turns;
 using GuessWhoServerDomain.Domain.Parameters.Turns;
 using GuessWhoServerDomain.Domain.Results.Turns;
 using System;
@@ -8,7 +9,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Turns
+namespace GuessWhoDataAccess.Data.DataAccess.Turns
 {
     public sealed class MatchChessClockData : IMatchChessClockRepository
     {
@@ -141,6 +142,35 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Turns
                 new SqlParameter(PARAM_USER_ID, chessClockArgs.UserId));
 
             return ApplyChessClockResult.Success(secondsConsumed, limitSeconds, opponentUserId);
+        }
+
+        public MatchClockSnapshot GetPlayerClockState(long matchId, long userId)
+        {
+            if (matchId <= INVALID_ID || userId <= INVALID_ID)
+            {
+                return MatchClockSnapshot.Invalid();
+            }
+
+            int secondsConsumed = ReadScalarInt(
+                SQL_GET_SECONDS_CONSUMED,
+                new SqlParameter(PARAM_MATCH_ID, matchId),
+                new SqlParameter(PARAM_USER_ID, userId));
+
+            if (secondsConsumed < 0)
+            {
+                secondsConsumed = 0;
+            }
+
+            int limitSeconds = ReadScalarInt(
+                SQL_GET_LIMIT_SECONDS,
+                new SqlParameter(PARAM_MATCH_ID, matchId));
+
+            if (limitSeconds <= 0)
+            {
+                return MatchClockSnapshot.Invalid();
+            }
+
+            return new MatchClockSnapshot(matchId, userId, secondsConsumed, limitSeconds);
         }
 
         private DiagnosticRow LoadDiagnostic(long matchId, long userId)

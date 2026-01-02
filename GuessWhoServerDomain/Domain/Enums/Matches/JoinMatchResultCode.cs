@@ -1,4 +1,4 @@
-﻿namespace GuessWhoServerDomain.Domain.Enums.Match
+﻿namespace GuessWhoServerDomain.Domain.Enums.Matches
 {
     public enum JoinMatchResultCode
     {
@@ -8,6 +8,7 @@
         PlayerAlreadyInMatch = 3,
         GuestSlotTaken = 4,
         InOtherActiveMatch = 5,
-        OperationConflict = 6
+        OperationConflict = 6,
+        InvalidArgs = 7
     }
 }

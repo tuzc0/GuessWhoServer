@@ -1,4 +1,4 @@
-﻿using GuessWhoServerDomain.Domain.Enums.Chat;
+﻿using GuessWhoServerDomain.Domain.Enums.Chats;
 
 namespace GuessWhoServerDomain.Domain.Results.Chat
 {

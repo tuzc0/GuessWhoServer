@@ -1,5 +1,4 @@
-﻿using GuessWhoServerDomain.Domain.Models.Match;
-using GuessWhoServerDomain.Domain.Models.Matches;
+﻿using GuessWhoServerDomain.Domain.Models.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using System;
@@ -28,6 +27,7 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
         bool AreAllSecretCharactersChosen(long matchId);
 
         MatchSnapshot GetOpenMatchByCode(string matchCode);
+        MatchSnapshot GetMatchById(long matchId);
         IReadOnlyList<MatchSnapshot> GetPublicLobbyMatches();
         IReadOnlyList<LobbyPlayerSnapshot> GetMatchPlayers(long matchId);
 

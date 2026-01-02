@@ -3,7 +3,7 @@ using log4net;
 using System;
 using System.ServiceModel;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Base
+namespace GuessWhoServices.Coordinators.Base
 {
     public abstract class ManagerBase
     {

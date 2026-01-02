@@ -1,4 +1,4 @@
-﻿namespace WcfServiceLibraryGuessWho.Coordinators.Parameters.InternalDtos
+﻿namespace GuessWhoServices.Coordinators.InternalDtos
 {
     public sealed class LoginArgs
     {

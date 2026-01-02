@@ -2,7 +2,7 @@
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
+namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface IMatchManager
     {

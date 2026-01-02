@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace WcfServiceLibraryGuessWho.Services.Configuration
+namespace GuessWhoServices.Services.Configuration
 {
     public class SmtpSettings
     {

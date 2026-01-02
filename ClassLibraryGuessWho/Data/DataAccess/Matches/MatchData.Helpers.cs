@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Security.Cryptography;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Matches
+namespace GuessWhoDataAccess.Data.DataAccess.Matches
 {
     public sealed partial class MatchData
     {

@@ -1,5 +1,5 @@
-﻿using ClassLibraryGuessWho.Data.Helpers;
-using GuessWhoServerDomain.Domain.Enums.Chat;
+﻿using GuessWhoDataAccess.Data.Helpers;
+using GuessWhoServerDomain.Domain.Enums.Chats;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.Chat;
 using GuessWhoServerDomain.Domain.Parameters.Chat;
@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Chat
+namespace GuessWhoDataAccess.Data.DataAccess.Chat
 {
     public sealed class MatchChatData : IMatchChatRepository
     {

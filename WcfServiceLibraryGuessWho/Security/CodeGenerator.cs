@@ -2,7 +2,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace GuessWhoServer.Security
+namespace GuessWhoServices.Security
 {
     public static class CodeGenerator
     {
@@ -42,7 +42,7 @@ namespace GuessWhoServer.Security
             uint range = (uint)(maxExclusive - minInclusive);
             var buffer = new byte[4];
 
-            uint limit = (uint.MaxValue / range) * range;
+            uint limit = uint.MaxValue / range * range;
             uint value;
 
             do
@@ -52,7 +52,7 @@ namespace GuessWhoServer.Security
 
             } while (value >= limit);
 
-            return (int)(minInclusive + (value % range));
+            return (int)(minInclusive + value % range);
         }
     }
 }

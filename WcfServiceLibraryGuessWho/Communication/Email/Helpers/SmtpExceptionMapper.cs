@@ -2,9 +2,8 @@
 using System.Net;
 using System.Net.Mail;
 using System.Net.Sockets;
-using WcfServiceLibraryGuessWho.Communication.Email.Helpers;
 
-namespace WcfServiceLibraryGuessWho.Communication.Email
+namespace GuessWhoServices.Communication.Email.Helpers
 {
     internal static class SmtpExceptionMapper
     {

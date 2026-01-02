@@ -1,4 +1,4 @@
-﻿namespace GuessWhoServerDomain.Domain.Enums.Match
+﻿namespace GuessWhoServerDomain.Domain.Enums.Matches
 {
     public enum KickPlayerResultCode
     {
@@ -10,6 +10,6 @@
         TargetNotInMatch = 5,
         TargetAlreadyLeft = 6,
         CannotKickHost = 7,
-        TechnicalError = 99
+        ConcurrentError = 99
     }
 }

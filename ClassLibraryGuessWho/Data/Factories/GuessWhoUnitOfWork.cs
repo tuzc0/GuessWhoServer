@@ -2,7 +2,7 @@
 using System;
 using System.Data.Entity;
 
-namespace ClassLibraryGuessWho.Data.Factories
+namespace GuessWhoDataAccess.Data.Factories
 {
     public sealed class GuessWhoUnitOfWork : IGuessWhoUnitOfWork
     {

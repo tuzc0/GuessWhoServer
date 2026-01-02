@@ -1,12 +1,12 @@
-﻿using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using System;
-using System.Data.Entity; 
+using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Matches
+namespace GuessWhoDataAccess.Data.DataAccess.Matches
 {
     public sealed partial class MatchData
     {

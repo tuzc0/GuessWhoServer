@@ -1,13 +1,13 @@
 ﻿using GuessWhoCore.Contracts.Faults;
-using GuessWhoServer.Security;
 using GuessWhoServerDomain.Domain.Enums.Security;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
+using GuessWhoServices.Security;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.Security.Cryptography;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.EmailVerification
+namespace GuessWhoServices.Coordinators.EmailVerification
 {
     public sealed class VerificationCodeService : IVerificationCodeService
     {

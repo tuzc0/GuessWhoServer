@@ -1,7 +1,7 @@
 ﻿using System;
-using WcfServiceLibraryGuessWho.Communication.Email.Builders.Context;
+using GuessWhoServices.Communication.Email.Builders.Context;
 
-namespace WcfServiceLibraryGuessWho.Communication.Email.Builders
+namespace GuessWhoServices.Communication.Email.Builders
 {
     public sealed class VerificationCodeEmailBuilder : IEmailMessageBuilder<VerificationCodeEmailContext>
     {

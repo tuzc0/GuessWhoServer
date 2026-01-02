@@ -1,4 +1,4 @@
-﻿using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoServerDomain.Domain.Enums.Matches;
 using System;
 
 namespace GuessWhoServerDomain.Domain.Parameters.Matches

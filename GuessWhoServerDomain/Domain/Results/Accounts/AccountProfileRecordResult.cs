@@ -1,4 +1,4 @@
-﻿using GuessWhoServerDomain.Domain.Enums;
+﻿using GuessWhoServerDomain.Domain.Enums.Accounts;
 using GuessWhoServerDomain.Domain.Models.Accounts;
 
 namespace GuessWhoServerDomain.Domain.Results.Accounts

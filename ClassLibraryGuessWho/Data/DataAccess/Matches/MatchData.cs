@@ -1,7 +1,7 @@
 ﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using System;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Matches
+namespace GuessWhoDataAccess.Data.DataAccess.Matches
 {
     public sealed partial class MatchData : IMatchRepository
     {

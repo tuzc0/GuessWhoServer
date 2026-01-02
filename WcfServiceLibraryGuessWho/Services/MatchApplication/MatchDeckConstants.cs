@@ -1,4 +1,4 @@
-﻿namespace WcfServiceLibraryGuessWho.Services.MatchApplication
+﻿namespace GuessWhoServices.Services.MatchApplication
 {
     internal static class MatchDeckConstants
     {

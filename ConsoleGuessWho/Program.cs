@@ -1,19 +1,19 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using ConsoleGuessWho.Infraestructure.Settings;
+﻿using ConsoleGuessWho.Infraestructure.Settings;
 using ConsoleGuessWho.Infraestructure.Wcf;
-using GuessWho.Services.WCF.Services;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
 using GuessWhoServerDomain.Domain.Settings;
 using GuessWhoServices.Security;
+using GuessWhoServices.Services;
+using GuessWhoServices.Services.Configuration;
 using log4net;
 using log4net.Config;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Communication.Email;
-using WcfServiceLibraryGuessWho.Communication.Email.Builders;
-using WcfServiceLibraryGuessWho.Coordinators;
-using WcfServiceLibraryGuessWho.Coordinators.EmailVerification;
-using WcfServiceLibraryGuessWho.Services.Configuration;
+using GuessWhoServices.Communication.Email;
+using GuessWhoServices.Communication.Email.Builders;
+using GuessWhoServices.Coordinators;
+using GuessWhoServices.Coordinators.EmailVerification;
+using GuessWhoDataAccess.Data.Factories;
 
 [assembly: XmlConfigurator(Watch = true)]
 namespace ConsoleGuessWho

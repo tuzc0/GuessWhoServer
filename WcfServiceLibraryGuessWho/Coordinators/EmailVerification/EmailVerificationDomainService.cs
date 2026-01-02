@@ -1,16 +1,16 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Faults;
+﻿using GuessWhoCore.Contracts.Faults;
+using GuessWhoDataAccess.Data.Factories;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
 using GuessWhoServerDomain.Domain.Parameters.EmailVerification;
-using GuessWhoServerDomain.Domain.Results;
+using GuessWhoServerDomain.Domain.Results.Accounts;
 using GuessWhoServerDomain.Domain.Settings;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.Text.RegularExpressions;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.EmailVerification
+namespace GuessWhoServices.Coordinators.EmailVerification
 {
     public sealed class EmailVerificationDomainServiceArgs
     {

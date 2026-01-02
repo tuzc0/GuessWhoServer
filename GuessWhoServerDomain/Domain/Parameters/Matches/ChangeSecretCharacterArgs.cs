@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace GuessWhoServerDomain.Domain.Parameters.Matches
+﻿namespace GuessWhoServerDomain.Domain.Parameters.Matches
 {
     public sealed class ChangeSecretCharacterArgs
     {

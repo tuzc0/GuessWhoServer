@@ -8,10 +8,10 @@ using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
 
-namespace GuessWho.Services.WCF.Services
+namespace GuessWhoServices.Services
 {
     [ServiceBehavior(IncludeExceptionDetailInFaults = false, InstanceContextMode = InstanceContextMode.PerCall)]
     public sealed class UpdateProfileService : ServiceBase, IUpdateProfileService

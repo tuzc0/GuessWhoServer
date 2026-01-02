@@ -6,7 +6,7 @@ using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
 using System.ServiceModel;
 
-namespace WcfServiceLibraryGuessWho.Errors
+namespace GuessWhoServices.Errors
 {
     public static class FaultTranslator
     {

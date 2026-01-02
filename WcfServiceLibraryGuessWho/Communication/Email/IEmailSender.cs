@@ -1,6 +1,6 @@
-﻿using WcfServiceLibraryGuessWho.Communication.Email.Builders;
+﻿using GuessWhoServices.Communication.Email.Builders;
 
-namespace WcfServiceLibraryGuessWho.Communication.Email
+namespace GuessWhoServices.Communication.Email
 {
     public interface IEmailSender
     {

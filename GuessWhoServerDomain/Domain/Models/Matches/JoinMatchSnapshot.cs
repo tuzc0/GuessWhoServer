@@ -1,5 +1,4 @@
-﻿using GuessWhoServerDomain.Domain.Models.Match;
-using System;
+﻿using System;
 
 namespace GuessWhoServerDomain.Domain.Models.Matches
 {

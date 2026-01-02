@@ -3,16 +3,16 @@ using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Contracts.Request;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
-using GuessWhoServerDomain.Domain.Models.Sessions;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Coordinators.Parameters.InternalDtos;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
+using GuessWhoServices.Coordinators.InternalDtos;
+using GuessWhoServerDomain.Domain.Models.Session;
 
-namespace GuessWho.Services.WCF.Services
+namespace GuessWhoServices.Services
 {
     [ServiceBehavior(IncludeExceptionDetailInFaults = false, InstanceContextMode = InstanceContextMode.PerCall)]
     public sealed class LoginService : ServiceBase, ILoginService

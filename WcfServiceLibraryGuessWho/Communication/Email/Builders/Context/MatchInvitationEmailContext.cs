@@ -1,4 +1,4 @@
-﻿namespace WcfServiceLibraryGuessWho.Communication.Email.Builders.Context
+﻿namespace GuessWhoServices.Communication.Email.Builders.Context
 {
     public sealed class MatchInvitationEmailContext
     {

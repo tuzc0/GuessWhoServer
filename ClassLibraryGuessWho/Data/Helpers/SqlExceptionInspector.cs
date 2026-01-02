@@ -2,7 +2,7 @@
 using System.Data.Entity.Infrastructure;
 using System.Data.SqlClient;
 
-namespace ClassLibraryGuessWho.Data.Helpers
+namespace GuessWhoDataAccess.Data.Helpers
 {
     public static class SqlExceptionInspector
     {

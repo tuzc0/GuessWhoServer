@@ -1,18 +1,18 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Requests;
+﻿using GuessWhoCore.Contracts.Requests;
+using GuessWhoDataAccess.Data.Factories;
 using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
+using GuessWhoServices.Errors;
+using GuessWhoServices.Services.MatchApplication;
 using log4net;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Security.Cryptography;
-using WcfServiceLibraryGuessWho.Errors;
-using WcfServiceLibraryGuessWho.Services.MatchApplication;
 
-namespace GuessWhoServices.Services.MatchApplication
+namespace GuessWhoServices.Coordinators.Match
 {
     public sealed class MatchDeckLogic
     {
@@ -212,7 +212,7 @@ namespace GuessWhoServices.Services.MatchApplication
                 int value = BitConverter.ToInt32(buffer, 0) & int.MaxValue;
 
                 int remainder = value % maxExclusive;
-                int limit = int.MaxValue - (int.MaxValue % maxExclusive);
+                int limit = int.MaxValue - int.MaxValue % maxExclusive;
 
                 if (value < limit)
                 {

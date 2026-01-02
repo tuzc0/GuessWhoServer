@@ -1,4 +1,4 @@
-﻿namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
+﻿namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface IGameSessionManager
     {

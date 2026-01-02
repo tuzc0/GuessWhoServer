@@ -1,6 +1,5 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Faults;
-using GuessWhoCore.Validation; 
+﻿using GuessWhoCore.Contracts.Faults;
+using GuessWhoCore.Validation;
 using GuessWhoCore.Validation.ValidationDTOs;
 using GuessWhoServerDomain.Domain.Enums.Security;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
@@ -8,20 +7,21 @@ using GuessWhoServerDomain.Domain.Models.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
 using GuessWhoServerDomain.Domain.Results.Accounts;
+using GuessWhoServices.Coordinators.InternalDtos;
+using GuessWhoServices.Errors;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
-using System.Collections.Generic; 
+using System.Collections.Generic;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Communication.Email;
-using WcfServiceLibraryGuessWho.Communication.Email.Builders;
-using WcfServiceLibraryGuessWho.Communication.Email.Builders.Context;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Coordinators.InternalDtos;
-using WcfServiceLibraryGuessWho.Errors;
+using GuessWhoServices.Communication.Email;
+using GuessWhoServices.Communication.Email.Builders;
+using GuessWhoServices.Communication.Email.Builders.Context;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
+using GuessWhoDataAccess.Data.Factories;
 
-namespace WcfServiceLibraryGuessWho.Coordinators
+namespace GuessWhoServices.Coordinators
 {
     public sealed class RegisterResultArgs
     {
@@ -204,7 +204,7 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
         private void ThrowValidationFault(ValidationError error)
         {
-            string key = error != null ? (error.Key ?? EMPTY) : EMPTY;
+            string key = error != null ? error.Key ?? EMPTY : EMPTY;
 
             switch (key)
             {
@@ -402,8 +402,8 @@ namespace WcfServiceLibraryGuessWho.Coordinators
             public NormalizedRegistration(RegisterUserArgs userArgs, DateTime nowUtc)
             {
                 Email = NormalizeEmail(userArgs != null ? userArgs.Email : EMPTY);
-                DisplayName = (userArgs != null ? (userArgs.DisplayName ?? EMPTY) : EMPTY).Trim();
-                Password = userArgs != null ? (userArgs.Password ?? EMPTY) : EMPTY;
+                DisplayName = (userArgs != null ? userArgs.DisplayName ?? EMPTY : EMPTY).Trim();
+                Password = userArgs != null ? userArgs.Password ?? EMPTY : EMPTY;
                 NowUtc = nowUtc;
             }
 

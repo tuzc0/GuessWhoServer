@@ -4,10 +4,10 @@ using GuessWhoCore.Contracts.Response;
 using log4net;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Services.MatchApplication;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
 
-namespace GuessWho.Services.WCF.Services
+namespace GuessWhoServices.Services
 {
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall,
         ConcurrencyMode = ConcurrencyMode.Multiple,

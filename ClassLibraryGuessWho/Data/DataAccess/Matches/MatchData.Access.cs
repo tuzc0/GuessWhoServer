@@ -1,5 +1,5 @@
-﻿using ClassLibraryGuessWho.Data.Helpers;
-using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoDataAccess.Data.Helpers;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using System;
@@ -7,9 +7,8 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text.RegularExpressions;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Matches
+namespace GuessWhoDataAccess.Data.DataAccess.Matches
 {
     public sealed partial class MatchData
     {
@@ -341,7 +340,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
         {
             if (matchId <= 0 || userProfileId <= 0)
             {
-                return JoinMatchResult.Fail(JoinMatchResultCode.MatchNotJoinable, matchId);
+                return JoinMatchResult.Fail(JoinMatchResultCode.InvalidArgs, matchId);
             }
 
             bool isInOtherActiveMatch = dataContext.MATCH_PLAYER.Any(mp =>

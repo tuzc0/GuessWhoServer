@@ -1,21 +1,21 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Faults;
-using GuessWhoCore.Validation; 
+﻿using GuessWhoCore.Contracts.Faults;
+using GuessWhoCore.Validation;
 using GuessWhoCore.Validation.ValidationDTOs;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
 using GuessWhoServerDomain.Domain.Models.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
 using GuessWhoServerDomain.Domain.Results.Accounts;
+using GuessWhoServices.Errors;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
-using System.Collections.Generic; 
+using System.Collections.Generic;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Errors;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
+using GuessWhoDataAccess.Data.Factories;
 
-namespace WcfServiceLibraryGuessWho.Coordinators
+namespace GuessWhoServices.Coordinators
 {
     public sealed class UpdateProfileManager : ManagerBase, IUpdateProfileManager
     {

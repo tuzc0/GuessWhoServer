@@ -1,7 +1,7 @@
 ﻿using GuessWhoServerDomain.Domain.Models.EmailVerification;
 using System;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.EmailVerification
+namespace GuessWhoDataAccess.Data.DataAccess.EmailVerification
 {
     internal static class EmailVerificationTokenRecordMapper
     {

@@ -1,10 +1,9 @@
 ﻿using GuessWhoCore.Contracts.Faults;
 using GuessWhoServices.Services.ErrorHandling;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Communication.Email;
-using WcfServiceLibraryGuessWho.Communication.Email.Helpers;
+using GuessWhoServices.Communication.Email.Helpers;
 
-namespace WcfServiceLibraryGuessWho.Errors
+namespace GuessWhoServices.Communication.Email
 {
     internal static class EmailFaultTranslator
     {

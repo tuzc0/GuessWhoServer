@@ -1,6 +1,6 @@
-﻿using System;
+﻿using GuessWhoServices.Services.Configuration;
+using System;
 using System.Configuration;
-using WcfServiceLibraryGuessWho.Services.Configuration;
 
 namespace ConsoleGuessWho.Infraestructure.Settings
 {

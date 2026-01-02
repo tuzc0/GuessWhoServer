@@ -1,4 +1,4 @@
-﻿namespace GuessWhoServerDomain.Domain.Enums
+﻿namespace GuessWhoServerDomain.Domain.Enums.Accounts
 {
     public enum AccountProfileStatus
     {

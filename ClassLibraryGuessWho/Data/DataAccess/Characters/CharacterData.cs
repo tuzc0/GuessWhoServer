@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Characters
+namespace GuessWhoDataAccess.Data.DataAccess.Characters
 {
     public class CharacterData : ICharacterRepository
     {

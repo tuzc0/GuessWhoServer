@@ -2,16 +2,15 @@
 using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
-using GuessWhoServices.Services.MatchApplication;
+using GuessWhoServices.Coordinators.Match;
+using GuessWhoServices.Errors;
 using log4net;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Coordinators.Match;
-using WcfServiceLibraryGuessWho.Errors;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
 
-namespace WcfServiceLibraryGuessWho.Coordinators
+namespace GuessWhoServices.Coordinators
 {
     public sealed partial class MatchManager : ManagerBase, IMatchManager
     {

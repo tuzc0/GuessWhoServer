@@ -1,10 +1,10 @@
 ﻿using GuessWhoCore.Contracts.Faults;
+using GuessWhoServices.Errors;
 using log4net;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Errors;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Base
+namespace GuessWhoServices.Coordinators.Base
 {
     public abstract class ServiceBase
     {

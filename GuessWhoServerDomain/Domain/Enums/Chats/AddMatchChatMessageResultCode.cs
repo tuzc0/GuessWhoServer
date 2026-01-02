@@ -1,4 +1,4 @@
-﻿namespace GuessWhoServerDomain.Domain.Enums.Chat
+﻿namespace GuessWhoServerDomain.Domain.Enums.Chats
 {
     public enum AddMatchChatMessageResultCode
     {

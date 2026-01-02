@@ -3,7 +3,7 @@ using GuessWhoServerDomain.Domain.Parameters.Friends;
 using System;
 using System.Collections.Generic;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
+namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface IFriendshipManager
     {

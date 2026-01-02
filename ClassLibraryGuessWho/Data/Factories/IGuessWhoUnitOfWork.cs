@@ -1,7 +1,7 @@
 ﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using System;
 
-namespace ClassLibraryGuessWho.Data.Factories
+namespace GuessWhoDataAccess.Data.Factories
 {
     public interface IGuessWhoUnitOfWork : IDisposable
     {

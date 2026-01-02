@@ -1,7 +1,7 @@
-﻿using GuessWhoServerDomain.Domain.Models.Sessions;
-using WcfServiceLibraryGuessWho.Coordinators.Parameters.InternalDtos;
+﻿using GuessWhoServerDomain.Domain.Models.Session;
+using GuessWhoServices.Coordinators.InternalDtos;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
+namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface ILoginManager
     {

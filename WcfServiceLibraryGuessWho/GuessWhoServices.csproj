@@ -121,6 +121,10 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <CompilerVisibleProperty Include="RootNamespace" />
+    <CompilerVisibleProperty Include="ProjectDir" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Communication\Email\Builders\Context\FriendRequestEmailContext.cs" />
     <Compile Include="Communication\Email\Builders\EmailMessage.cs" />
     <Compile Include="Communication\Email\Builders\FriendRequestEmailBuilder.cs" />
@@ -152,10 +156,16 @@
     <Compile Include="Coordinators\Interfaces\IPasswordRecoveryManager.cs" />
     <Compile Include="Coordinators\Interfaces\IUpdateProfileManager.cs" />
     <Compile Include="Coordinators\Interfaces\IUserRegistrationManager.cs" />
+    <Compile Include="Coordinators\InternalDtos\JoinLobbyArgs.cs" />
+    <Compile Include="Coordinators\InternalDtos\JoinLobbyLogicResult.cs" />
+    <Compile Include="Coordinators\InternalDtos\LeaveLobbyLogicResult.cs" />
+    <Compile Include="Coordinators\InternalDtos\LobbySubscriptionArgs.cs" />
+    <Compile Include="Coordinators\InternalDtos\ReadyLobbyLogicResult.cs" />
     <Compile Include="Coordinators\LoginCoordinator.cs" />
     <Compile Include="Coordinators\LoginManager.cs" />
     <Compile Include="Coordinators\InternalDtos\LoginArgs.cs" />
     <Compile Include="Coordinators\InternalDtos\RegisterUserArgs.cs" />
+    <Compile Include="Coordinators\Match\ILobbySubscriptionOperation.cs" />
     <Compile Include="Coordinators\Match\MatchGuessingLogic.cs" />
     <Compile Include="Coordinators\Match\MatchLifecycleLogic.cs" />
     <Compile Include="Coordinators\Match\MatchPassTurnLogic.cs" />
@@ -167,6 +177,7 @@
     <Compile Include="Infrastructure\ILobbySubscriptionStore.cs" />
     <Compile Include="Infrastructure\IMatchCallbackDispatcher.cs" />
     <Compile Include="Infrastructure\IMatchLifecycleNotifier.cs" />
+    <Compile Include="Coordinators\LobbySubscriptionOperations.cs" />
     <Compile Include="Infrastructure\LobbySubscriptionStore.cs" />
     <Compile Include="Infrastructure\MatchLifecycleNotifier.cs" />
     <Compile Include="IsExternalInit.cs" />

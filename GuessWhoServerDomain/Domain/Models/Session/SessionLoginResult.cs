@@ -2,7 +2,7 @@
 using GuessWhoServerDomain.Domain.Models.Accounts;
 using System;
 
-namespace GuessWhoServerDomain.Domain.Models.Sessions
+namespace GuessWhoServerDomain.Domain.Models.Session
 {
     public sealed class SessionLoginResult
     {

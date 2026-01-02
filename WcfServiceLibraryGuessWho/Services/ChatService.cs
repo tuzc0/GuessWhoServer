@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.ServiceModel;
 
-namespace GuessWho.Services.WCF.Services
+namespace GuessWhoServices.Services
 {
     [ServiceBehavior(
         InstanceContextMode = InstanceContextMode.Single,

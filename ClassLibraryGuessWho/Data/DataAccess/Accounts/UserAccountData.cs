@@ -1,5 +1,4 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoServerDomain.Domain.Enums;
+﻿using GuessWhoServerDomain.Domain.Enums.Accounts;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
@@ -7,7 +6,7 @@ using GuessWhoServerDomain.Domain.Results.Accounts;
 using System;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Accounts
+namespace GuessWhoDataAccess.Data.DataAccess.Accounts
 {
     public sealed class UserAccountData : IUserAccountRepository
     {

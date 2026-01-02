@@ -1,5 +1,5 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoDataAccess.Data.Factories;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Enums.Turns;
 using GuessWhoServerDomain.Domain.Models.Turns;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
@@ -12,7 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 
-namespace GuessWhoServices.Services.MatchApplication
+namespace GuessWhoServices.Coordinators.Match
 {
     public sealed class MatchSecretCharacterLogic
     {

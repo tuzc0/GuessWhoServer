@@ -42,12 +42,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <CompilerVisibleProperty Include="RootNamespace" />
+    <CompilerVisibleProperty Include="ProjectDir" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Domain\Enums\Accounts\LoginStatus.cs" />
     <Compile Include="Domain\Enums\Chats\AddMatchChatMessageResultCode.cs" />
     <Compile Include="Domain\Enums\Friends\FriendRequestDataStatus.cs" />
     <Compile Include="Domain\Enums\Friends\FriendRequestStatus.cs" />
     <Compile Include="Domain\Enums\Matches\ChangeSecretCharacterResultCode.cs" />
     <Compile Include="Domain\Enums\Matches\ChooseSecretCharacterResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\DisconnectMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Matches\EndMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Matches\FinalGuessResultCode.cs" />
     <Compile Include="Domain\Enums\Matches\FinalGuessSnapshot.cs" />
@@ -61,9 +66,6 @@
     <Compile Include="Domain\Enums\Matches\MatchMode.cs" />
     <Compile Include="Domain\Enums\Matches\MatchStatus.cs" />
     <Compile Include="Domain\Enums\Matches\MatchVisibility.cs" />
-    <Compile Include="Domain\Enums\Matches\Outcomes\JoinMatchOutcomeCode.cs" />
-    <Compile Include="Domain\Enums\Matches\Outcomes\LeaveMatchOutcomeCode.cs" />
-    <Compile Include="Domain\Enums\Matches\Outcomes\SetReadyOutcomeCode.cs" />
     <Compile Include="Domain\Enums\Matches\SetMatchPrivateResultCode.cs" />
     <Compile Include="Domain\Enums\Matches\StartMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Security\VerificationCodeResult.cs" />
@@ -97,6 +99,7 @@
     <Compile Include="Domain\Models\Friends\UserProfileSearchRecord.cs" />
     <Compile Include="Domain\Models\Matches\CharacterRecord.cs" />
     <Compile Include="Domain\Models\Matches\JoinMatchSnapshot.cs" />
+    <Compile Include="Domain\Results\Match\DisconnectMatchResult.cs" />
     <Compile Include="Domain\Results\Match\MatchDeckResult.cs" />
     <Compile Include="Domain\Models\Matches\LobbyPlayerSnapshot.cs" />
     <Compile Include="Domain\Models\Matches\MatchSnapshot.cs" />
@@ -109,9 +112,6 @@
     <Compile Include="Domain\Results\Chat\AddMatchChatMessageResult.cs" />
     <Compile Include="Domain\Results\Match\FinalGuessResult.cs" />
     <Compile Include="Domain\Results\Match\LoadFinalGuessSnapshotResult.cs" />
-    <Compile Include="Domain\Results\Match\Outcomes\JoinMatchOutcome.cs" />
-    <Compile Include="Domain\Results\Match\Outcomes\LeaveMatchOutCome.cs" />
-    <Compile Include="Domain\Results\Match\Outcomes\SetReadyOutcome.cs" />
     <Compile Include="Domain\Results\Match\TournamentMatchCreationResult.cs" />
     <Compile Include="Domain\Models\Session\SessionLoginResult.cs" />
     <Compile Include="Domain\Parameters\Accounts\AccountSearchParameters.cs" />
@@ -141,7 +141,6 @@
     <Compile Include="Domain\Parameters\Accounts\UpdateAccountArgs.cs" />
     <Compile Include="Domain\Results\Accounts\UpdateAccountResult.cs" />
     <Compile Include="Domain\Results\Friends\FriendRequestDataResult.cs" />
-    <Compile Include="Domain\Results\Friends\SendFriendRequestDataResult.cs" />
     <Compile Include="Domain\Results\Match\ChangeSecretCharacterResult.cs" />
     <Compile Include="Domain\Results\Match\ChooseSecretCharacterResult.cs" />
     <Compile Include="Domain\Results\Match\EndMatchResult.cs" />

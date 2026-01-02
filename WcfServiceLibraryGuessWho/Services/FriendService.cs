@@ -11,10 +11,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
 
-namespace GuessWho.Services.WCF.Services
+namespace GuessWhoServices.Services
 {
     [ServiceBehavior(IncludeExceptionDetailInFaults = false, InstanceContextMode = InstanceContextMode.PerCall)]
     public sealed class FriendService : ServiceBase, IFriendService

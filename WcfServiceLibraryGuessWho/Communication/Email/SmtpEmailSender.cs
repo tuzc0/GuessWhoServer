@@ -1,12 +1,12 @@
-﻿using System;
+﻿using GuessWhoServices.Services.Configuration;
+using System;
 using System.Net;
 using System.Net.Mail;
 using System.Text;
-using WcfServiceLibraryGuessWho.Communication.Email.Builders;
-using WcfServiceLibraryGuessWho.Communication.Email.Helpers;
-using WcfServiceLibraryGuessWho.Services.Configuration;
+using GuessWhoServices.Communication.Email.Builders;
+using GuessWhoServices.Communication.Email.Helpers;
 
-namespace WcfServiceLibraryGuessWho.Communication.Email
+namespace GuessWhoServices.Communication.Email
 {
     public sealed class SmtpEmailSender : IEmailSender
     {

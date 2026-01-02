@@ -1,5 +1,5 @@
-﻿using ClassLibraryGuessWho.Data.Helpers;
-using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoDataAccess.Data.Helpers;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Enums.Turns;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.Turns;
@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Turns
+namespace GuessWhoDataAccess.Data.DataAccess.Turns
 {
     public sealed class MatchTurnData : IMatchTurnRepository
     {
@@ -207,7 +207,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Turns
                 userId1,
                 userId2,
                 Position1: FIRST_POSITION,
-                Position2: (byte)(FIRST_POSITION + 1),
+                Position2: FIRST_POSITION + 1,
                 TurnNumber: FIRST_TURN_NUMBER,
                 StartPosition: FIRST_POSITION,
                 StartUserId: userId1,

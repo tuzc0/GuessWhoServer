@@ -2,17 +2,16 @@
 using GuessWhoCore.Contracts.Faults;
 using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
+using GuessWhoServices.Coordinators;
+using GuessWhoServices.Coordinators.InternalDtos;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces.EmailVerification;
-using WcfServiceLibraryGuessWho.Coordinators.InternalDtos;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
 
-namespace GuessWho.Services.WCF.Services
+namespace GuessWhoServices.Services
 {
     [ServiceBehavior(IncludeExceptionDetailInFaults = false, InstanceContextMode = InstanceContextMode.PerCall)]
     public sealed class UserService : ServiceBase, IUserService

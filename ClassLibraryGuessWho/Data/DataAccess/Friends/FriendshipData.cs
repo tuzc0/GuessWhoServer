@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Friends
+namespace GuessWhoDataAccess.Data.DataAccess.Friends
 {
     public sealed class FriendshipData : IFriendshipRepository
     {

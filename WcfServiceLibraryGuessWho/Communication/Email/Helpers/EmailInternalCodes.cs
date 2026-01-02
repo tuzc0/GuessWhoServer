@@ -1,4 +1,4 @@
-﻿namespace WcfServiceLibraryGuessWho.Communication.Email.Helpers
+﻿namespace GuessWhoServices.Communication.Email.Helpers
 {
     internal static class EmailInternalCodes
     {

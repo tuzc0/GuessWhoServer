@@ -1,4 +1,6 @@
-﻿namespace ClassLibraryGuessWho.Data.Factories
+﻿using GuessWhoDataAccess.Data.Factories;
+
+namespace GuessWhoDataAccess.Data.Factories
 {
     public class GuessWhoDbContextFactory : IGuessWhoDbContextFactory
     {

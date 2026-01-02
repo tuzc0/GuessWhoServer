@@ -1,7 +1,7 @@
 ﻿using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces.EmailVerification
+namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface IEmailVerificationManager
     {

@@ -1,7 +1,7 @@
 ﻿using GuessWhoServerDomain.Domain.Models.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
+namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface IUpdateProfileManager
     {

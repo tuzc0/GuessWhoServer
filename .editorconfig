@@ -3,6 +3,9 @@ root = true
 
 # Archivos de C#
 [*.cs]
+dotnet_style_namespace_match_folder = true
+dotnet_diagnostic.IDE0130.severity = warning
+
 
 #### Opciones principales de EditorConfig ####
 

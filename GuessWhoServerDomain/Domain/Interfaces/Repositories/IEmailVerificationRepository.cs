@@ -1,6 +1,6 @@
 ﻿using GuessWhoServerDomain.Domain.Models.EmailVerification;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
-using GuessWhoServerDomain.Domain.Results;
+using GuessWhoServerDomain.Domain.Results.Accounts;
 using System;
 
 namespace GuessWhoServerDomain.Domain.Interfaces.Repositories

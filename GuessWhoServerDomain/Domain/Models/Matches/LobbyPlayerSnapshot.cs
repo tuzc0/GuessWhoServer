@@ -1,4 +1,4 @@
-﻿namespace GuessWhoServerDomain.Domain.Models.Match
+﻿namespace GuessWhoServerDomain.Domain.Models.Matches
 {
     public readonly record struct LobbyPlayerSnapshot(
         long MatchId, 

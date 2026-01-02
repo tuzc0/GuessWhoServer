@@ -1,4 +1,4 @@
-﻿namespace WcfServiceLibraryGuessWho.Communication.Email.Builders
+﻿namespace GuessWhoServices.Communication.Email.Builders
 {
     public sealed class EmailMessage
     {

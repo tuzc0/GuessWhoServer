@@ -1,11 +1,10 @@
-﻿using GuessWhoServerDomain.Domain.Models.Match;
-using GuessWhoServerDomain.Domain.Models.Matches;
+﻿using GuessWhoServerDomain.Domain.Models.Matches;
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Matches
+namespace GuessWhoDataAccess.Data.DataAccess.Matches
 {
     public sealed partial class MatchData
     {
@@ -23,7 +22,7 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
         {
             string safeCode = NormalizeMatchCode(matchCode);
 
-            if (string.IsNullOrWhiteSpace(safeCode) || safeCode.Length != MATCH_CODE_LENGTH) 
+            if (string.IsNullOrWhiteSpace(safeCode)) 
             {
                 return MatchSnapshot.CreateInvalid();
             }
@@ -70,6 +69,29 @@ namespace ClassLibraryGuessWho.Data.DataAccess.Matches
                 .ToList();
 
             return matches;
+        }
+
+        public MatchSnapshot GetMatchById(long matchId)
+        {
+            if (matchId <= 0)
+            {
+                return MatchSnapshot.CreateInvalid();
+            }
+
+            MatchSnapshot snapshot = dataContext.MATCH
+                .AsNoTracking()
+                .Where(m => m.MATCHID == matchId)
+                .Select(m => new MatchSnapshot(
+                    m.MATCHID,
+                    m.MATCHCODE ?? string.Empty,
+                    m.STATUSID,
+                    m.VISIBILITYID,
+                    m.MODEID,
+                    m.CREATEDATUTC))
+                .DefaultIfEmpty(MatchSnapshot.CreateInvalid())
+                .First();
+
+            return snapshot;
         }
 
         public IReadOnlyList<LobbyPlayerSnapshot> GetMatchPlayers(long matchId)

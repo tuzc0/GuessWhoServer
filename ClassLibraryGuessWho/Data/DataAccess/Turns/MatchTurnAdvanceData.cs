@@ -1,4 +1,4 @@
-﻿using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Enums.Turns;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.Turns;
@@ -10,7 +10,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace ClassLibraryGuessWho.Data.DataAccess.Turns
+namespace GuessWhoDataAccess.Data.DataAccess.Turns
 {
     public sealed class MatchTurnAdvanceData : IMatchTurnAdvanceRepository
     {

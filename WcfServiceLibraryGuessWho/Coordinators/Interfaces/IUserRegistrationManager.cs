@@ -1,6 +1,7 @@
-﻿using WcfServiceLibraryGuessWho.Coordinators.InternalDtos;
+﻿using GuessWhoServices.Coordinators;
+using GuessWhoServices.Coordinators.InternalDtos;
 
-namespace WcfServiceLibraryGuessWho.Coordinators.Interfaces
+namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface IUserRegistrationManager
     {

@@ -1,17 +1,18 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoCore.Contracts.Faults;
-using GuessWhoCore.Dtos;
-using GuessWhoServerDomain.Domain.Models.Sessions;
+﻿using GuessWhoCore.Contracts.Faults;
+using GuessWhoServices.Errors;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
-using WcfServiceLibraryGuessWho.Coordinators.Base;
-using WcfServiceLibraryGuessWho.Coordinators.Interfaces;
-using WcfServiceLibraryGuessWho.Coordinators.Parameters.InternalDtos;
-using WcfServiceLibraryGuessWho.Errors;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
+using GuessWhoServices.Coordinators.InternalDtos;
+using GuessWhoServerDomain.Domain.Models.Session;
+using GuessWhoCore.Dtos;
+using GuessWhoServerDomain.Domain.Enums.Accounts;
+using GuessWhoDataAccess.Data.Factories;
 
-namespace WcfServiceLibraryGuessWho.Coordinators
+namespace GuessWhoServices.Coordinators
 {
     public sealed class LoginCoordinator : ManagerBase, ILoginCoordinator
     {
@@ -22,7 +23,7 @@ namespace WcfServiceLibraryGuessWho.Coordinators
 
         private const int MIN_VALID_ID = 1;
 
-        private const UserSessionLoginStatus DEFAULT_FAILED_STATUS = UserSessionLoginStatus.InvalidCredentials;
+        private const LoginStatus DEFAULT_FAILED_STATUS = LoginStatus.InvalidCredentials;
 
         private readonly ILoginManager loginManager;
         private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;

@@ -1,11 +1,11 @@
-﻿using ClassLibraryGuessWho.Data.Factories;
-using GuessWhoServerDomain.Domain.Enums.Match;
+﻿using GuessWhoDataAccess.Data.Factories;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using log4net;
 using System;
 
-namespace GuessWhoServerDomain.Domain.Logic.Match
+namespace GuessWhoServices.Coordinators.Match
 {
     public sealed class MatchGuessingLogic
     {

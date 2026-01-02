@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace WcfServiceLibraryGuessWho.Communication.Email
+namespace GuessWhoServices.Communication.Email
 {
     public enum EmailSendStatus
     {

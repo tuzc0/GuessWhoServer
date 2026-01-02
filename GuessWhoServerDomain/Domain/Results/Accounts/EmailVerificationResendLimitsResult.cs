@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GuessWhoServerDomain.Domain.Results
+namespace GuessWhoServerDomain.Domain.Results.Accounts
 {
     public sealed class EmailVerificationResendLimitsResult
     {
