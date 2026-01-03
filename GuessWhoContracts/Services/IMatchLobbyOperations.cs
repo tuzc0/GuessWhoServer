@@ -5,6 +5,7 @@ using System.ServiceModel;
 
 namespace GuessWhoContracts.Services
 {
+    [ServiceContract]
     public interface IMatchLobbyOperations
     {
         [OperationContract]

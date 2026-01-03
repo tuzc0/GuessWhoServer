@@ -88,16 +88,13 @@ namespace ConsoleGuessWho
 
             VerificationCodeEmailBuilder verificationCodeEmailBuilder = new VerificationCodeEmailBuilder();
 
-            // ====== Match: infraestructura SINGLETON (callbacks + suscripciones) ======
             IMatchDisconnectHandler disconnectHandler =
                 new MatchDisconnectHandler(unitOfWorkFactory, LogManager.GetLogger(typeof(MatchDisconnectHandler)));
 
             ILobbySubscriptionStore lobbySubscriptionStore = new LobbySubscriptionStore(disconnectHandler);
 
-            // Ajusta si tu ctor difiere
             IMatchCallbackDispatcher matchCallbackDispatcher = new MatchCallbackDispatcher(lobbySubscriptionStore);
 
-            // Ajusta si tu ctor difiere
             ILobbySubscriptionOperations lobbySubscriptionOperations = new LobbySubscriptionOperations(lobbySubscriptionStore);
 
             var draft = new HostCompositionDraft
@@ -290,3 +287,5 @@ namespace ConsoleGuessWho
             public IMatchCallbackDispatcher MatchCallbackDispatcher { get; }
             public ILobbySubscriptionOperations LobbySubscriptionOperations { get; }
         }
+    }
+}
