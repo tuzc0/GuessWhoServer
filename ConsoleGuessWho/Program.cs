@@ -46,14 +46,20 @@ namespace ConsoleGuessWho
                 ServiceHost hostUser = CreateHost<UserService>(() => CreateUserService(composition));
                 ServiceHost hostLogin = CreateHost<LoginService>(() => CreateLoginService(composition));
                 ServiceHost hostMatch = CreateHost<MatchService>(() => CreateMatchService(composition));
+                ServiceHost hostUpdateProfile = CreateHost<UpdateProfileService>(() => CreateUpdateProfileService(composition));
+                ServiceHost hostFriend = CreateHost<FriendService>(() => CreateFriendService(composition));
 
                 using (hostUser)
                 using (hostLogin)
                 using (hostMatch)
+                using (hostUpdateProfile)
+                using (hostFriend)
                 {
                     hostUser.Open();
                     hostLogin.Open();
                     hostMatch.Open();
+                    hostUpdateProfile.Open();
+                    hostFriend.Open();
 
                     Logger.Info(SERVICE_HOST_STARTED_MESSAGE);
                     Console.WriteLine(SERVER_ONLINE_MESSAGE);
@@ -184,6 +190,27 @@ namespace ConsoleGuessWho
 
             return new LoginService(loginCoordinator);
         }
+
+        private static UpdateProfileService CreateUpdateProfileService(HostComposition composition)
+        {
+            if (composition == null) throw new ArgumentNullException(nameof(composition));
+
+            var manager = new UpdateProfileManager(
+                composition.UnitOfWorkFactory,
+                composition.PasswordHasher);
+
+            return new UpdateProfileService(manager);
+        }
+
+        private static FriendService CreateFriendService(HostComposition composition)
+        {
+            if (composition == null) throw new ArgumentNullException(nameof(composition));
+
+            var manager = new FriendshipManager(composition.UnitOfWorkFactory);
+
+            return new FriendService(manager);
+        }
+
 
         private static MatchService CreateMatchService(HostComposition composition)
         {
