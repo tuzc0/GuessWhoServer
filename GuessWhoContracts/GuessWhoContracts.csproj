@@ -54,6 +54,8 @@
     <Compile Include="Services\IFriendService.cs" />
     <Compile Include="Services\ILoginService.cs" />
     <Compile Include="Services\IMatchCallback.cs" />
+    <Compile Include="Services\IMatchGameplayOperations.cs" />
+    <Compile Include="Services\IMatchLobbyOperations.cs" />
     <Compile Include="Services\IMatchService.cs" />
     <Compile Include="Services\IUpdateProfileService.cs" />
     <Compile Include="Services\IUserService.cs" />

@@ -7,5 +7,6 @@ namespace GuessWhoServerDomain.Domain.Parameters.Turns
         public long MatchId { get; init; }
         public long UserId { get; init; }
         public int AttributeId { get; init; }
+        public DateTime NowUtc { get; init; }
     }
 }

@@ -169,6 +169,7 @@
     <Compile Include="Coordinators\Match\MatchGuessingLogic.cs" />
     <Compile Include="Coordinators\Match\MatchLifecycleLogic.cs" />
     <Compile Include="Coordinators\Match\MatchPassTurnLogic.cs" />
+    <Compile Include="Coordinators\Match\MatchQuestionLogic.cs" />
     <Compile Include="Coordinators\Match\MatchSecretCharacterLogic.cs" />
     <Compile Include="Coordinators\PasswordRecoveryManager.cs" />
     <Compile Include="Coordinators\UpdateProfileManager.cs" />
@@ -194,8 +195,9 @@
     <Compile Include="Services\MatchApplication\MatchDeckConstants.cs" />
     <Compile Include="Coordinators\Match\MatchDeckLogic.cs" />
     <Compile Include="Coordinators\Match\MatchLobbyLogic.cs" />
-    <Compile Include="Coordinators\MatchManager.cs" />
     <Compile Include="Services\MatchService.cs" />
+    <Compile Include="Services\MatchService.Gameplay.cs" />
+    <Compile Include="Services\MatchService.Lobby.cs" />
     <Compile Include="Services\UpdateProfileService.cs" />
     <Compile Include="Services\UserService.cs" />
   </ItemGroup>

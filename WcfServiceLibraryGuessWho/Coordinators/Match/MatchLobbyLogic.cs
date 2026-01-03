@@ -205,7 +205,7 @@ namespace GuessWhoServices.Coordinators.Match
                 readyPlayer: resolvedReadyPlayer.ReadyPlayer);
         }
 
-        public void SubscribeLobby(LobbySubscriptionArgs lobbySubscriptionArgs)
+        public bool SubscribeLobby(LobbySubscriptionArgs lobbySubscriptionArgs)
         {
             if (lobbySubscriptionArgs == null ||
                 lobbySubscriptionArgs.MatchId <= INVALID_ID ||
@@ -214,37 +214,32 @@ namespace GuessWhoServices.Coordinators.Match
                 long matchId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.MatchId;
                 long userId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.UserId;
 
-                Logger.WarnFormat(
-                    "{0}: invalid inputs. MatchId={1}, UserId={2}.",
+                Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, UserId={2}.",
                     CONTEXT_SUBSCRIBE,
-                    matchId,
-                    userId);
+                    lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.MatchId,
+                    lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.UserId);
 
-                return;
+                return false;
             }
 
-            lobbySubscriptionOperations.Subscribe(lobbySubscriptionArgs);
+            return lobbySubscriptionOperations.Subscribe(lobbySubscriptionArgs);
         }
 
-        public void UnsubscribeLobby(LobbySubscriptionArgs lobbySubscriptionArgs)
+        public bool UnsubscribeLobby(LobbySubscriptionArgs lobbySubscriptionArgs)
         {
             if (lobbySubscriptionArgs == null ||
                 lobbySubscriptionArgs.MatchId <= INVALID_ID ||
                 lobbySubscriptionArgs.UserId <= INVALID_ID)
             {
-                long matchId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.MatchId;
-                long userId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.UserId;
-
-                Logger.WarnFormat(
-                    "{0}: invalid inputs. MatchId={1}, UserId={2}.",
+                Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, UserId={2}.",
                     CONTEXT_UNSUBSCRIBE,
-                    matchId,
-                    userId);
+                    lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.MatchId,
+                    lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.UserId);
 
-                return;
+                return false;
             }
 
-            lobbySubscriptionOperations.Unsubscribe(lobbySubscriptionArgs);
+            return lobbySubscriptionOperations.Unsubscribe(lobbySubscriptionArgs);
         }
 
         private static JoinInput BuildJoinInputOrInvalid(JoinLobbyArgs joinLobbyArgs)

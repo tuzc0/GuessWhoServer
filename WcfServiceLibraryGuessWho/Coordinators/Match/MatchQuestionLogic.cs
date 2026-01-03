@@ -38,9 +38,10 @@ namespace GuessWhoServices.Coordinators.Match
                 throw new ArgumentNullException(nameof(matchCallbackDispatcher));
         }
 
-        public AskQuestionResult AskQuestion(AskQuestionArgs args)
+        public AskQuestionResult AskQuestion(AskQuestionArgs questionArgs)
         {
-            AskQuestionPlan plan = BuildAskPlan(args);
+            AskQuestionPlan plan = BuildAskPlan(questionArgs);
+
             if (!plan.IsValid)
             {
                 return AskQuestionResult.Fail(AskQuestionResultCode.InvalidArgs);

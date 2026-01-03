@@ -1,4 +1,5 @@
 ﻿using GuessWhoContracts.Services;
+using GuessWhoDataAccess.Data.Factories;
 using log4net;
 using System;
 using System.Collections.Concurrent;
@@ -229,6 +230,49 @@ namespace GuessWhoServices.Infrastructure
         private static string TryGetSessionId(IMatchCallback callbackChannel)
         {
             return (callbackChannel as IContextChannel)?.SessionId ?? string.Empty;
+        }
+
+        private sealed class MatchDisconnectHandler : IMatchDisconnectHandler
+        {
+            private const long INVALID_ID = 0;
+
+            private readonly IGuessWhoUnitOfWorkFactory _unitOfWorkFactory;
+            private readonly ILog _logger;
+
+            public MatchDisconnectHandler(IGuessWhoUnitOfWorkFactory unitOfWorkFactory, ILog logger)
+            {
+                _unitOfWorkFactory = unitOfWorkFactory ?? throw new ArgumentNullException(nameof(unitOfWorkFactory));
+                _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            }
+
+            public void HandleMatchDisconnect(long userId, DateTime nowUtc)
+            {
+                if (userId <= INVALID_ID)
+                {
+                    return;
+                }
+
+                try
+                {
+                    using IGuessWhoUnitOfWork unitOfWork = _unitOfWorkFactory.Create();
+                    using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+
+                    var result = unitOfWork.Matches.HandleDisconnect(userId, nowUtc);
+
+                    if (!result.IsSuccess)
+                    {
+                        transaction.Rollback();
+                        return;
+                    }
+
+                    unitOfWork.Flush();
+                    transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error("MatchDisconnectHandler.HandleMatchDisconnect failed.", ex);
+                }
+            }
         }
     }
 }

@@ -1,11 +1,12 @@
 ﻿using GuessWhoContracts.Services;
 using GuessWhoServices.Coordinators.InternalDtos;
+using GuessWhoServices.Coordinators.Match;
 using GuessWhoServices.Infrastructure;
 using log4net;
 using System;
 using System.ServiceModel;
 
-namespace GuessWhoServices.Coordinators.Match
+namespace GuessWhoServices.Coordinators
 {
     public sealed class LobbySubscriptionOperations : ILobbySubscriptionOperations
     {
@@ -24,12 +25,12 @@ namespace GuessWhoServices.Coordinators.Match
                 throw new ArgumentNullException(nameof(lobbySubscriptionStore));
         }
 
-        public void Subscribe(LobbySubscriptionArgs lobbySubscriptionArgs)
+        public bool Subscribe(LobbySubscriptionArgs lobbySubscriptionArgs)
         {
             if (lobbySubscriptionArgs == null)
             {
                 Logger.WarnFormat("{0}: args is null.", CONTEXT_SUBSCRIBE);
-                return;
+                return false;
             }
 
             long matchId = lobbySubscriptionArgs.MatchId;
@@ -38,62 +39,48 @@ namespace GuessWhoServices.Coordinators.Match
             if (matchId <= INVALID_ID || userId <= INVALID_ID)
             {
                 Logger.WarnFormat("{0}: invalid ids. MatchId={1}, UserId={2}.", CONTEXT_SUBSCRIBE, matchId, userId);
-                return;
+                return false;
             }
 
-            OperationContext operationContext = OperationContext.Current;
-            if (operationContext == null)
-            {
-                Logger.WarnFormat("{0}: OperationContext.Current is null.", CONTEXT_SUBSCRIBE);
-                return;
-            }
+            IMatchCallback callbackChannel = OperationContext.Current?.GetCallbackChannel<IMatchCallback>();
 
-            IMatchCallback callbackChannel = operationContext.GetCallbackChannel<IMatchCallback>();
             if (callbackChannel == null)
             {
-                Logger.WarnFormat("{0}: callback channel is null. MatchId={1}, UserId={2}.", CONTEXT_SUBSCRIBE, matchId, userId);
-                return;
+                Logger.WarnFormat("{0}: OperationContext.Current is null.", CONTEXT_SUBSCRIBE);
+                return false;
             }
 
-            bool subscribed = lobbySubscriptionStore.Subscribe(matchId, userId, callbackChannel);
-
-            if (!subscribed)
-            {
-                Logger.WarnFormat("{0}: subscribe failed. MatchId={1}, UserId={2}.", CONTEXT_SUBSCRIBE, matchId, userId);
-            }
+            return lobbySubscriptionStore.Subscribe(matchId, userId, callbackChannel);
         }
 
-        public void Unsubscribe(LobbySubscriptionArgs lobbySubscriptionArgs)
+        public bool Unsubscribe(LobbySubscriptionArgs lobbySubscriptionArgs)
         {
             if (lobbySubscriptionArgs == null)
             {
                 Logger.WarnFormat("{0}: args is null.", CONTEXT_UNSUBSCRIBE);
-                return;
+                return false;
             }
 
             long matchId = lobbySubscriptionArgs.MatchId;
+            long userId = lobbySubscriptionArgs.UserId;
 
-            if (matchId <= INVALID_ID)
+            if (matchId <= INVALID_ID || userId <= INVALID_ID)
             {
                 Logger.WarnFormat("{0}: invalid matchId. MatchId={1}.", CONTEXT_UNSUBSCRIBE, matchId);
-                return;
+                return false;
             }
 
-            OperationContext operationContext = OperationContext.Current;
-            if (operationContext == null)
-            {
-                Logger.WarnFormat("{0}: OperationContext.Current is null.", CONTEXT_UNSUBSCRIBE);
-                return;
-            }
-
-            IMatchCallback callbackChannel = operationContext.GetCallbackChannel<IMatchCallback>();
+            IMatchCallback callbackChannel = OperationContext.Current.GetCallbackChannel<IMatchCallback>();
+            
             if (callbackChannel == null)
             {
                 Logger.WarnFormat("{0}: callback channel is null. MatchId={1}.", CONTEXT_UNSUBSCRIBE, matchId);
-                return;
+                return false;
             }
 
             lobbySubscriptionStore.Unsubscribe(matchId, callbackChannel);
+
+            return true;
         }
     }
 }

@@ -4,7 +4,7 @@ namespace GuessWhoServices.Coordinators.Match
 {
     public interface ILobbySubscriptionOperations
     {
-        void Subscribe(LobbySubscriptionArgs lobbySubscriptionArgs);
-        void Unsubscribe(LobbySubscriptionArgs lobbySubscriptionArgs);
+        bool Subscribe(LobbySubscriptionArgs lobbySubscriptionArgs);
+        bool Unsubscribe(LobbySubscriptionArgs lobbySubscriptionArgs);
     }
 }

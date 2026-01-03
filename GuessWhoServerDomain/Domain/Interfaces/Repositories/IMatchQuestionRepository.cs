@@ -1,4 +1,6 @@
 ﻿using GuessWhoServerDomain.Domain.Models.Turns;
+using GuessWhoServerDomain.Domain.Parameters.Turns;
+using GuessWhoServerDomain.Domain.Results.Turns;
 
 
 namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
@@ -9,7 +11,6 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
 
         RegisterQuestionResult RegisterQuestion(RegisterQuestionArgs questionArgs);
 
-        // ✅ Cambio: answerOptionId (int) en args
         RegisterAnswerResult RegisterAnswer(RegisterAnswerArgs answerArgs);
 
         SetTurnPhaseResult SetTurnPhase(SetTurnPhaseArgs phaseArgs);
