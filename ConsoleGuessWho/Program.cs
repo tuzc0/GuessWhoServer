@@ -1,7 +1,14 @@
 ﻿using ConsoleGuessWho.Infraestructure.Settings;
 using ConsoleGuessWho.Infraestructure.Wcf;
+using GuessWhoDataAccess.Data.Factories;
 using GuessWhoServerDomain.Domain.Interfaces.Security;
 using GuessWhoServerDomain.Domain.Settings;
+using GuessWhoServices.Communication.Email;
+using GuessWhoServices.Communication.Email.Builders;
+using GuessWhoServices.Coordinators;
+using GuessWhoServices.Coordinators.EmailVerification;
+using GuessWhoServices.Coordinators.Match;
+using GuessWhoServices.Infrastructure;
 using GuessWhoServices.Security;
 using GuessWhoServices.Services;
 using GuessWhoServices.Services.Configuration;
@@ -9,11 +16,7 @@ using log4net;
 using log4net.Config;
 using System;
 using System.ServiceModel;
-using GuessWhoServices.Communication.Email;
-using GuessWhoServices.Communication.Email.Builders;
-using GuessWhoServices.Coordinators;
-using GuessWhoServices.Coordinators.EmailVerification;
-using GuessWhoDataAccess.Data.Factories;
+using static GuessWhoServices.Infrastructure.LobbySubscriptionStore;
 
 [assembly: XmlConfigurator(Watch = true)]
 namespace ConsoleGuessWho
@@ -42,12 +45,15 @@ namespace ConsoleGuessWho
 
                 ServiceHost hostUser = CreateHost<UserService>(() => CreateUserService(composition));
                 ServiceHost hostLogin = CreateHost<LoginService>(() => CreateLoginService(composition));
+                ServiceHost hostMatch = CreateHost<MatchService>(() => CreateMatchService(composition));
 
                 using (hostUser)
                 using (hostLogin)
+                using (hostMatch)
                 {
                     hostUser.Open();
                     hostLogin.Open();
+                    hostMatch.Open();
 
                     Logger.Info(SERVICE_HOST_STARTED_MESSAGE);
                     Console.WriteLine(SERVER_ONLINE_MESSAGE);
@@ -74,15 +80,25 @@ namespace ConsoleGuessWho
             UserSecuritySettings securitySettings = UserSecuritySettingsLoader.Load();
 
             IPasswordHasher passwordHasher = new PasswordHasher();
-
             IVerificationCodeService verificationCodeService = new VerificationCodeService();
-            
+
             SmtpSettings smtpSettings = SmtpSettingsLoader.Load();
             smtpSettings.Validate();
             IEmailSender emailSender = new SmtpEmailSender(smtpSettings);
 
-
             VerificationCodeEmailBuilder verificationCodeEmailBuilder = new VerificationCodeEmailBuilder();
+
+            // ====== Match: infraestructura SINGLETON (callbacks + suscripciones) ======
+            IMatchDisconnectHandler disconnectHandler =
+                new MatchDisconnectHandler(unitOfWorkFactory, LogManager.GetLogger(typeof(MatchDisconnectHandler)));
+
+            ILobbySubscriptionStore lobbySubscriptionStore = new LobbySubscriptionStore(disconnectHandler);
+
+            // Ajusta si tu ctor difiere
+            IMatchCallbackDispatcher matchCallbackDispatcher = new MatchCallbackDispatcher(lobbySubscriptionStore);
+
+            // Ajusta si tu ctor difiere
+            ILobbySubscriptionOperations lobbySubscriptionOperations = new LobbySubscriptionOperations(lobbySubscriptionStore);
 
             var draft = new HostCompositionDraft
             {
@@ -91,7 +107,11 @@ namespace ConsoleGuessWho
                 PasswordHasher = passwordHasher,
                 VerificationCodeService = verificationCodeService,
                 EmailSender = emailSender,
-                VerificationCodeEmailBuilder = verificationCodeEmailBuilder
+                VerificationCodeEmailBuilder = verificationCodeEmailBuilder,
+
+                LobbySubscriptionStore = lobbySubscriptionStore,
+                MatchCallbackDispatcher = matchCallbackDispatcher,
+                LobbySubscriptionOperations = lobbySubscriptionOperations
             };
 
             return new HostComposition(draft);
@@ -126,7 +146,7 @@ namespace ConsoleGuessWho
             var registrationManager = new UserRegistrationManager(
                 composition.UnitOfWorkFactory,
                 composition.EmailSender,
-                composition.VerificationCodeEmailBuilder, 
+                composition.VerificationCodeEmailBuilder,
                 composition.PasswordHasher,
                 composition.VerificationCodeService,
                 verificationCodeLifeTime);
@@ -135,13 +155,13 @@ namespace ConsoleGuessWho
                 composition.UnitOfWorkFactory,
                 composition.VerificationCodeService,
                 composition.EmailSender,
-                composition.VerificationCodeEmailBuilder, 
+                composition.VerificationCodeEmailBuilder,
                 emailVerificationDomainService);
 
             var passwordRecoveryManager = new PasswordRecoveryManager(
                 composition.UnitOfWorkFactory,
                 composition.EmailSender,
-                composition.VerificationCodeEmailBuilder, 
+                composition.VerificationCodeEmailBuilder,
                 composition.VerificationCodeService,
                 emailVerificationDomainService,
                 composition.PasswordHasher);
@@ -168,6 +188,46 @@ namespace ConsoleGuessWho
             return new LoginService(loginCoordinator);
         }
 
+        private static MatchService CreateMatchService(HostComposition composition)
+        {
+            if (composition == null) throw new ArgumentNullException(nameof(composition));
+
+            MatchLobbyLogic lobbyLogic = new MatchLobbyLogic(
+                composition.UnitOfWorkFactory,
+                composition.LobbySubscriptionOperations);
+
+            MatchLifecycleLogic lifecycleLogic = new MatchLifecycleLogic(
+                composition.UnitOfWorkFactory,
+                composition.MatchCallbackDispatcher);
+
+            MatchDeckLogic deckLogic = new MatchDeckLogic(composition.UnitOfWorkFactory);
+
+            MatchSecretCharacterLogic secretLogic = new MatchSecretCharacterLogic(
+                composition.UnitOfWorkFactory,
+                composition.MatchCallbackDispatcher);
+
+            MatchQuestionLogic questionLogic = new MatchQuestionLogic(
+                composition.UnitOfWorkFactory,
+                composition.MatchCallbackDispatcher);
+
+            MatchPassTurnLogic passTurnLogic = new MatchPassTurnLogic(composition.UnitOfWorkFactory);
+
+            MatchGuessingLogic guessingLogic = new MatchGuessingLogic(composition.UnitOfWorkFactory);
+
+            var deps = new MatchService.MatchServiceDependencies
+            {
+                LobbyLogic = lobbyLogic,
+                LifecycleLogic = lifecycleLogic,
+                DeckLogic = deckLogic,
+                SecretCharacterLogic = secretLogic,
+                QuestionLogic = questionLogic,
+                PassTurnLogic = passTurnLogic,
+                GuessingLogic = guessingLogic
+            };
+
+            return new MatchService(deps);
+        }
+
         private sealed class HostCompositionDraft
         {
             public IGuessWhoUnitOfWorkFactory UnitOfWorkFactory { get; set; }
@@ -176,52 +236,47 @@ namespace ConsoleGuessWho
             public IVerificationCodeService VerificationCodeService { get; set; }
             public IEmailSender EmailSender { get; set; }
             public VerificationCodeEmailBuilder VerificationCodeEmailBuilder { get; set; }
+
+            public ILobbySubscriptionStore LobbySubscriptionStore { get; set; }
+            public IMatchCallbackDispatcher MatchCallbackDispatcher { get; set; }
+            public ILobbySubscriptionOperations LobbySubscriptionOperations { get; set; }
         }
 
         private sealed class HostComposition
         {
-            private const string ERROR_MISSING_DEPENDENCY_FORMAT = "Missing required dependency in HostCompositionDraft: {0}.";
+            private const string ERROR_MISSING_DEPENDENCY_FORMAT =
+                "Missing required dependency in HostCompositionDraft: {0}.";
 
             public HostComposition(HostCompositionDraft draft)
             {
                 if (draft == null) throw new ArgumentNullException(nameof(draft));
 
-                if (draft.UnitOfWorkFactory == null)
-                    throw new ArgumentException(
-                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.UnitOfWorkFactory)),
-                        nameof(draft));
+                UnitOfWorkFactory = draft.UnitOfWorkFactory
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.UnitOfWorkFactory)), nameof(draft));
 
-                if (draft.SecuritySettings == null)
-                    throw new ArgumentException(
-                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.SecuritySettings)),
-                        nameof(draft));
+                SecuritySettings = draft.SecuritySettings
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.SecuritySettings)), nameof(draft));
 
-                if (draft.PasswordHasher == null)
-                    throw new ArgumentException(
-                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.PasswordHasher)),
-                        nameof(draft));
+                PasswordHasher = draft.PasswordHasher
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.PasswordHasher)), nameof(draft));
 
-                if (draft.VerificationCodeService == null)
-                    throw new ArgumentException(
-                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.VerificationCodeService)),
-                        nameof(draft));
+                VerificationCodeService = draft.VerificationCodeService
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.VerificationCodeService)), nameof(draft));
 
-                if (draft.EmailSender == null)
-                    throw new ArgumentException(
-                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.EmailSender)),
-                        nameof(draft));
+                EmailSender = draft.EmailSender
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.EmailSender)), nameof(draft));
 
-                if (draft.VerificationCodeEmailBuilder == null)
-                    throw new ArgumentException(
-                        string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(HostCompositionDraft.VerificationCodeEmailBuilder)),
-                        nameof(draft));
+                VerificationCodeEmailBuilder = draft.VerificationCodeEmailBuilder
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.VerificationCodeEmailBuilder)), nameof(draft));
 
-                UnitOfWorkFactory = draft.UnitOfWorkFactory;
-                SecuritySettings = draft.SecuritySettings;
-                PasswordHasher = draft.PasswordHasher;
-                VerificationCodeService = draft.VerificationCodeService;
-                EmailSender = draft.EmailSender;
-                VerificationCodeEmailBuilder = draft.VerificationCodeEmailBuilder;
+                LobbySubscriptionStore = draft.LobbySubscriptionStore
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.LobbySubscriptionStore)), nameof(draft));
+
+                MatchCallbackDispatcher = draft.MatchCallbackDispatcher
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.MatchCallbackDispatcher)), nameof(draft));
+
+                LobbySubscriptionOperations = draft.LobbySubscriptionOperations
+                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.LobbySubscriptionOperations)), nameof(draft));
             }
 
             public IGuessWhoUnitOfWorkFactory UnitOfWorkFactory { get; }
@@ -230,6 +285,8 @@ namespace ConsoleGuessWho
             public IVerificationCodeService VerificationCodeService { get; }
             public IEmailSender EmailSender { get; }
             public VerificationCodeEmailBuilder VerificationCodeEmailBuilder { get; }
+
+            public ILobbySubscriptionStore LobbySubscriptionStore { get; }
+            public IMatchCallbackDispatcher MatchCallbackDispatcher { get; }
+            public ILobbySubscriptionOperations LobbySubscriptionOperations { get; }
         }
-    }
-}

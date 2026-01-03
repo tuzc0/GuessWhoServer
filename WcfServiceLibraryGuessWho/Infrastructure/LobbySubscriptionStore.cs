@@ -232,10 +232,8 @@ namespace GuessWhoServices.Infrastructure
             return (callbackChannel as IContextChannel)?.SessionId ?? string.Empty;
         }
 
-        private sealed class MatchDisconnectHandler : IMatchDisconnectHandler
+        public sealed class MatchDisconnectHandler : IMatchDisconnectHandler
         {
-            private const long INVALID_ID = 0;
-
             private readonly IGuessWhoUnitOfWorkFactory _unitOfWorkFactory;
             private readonly ILog _logger;
 
