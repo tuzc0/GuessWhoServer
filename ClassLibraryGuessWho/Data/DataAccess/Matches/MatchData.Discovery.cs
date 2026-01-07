@@ -22,12 +22,12 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
         {
             string safeCode = NormalizeMatchCode(matchCode);
 
-            if (string.IsNullOrWhiteSpace(safeCode)) 
+            if (string.IsNullOrWhiteSpace(safeCode))
             {
                 return MatchSnapshot.CreateInvalid();
             }
 
-            MatchSnapshot matchSnapshot = dataContext.MATCH
+            var rawData = dataContext.MATCH
                 .AsNoTracking()
                 .Where(m =>
                     m.MATCHCODE == safeCode &&
@@ -35,14 +35,29 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
                     m.STARTTIME == null &&
                     m.ENDTIME == null &&
                     m.ISCODEJOINENABLED)
-                .Select(m => new MatchSnapshot(
+                .Select(m => new
+                {
                     m.MATCHID,
-                    m.MATCHCODE ?? string.Empty,
+                    m.MATCHCODE,
                     m.STATUSID,
                     m.VISIBILITYID,
                     m.MODEID,
-                    m.CREATEDATUTC))
+                    m.CREATEDATUTC
+                })
                 .FirstOrDefault();
+
+            if (rawData == null)
+            {
+                return MatchSnapshot.CreateInvalid();
+            }
+
+            var matchSnapshot = new MatchSnapshot(
+                rawData.MATCHID,
+                rawData.MATCHCODE ?? string.Empty,
+                rawData.STATUSID,
+                rawData.VISIBILITYID,
+                rawData.MODEID,
+                rawData.CREATEDATUTC);
 
             return matchSnapshot.IsValid
                 ? matchSnapshot

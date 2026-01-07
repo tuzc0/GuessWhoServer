@@ -87,10 +87,7 @@ namespace GuessWhoServices.Coordinators
                     {
                         Logger.WarnFormat("{0}: account locked for email '{1}'.", LOG_CTX_LOGIN, normalizedEmail);
 
-                        throw FaultsFactory.Create(
-                            LoginFaultKeys.CODE_ACCOUNT_LOCKED,
-                            LoginFaultKeys.MSG_ACCOUNT_LOCKED,
-                            LoginFaultKeys.FALLBACK_ACCOUNT_LOCKED);
+                        throw FaultsFactory.Create(LoginFaultKeys.CODE_ACCOUNT_LOCKED);
                     }
 
                     bool isPasswordValid = passwordHasher.VerifyPassword(password, result.Account.PasswordHash);
@@ -236,10 +233,7 @@ namespace GuessWhoServices.Coordinators
         {
             if (args == null)
             {
-                throw FaultsFactory.Create(
-                    LoginFaultKeys.CODE_REQUEST_NULL,
-                    LoginFaultKeys.MSG_REQUEST_NULL,
-                    LoginFaultKeys.FALLBACK_REQUEST_NULL);
+                throw FaultsFactory.Create(LoginFaultKeys.CODE_REQUEST_NULL);
             }
 
             string normalizedEmail = NormalizeEmail(args.Email);
@@ -258,10 +252,7 @@ namespace GuessWhoServices.Coordinators
 
         private static FaultException<ServiceFault> CreateInvalidCredentialsFault()
         {
-            return FaultsFactory.Create(
-                LoginFaultKeys.CODE_INVALID_CREDENTIALS,
-                LoginFaultKeys.MSG_INVALID_CREDENTIALS,
-                LoginFaultKeys.FALLBACK_INVALID_CREDENTIALS);
+            return FaultsFactory.Create(LoginFaultKeys.CODE_INVALID_CREDENTIALS);
         }
 
         protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)

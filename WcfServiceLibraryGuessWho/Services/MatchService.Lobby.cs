@@ -1,6 +1,7 @@
 ﻿using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
 using GuessWhoServerDomain.Domain.Models.Matches;
+using GuessWhoServerDomain.Domain.Results.Match;
 using GuessWhoServices.Coordinators.InternalDtos;
 using System.Collections.Generic;
 
@@ -148,6 +149,61 @@ namespace GuessWhoServices.Services
                     }));
 
                 return BasicOk();
+            });
+        }
+
+        public BasicResponse SetMatchPrivate(SetMatchPrivateRequest request)
+        {
+            return ExecuteService(CONTEXT_SET_PRIVATE, () =>
+            {
+                EnsureRequestNotNull(request);
+
+                if (request.MatchId <= INVALID_ID || request.UserId <= INVALID_ID)
+                {
+                    return BasicFail(CODE_INVALID_ARGS, KEY_INVALID_ARGS);
+                }
+
+                SetMatchPrivateResult result = lifecycleLogic.SetMatchPrivate(request.MatchId, request.UserId);
+
+                if (!result.IsSuccess)
+                {
+                    string code = result.Code.ToString();
+                    return BasicFail(code, code);
+                }
+
+                return BasicOk();
+            });
+        }
+
+        public SearchPublicMatchResponse SearchPublicMatch(SearchPublicMatchRequest request)
+        {
+            return ExecuteService(CONTEXT_SEARCH_PUBLIC, () =>
+            {
+                EnsureRequestNotNull(request);
+
+                string code = (request.MatchCode ?? string.Empty).Trim();
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    return new SearchPublicMatchResponse { MatchId = INVALID_ID };
+                }
+
+                MatchSnapshot snapshot = lifecycleLogic.SearchPublicMatch(code);
+
+                if (!snapshot.IsValid)
+                {
+                    return new SearchPublicMatchResponse { MatchId = INVALID_ID };
+                }
+
+                return new SearchPublicMatchResponse
+                {
+                    MatchId = snapshot.MatchId,
+                    Code = snapshot.MatchCode ?? string.Empty,
+                    StatusId = snapshot.StatusId,
+                    VisibilityId = snapshot.VisibilityId,
+                    ModeId = snapshot.ModeId,
+                    CreateAtUtc = snapshot.CreatedAtUtc
+                };
             });
         }
 

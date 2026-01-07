@@ -53,10 +53,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                GameSessionFaultKeys.CODE_USER_ID_INVALID,
-                GameSessionFaultKeys.MSG_USER_ID_INVALID,
-                GameSessionFaultKeys.FALLBACK_USER_ID_INVALID);
+            throw FaultsFactory.Create(GameSessionFaultKeys.CODE_USER_ID_INVALID);
         }
 
         protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)

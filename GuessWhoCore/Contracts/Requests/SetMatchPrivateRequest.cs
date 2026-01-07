@@ -6,6 +6,6 @@ namespace GuessWhoCore.Contracts.Requests
     public sealed class SetMatchPrivateRequest
     {
         [DataMember(IsRequired = true)] public long MatchId { get; set; }
-        [DataMember(IsRequired = true)] public long ProfileId { get; set; }
+        [DataMember(IsRequired = true)] public long UserId { get; set; }
     }
 }

@@ -211,9 +211,6 @@ namespace GuessWhoServices.Coordinators.Match
                 lobbySubscriptionArgs.MatchId <= INVALID_ID ||
                 lobbySubscriptionArgs.UserId <= INVALID_ID)
             {
-                long matchId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.MatchId;
-                long userId = lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.UserId;
-
                 Logger.WarnFormat("{0}: invalid inputs. MatchId={1}, UserId={2}.",
                     CONTEXT_SUBSCRIBE,
                     lobbySubscriptionArgs == null ? INVALID_ID : lobbySubscriptionArgs.MatchId,
@@ -412,7 +409,7 @@ namespace GuessWhoServices.Coordinators.Match
                 MatchCode = matchCode ?? string.Empty;
             }
 
-            public static JoinInput Invalid() => new JoinInput(false, INVALID_ID, string.Empty);
+            public static JoinInput Invalid() => new(false, INVALID_ID, string.Empty);
 
             public static JoinInput Valid(long userId, string matchCode) => new(true, userId, matchCode);
         }
@@ -450,7 +447,7 @@ namespace GuessWhoServices.Coordinators.Match
                 ReadyPlayer = readyPlayer;
             }
 
-            public static ResolvedReadyPlayer Empty() => new ResolvedReadyPlayer(false, default);
+            public static ResolvedReadyPlayer Empty() => new(false, default);
         }
     }
 }

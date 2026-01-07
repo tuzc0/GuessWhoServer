@@ -246,7 +246,9 @@ namespace ConsoleGuessWho
                 SecretCharacterLogic = secretLogic,
                 QuestionLogic = questionLogic,
                 PassTurnLogic = passTurnLogic,
-                GuessingLogic = guessingLogic
+                GuessingLogic = guessingLogic,
+
+                CallbackDispatcher = composition.MatchCallbackDispatcher
             };
 
             return new MatchService(deps);

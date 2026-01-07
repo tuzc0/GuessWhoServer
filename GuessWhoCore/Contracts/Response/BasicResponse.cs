@@ -7,6 +7,6 @@ namespace GuessWhoCore.Contracts.Response
     {
         [DataMember(IsRequired = true)] public bool Success { get; set; }
         [DataMember] public string Code { get; set; }
-        [DataMember] public string MeesageKey { get; set; }
+        [DataMember(Name = "MessageKey")] public string MeesageKey { get; set; }
     }
 }

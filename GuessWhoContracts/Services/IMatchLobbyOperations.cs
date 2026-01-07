@@ -22,6 +22,14 @@ namespace GuessWhoContracts.Services
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
+        BasicResponse SetMatchPrivate(SetMatchPrivateRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        SearchPublicMatchResponse SearchPublicMatch(SearchPublicMatchRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
         BasicResponse SetPlayerReadyStatus(SetPlayerReadyStatusRequest request);
 
         [OperationContract]

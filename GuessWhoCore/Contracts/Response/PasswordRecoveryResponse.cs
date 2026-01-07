@@ -6,6 +6,7 @@ namespace GuessWhoCore.Contracts.Response
     public class PasswordRecoveryResponse
     {
         [DataMember] public bool Success { get; set; }
+        [DataMember] public string MessageCode { get; set; }
         [DataMember] public string Message { get; set; }
     }
 }
