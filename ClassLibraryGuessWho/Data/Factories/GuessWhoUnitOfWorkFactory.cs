@@ -6,6 +6,7 @@ using GuessWhoDataAccess.Data.DataAccess.EmailVerification;
 using GuessWhoDataAccess.Data.DataAccess.Friends;
 using GuessWhoDataAccess.Data.DataAccess.Matches;
 using GuessWhoDataAccess.Data.DataAccess.Turns;
+using GuessWhoDataAccess.Data.DataAccess.Leaderboard;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using System;
 
@@ -36,6 +37,7 @@ namespace GuessWhoDataAccess.Data.Factories
             IMatchChessClockRepository matchChessClock = new MatchChessClockData(context);
             IMatchTurnAdvanceRepository matchTurnAdvance = new MatchTurnAdvanceData(context);
             IMatchGuessingRepository matchGuessing = new MatchGuessingData(context);
+            ILeaderboardRepository leaderboards = new LeaderboardData(context);
 
             return new GuessWhoUnitOfWork(
                 context,
@@ -50,7 +52,8 @@ namespace GuessWhoDataAccess.Data.Factories
                 matchTurns,
                 matchChessClock,
                 matchTurnAdvance,
-                matchGuessing);
+                matchGuessing,
+                leaderboards);
         }
     }
 }

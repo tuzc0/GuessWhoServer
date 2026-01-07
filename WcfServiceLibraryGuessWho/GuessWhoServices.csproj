@@ -151,6 +151,7 @@
     <Compile Include="Coordinators\Interfaces\IEmailVerificationManager.cs" />
     <Compile Include="Coordinators\Interfaces\IFriendshipManager.cs" />
     <Compile Include="Coordinators\Interfaces\IGameSessionManager.cs" />
+    <Compile Include="Coordinators\Interfaces\ILeaderboardManager.cs" />
     <Compile Include="Coordinators\Interfaces\ILoginCoordinator.cs" />
     <Compile Include="Coordinators\Interfaces\ILoginManager.cs" />
     <Compile Include="Coordinators\Interfaces\IPasswordRecoveryManager.cs" />
@@ -161,6 +162,7 @@
     <Compile Include="Coordinators\InternalDtos\LeaveLobbyLogicResult.cs" />
     <Compile Include="Coordinators\InternalDtos\LobbySubscriptionArgs.cs" />
     <Compile Include="Coordinators\InternalDtos\ReadyLobbyLogicResult.cs" />
+    <Compile Include="Coordinators\LeaderboardManager.cs" />
     <Compile Include="Coordinators\LoginCoordinator.cs" />
     <Compile Include="Coordinators\LoginManager.cs" />
     <Compile Include="Coordinators\InternalDtos\LoginArgs.cs" />
@@ -190,6 +192,7 @@
     <Compile Include="Services\ErrorHandling\FaultsFactory.cs" />
     <Compile Include="Services\FriendService.cs" />
     <Compile Include="Services\ChatService.cs" />
+    <Compile Include="Services\LeaderboardService.cs" />
     <Compile Include="Services\LoginService.cs" />
     <Compile Include="Coordinators\Interfaces\IMatchManager.cs" />
     <Compile Include="Services\MatchApplication\MatchDeckConstants.cs" />

@@ -52,6 +52,7 @@
     <Compile Include="Services\IChatService.cs" />
     <Compile Include="Services\IChatServiceCallback.cs" />
     <Compile Include="Services\IFriendService.cs" />
+    <Compile Include="Services\ILeaderboardService.cs" />
     <Compile Include="Services\ILoginService.cs" />
     <Compile Include="Services\IMatchCallback.cs" />
     <Compile Include="Services\IMatchGameplayOperations.cs" />

@@ -21,24 +21,25 @@ namespace GuessWhoDataAccess.Data.Factories
             IMatchTurnRepository matchTurns,
             IMatchChessClockRepository matchChessClocks,
             IMatchTurnAdvanceRepository matchTurnAdvance,
-            IMatchGuessingRepository matchGuessing)
+            IMatchGuessingRepository matchGuessing,
+            ILeaderboardRepository leaderboards) // <--- 1. Agregado al constructor
         {
-            this.context = context ?? 
+            this.context = context ??
                 throw new ArgumentNullException(nameof(context));
 
-            UserAccounts = userAccounts ?? 
+            UserAccounts = userAccounts ??
                 throw new ArgumentNullException(nameof(userAccounts));
-            EmailVerification = emailVerification ?? 
+            EmailVerification = emailVerification ??
                 throw new ArgumentNullException(nameof(emailVerification));
-            Avatars = avatars ?? 
+            Avatars = avatars ??
                 throw new ArgumentNullException(nameof(avatars));
-            Characters = characters ?? 
+            Characters = characters ??
                 throw new ArgumentNullException(nameof(characters));
-            MatchDecks = matchDecks ?? 
+            MatchDecks = matchDecks ??
                 throw new ArgumentNullException(nameof(matchDecks));
-            Friendships = friendships ?? 
+            Friendships = friendships ??
                 throw new ArgumentNullException(nameof(friendships));
-            Matches = matches ?? 
+            Matches = matches ??
                 throw new ArgumentNullException(nameof(matches));
             MatchesChats = matchChats ??
                 throw new ArgumentNullException(nameof(matchChats));
@@ -50,6 +51,8 @@ namespace GuessWhoDataAccess.Data.Factories
                 throw new ArgumentNullException(nameof(matchTurnAdvance));
             MatchGuessing = matchGuessing ??
                 throw new ArgumentNullException(nameof(matchGuessing));
+            Leaderboards = leaderboards ?? // <--- 2. Asignación y validación
+                throw new ArgumentNullException(nameof(leaderboards));
         }
 
         public GuessWhoDBEntities Context => context;
@@ -66,6 +69,7 @@ namespace GuessWhoDataAccess.Data.Factories
         public IMatchChessClockRepository MatchChessClocks { get; }
         public IMatchTurnAdvanceRepository MatchTurnAdvances { get; }
         public IMatchGuessingRepository MatchGuessing { get; }
+        public ILeaderboardRepository Leaderboards { get; } // <--- 3. Propiedad pública
 
         public IGuessWhoDbTransaction BeginTransaction()
         {

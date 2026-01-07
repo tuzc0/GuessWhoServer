@@ -19,6 +19,7 @@ namespace GuessWhoDataAccess.Data.Factories
         IMatchChessClockRepository MatchChessClocks { get; }
         IMatchTurnAdvanceRepository MatchTurnAdvances { get; }
         IMatchGuessingRepository MatchGuessing { get; }
+        ILeaderboardRepository Leaderboards { get; }
 
         IGuessWhoDbTransaction BeginTransaction();
         void Flush();

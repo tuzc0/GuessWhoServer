@@ -72,6 +72,7 @@
     <Compile Include="Data\DataAccess\Accounts\AccountRecordMapper.cs" />
     <Compile Include="Data\DataAccess\Chat\MatchChatData.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationTokenRecordMapper.cs" />
+    <Compile Include="Data\DataAccess\Leaderboard\LeaderboardData.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Access.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Characters.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.cs" />
