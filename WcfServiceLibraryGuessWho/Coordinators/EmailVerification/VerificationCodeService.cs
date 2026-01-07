@@ -28,10 +28,7 @@ namespace GuessWhoServices.Coordinators.EmailVerification
                     "Crypto random generator unavailable (ArgumentNullException) while generating verification code.",
                     ex);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
-                    EmailVerificationFaultKeys.MSG_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
-                    EmailVerificationFaultKeys.FALLBACK_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
                     ex);
             }
             catch (CryptographicException ex)
@@ -40,20 +37,14 @@ namespace GuessWhoServices.Coordinators.EmailVerification
                     "Crypto random generator unavailable (CryptographicException) while generating verification code.",
                     ex);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
-                    EmailVerificationFaultKeys.MSG_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
-                    EmailVerificationFaultKeys.FALLBACK_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CRYPTO_RANDOM_GENERATOR_UNAVAILABLE,
                     ex);
             }
             catch (ArgumentOutOfRangeException ex)
             {
                 Logger.Error("Verification code generation failed (ArgumentOutOfRangeException).", ex);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_VERIFICATION_CODE_GENERATION_FAILED,
-                    EmailVerificationFaultKeys.MSG_VERIFICATION_CODE_GENERATION_FAILED,
-                    EmailVerificationFaultKeys.FALLBACK_VERIFICATION_CODE_GENERATION_FAILED,
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_VERIFICATION_CODE_GENERATION_FAILED,
                     ex);
             }
         }

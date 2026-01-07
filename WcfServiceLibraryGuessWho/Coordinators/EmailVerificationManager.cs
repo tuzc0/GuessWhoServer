@@ -185,10 +185,7 @@ namespace GuessWhoServices.Coordinators
                         {
                             Logger.WarnFormat(LOG_MSG_TOKEN_CREATION_FAILED, LOG_CTX_RESEND, request.AccountId);
 
-                            throw FaultsFactory.Create(
-                                EmailVerificationFaultKeys.CODE_TOKEN_CREATION_FAILED,
-                                EmailVerificationFaultKeys.MSG_TOKEN_CREATION_FAILED,
-                                EmailVerificationFaultKeys.FALLBACK_TOKEN_CREATION_FAILED);
+                            throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_TOKEN_CREATION_FAILED);
                         }
 
                         unitOfWork.Flush(); 
@@ -219,10 +216,7 @@ namespace GuessWhoServices.Coordinators
             {
                 Logger.WarnFormat(LOG_MSG_EMAIL_MESSAGE_BUILD_RETURNED_NULL, LOG_CTX_RESEND, accountId);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR,
-                    EmailVerificationFaultKeys.MSG_UNEXPECTED_ERROR,
-                    EmailVerificationFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR);
             }
 
             EmailSendResult sendResult = emailSender.Send(message);
@@ -231,10 +225,7 @@ namespace GuessWhoServices.Coordinators
             {
                 Logger.WarnFormat(LOG_MSG_EMAIL_SENDER_RETURNED_NULL, LOG_CTX_RESEND, accountId);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR,
-                    EmailVerificationFaultKeys.MSG_UNEXPECTED_ERROR,
-                    EmailVerificationFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR);
             }
 
             if (sendResult.IsSuccess)
@@ -258,11 +249,7 @@ namespace GuessWhoServices.Coordinators
             {
                 Logger.Error(LOG_CTX_REGEX_TIMEOUT, timeoutEx);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR,
-                    EmailVerificationFaultKeys.MSG_UNEXPECTED_ERROR,
-                    EmailVerificationFaultKeys.FALLBACK_UNEXPECTED_ERROR,
-                    timeoutEx);
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR, timeoutEx);
             }
         }
 
@@ -273,10 +260,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                EmailVerificationFaultKeys.CODE_REQUEST_NULL,
-                EmailVerificationFaultKeys.MSG_REQUEST_NULL,
-                EmailVerificationFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static void EnsureResendRequestIsNotNull(ResendVerificationRequest request)
@@ -286,10 +270,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                EmailVerificationFaultKeys.CODE_REQUEST_NULL,
-                EmailVerificationFaultKeys.MSG_REQUEST_NULL,
-                EmailVerificationFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_REQUEST_NULL);
         }
 
         private FaultException<ServiceFault> CreateInvalidOrExpiredVerificationCodeFault(
@@ -302,32 +283,20 @@ namespace GuessWhoServices.Coordinators
 
             if (lastToken == null)
             {
-                return FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                    EmailVerificationFaultKeys.MSG_CODE_EXPIRED_OR_MISSING,
-                    EmailVerificationFaultKeys.FALLBACK_CODE_EXPIRED_OR_MISSING);
+                return FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CODE_MISSING);
             }
 
             if (lastToken.ConsumedUtc.HasValue)
             {
-                return FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                    EmailVerificationFaultKeys.MSG_CODE_ALREADY_USED,
-                    EmailVerificationFaultKeys.FALLBACK_CODE_ALREADY_USED);
+                return FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CODE_ALREADY_USED);
             }
 
             if (lastToken.ExpiresUtc < nowUtc)
             {
-                return FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                    EmailVerificationFaultKeys.MSG_CODE_EXPIRED_OR_MISSING,
-                    EmailVerificationFaultKeys.FALLBACK_CODE_EXPIRED_OR_MISSING);
+                return FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CODE_EXPIRED);
             }
 
-            return FaultsFactory.Create(
-                EmailVerificationFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                EmailVerificationFaultKeys.MSG_CODE_INVALID_OR_EXPIRED,
-                EmailVerificationFaultKeys.FALLBACK_CODE_INVALID_OR_EXPIRED);
+            return FaultsFactory.Create(EmailVerificationFaultKeys.CODE_UNEXPECTED_ERROR);
         }
 
         private void ConsumeTokenOrThrow(IGuessWhoUnitOfWork unitOfWork, Guid tokenId)
@@ -341,10 +310,7 @@ namespace GuessWhoServices.Coordinators
 
             Logger.WarnFormat(LOG_MSG_TOKEN_ALREADY_CONSUMED, LOG_CTX_CONFIRM, tokenId);
 
-            throw FaultsFactory.Create(
-                EmailVerificationFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                EmailVerificationFaultKeys.MSG_CODE_ALREADY_USED,
-                EmailVerificationFaultKeys.FALLBACK_CODE_ALREADY_USED);
+            throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CODE_ALREADY_USED);
         }
 
         private void MarkEmailVerifiedOrThrow(IGuessWhoUnitOfWork unitOfWork, long accountId, DateTime nowUtc)
@@ -358,10 +324,7 @@ namespace GuessWhoServices.Coordinators
 
             Logger.WarnFormat(LOG_MSG_MARK_VERIFIED_FAILED, LOG_CTX_CONFIRM, accountId);
 
-            throw FaultsFactory.Create(
-                EmailVerificationFaultKeys.CODE_EMAIL_VERIFICATION_FAILED,
-                EmailVerificationFaultKeys.MSG_EMAIL_VERIFICATION_FAILED,
-                EmailVerificationFaultKeys.FALLBACK_EMAIL_VERIFICATION_FAILED);
+            throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_EMAIL_VERIFICATION_FAILED);
         }
 
         private AccountLookupResult LoadUnverifiedAccountOrSkip(IGuessWhoUnitOfWork unitOfWork, long accountId)
@@ -372,10 +335,7 @@ namespace GuessWhoServices.Coordinators
             {
                 Logger.WarnFormat(LOG_MSG_ACCOUNT_NOT_FOUND, LOG_CTX_CONFIRM, accountId);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_ACCOUNT_NOT_FOUND,
-                    EmailVerificationFaultKeys.MSG_ACCOUNT_NOT_FOUND,
-                    EmailVerificationFaultKeys.FALLBACK_ACCOUNT_NOT_FOUND);
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_ACCOUNT_NOT_FOUND);
             }
 
             if (account.IsEmailVerified)

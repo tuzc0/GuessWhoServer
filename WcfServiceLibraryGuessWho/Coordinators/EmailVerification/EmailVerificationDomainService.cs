@@ -80,10 +80,7 @@ namespace GuessWhoServices.Coordinators.EmailVerification
 
             logger.WarnFormat("{0}: invalid code format for accountId '{1}'.", LOG_CTX_FORMAT_INVALID, accountId);
 
-            throw FaultsFactory.Create(
-                EmailVerificationFaultKeys.CODE_CODE_INVALID_FORMAT,
-                EmailVerificationFaultKeys.MSG_CODE_INVALID_FORMAT,
-                EmailVerificationFaultKeys.FALLBACK_CODE_INVALID_FORMAT);
+            throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CODE_INVALID_FORMAT);
         }
 
         public void ValidateTokenMatchOrThrow(ValidateTokenMatchArgs tokenMatchArgs)
@@ -95,10 +92,7 @@ namespace GuessWhoServices.Coordinators.EmailVerification
 
             if (tokenMatchArgs.Token == null || !tokenMatchArgs.Token.IsValid)
             {
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                    EmailVerificationFaultKeys.MSG_CODE_INVALID_OR_EXPIRED,
-                    EmailVerificationFaultKeys.FALLBACK_CODE_INVALID_OR_EXPIRED);
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CODE_EXPIRED);
             }
 
             byte[] inputHash = verificationCodeService.ComputeSha256Hash(tokenMatchArgs.TrimmedCode);
@@ -112,10 +106,7 @@ namespace GuessWhoServices.Coordinators.EmailVerification
 
             PersistFailedAttemptIndependently(tokenMatchArgs);
 
-            throw FaultsFactory.Create(
-                EmailVerificationFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                EmailVerificationFaultKeys.MSG_CODE_INCORRECT,
-                EmailVerificationFaultKeys.FALLBACK_CODE_INCORRECT);
+            throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_CODE_INCORRECT);
         }
 
         public void ValidateResendLimitsOrThrow(long accountId, DateTime nowUtc)
@@ -145,20 +136,14 @@ namespace GuessWhoServices.Coordinators.EmailVerification
             {
                 logger.WarnFormat("{0}: blocked by per-minute limit for accountId '{1}'.", LOG_CTX_RESEND_LIMIT, accountId);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_RESEND_TOO_FREQUENT,
-                    EmailVerificationFaultKeys.MSG_RESEND_TOO_FREQUENT,
-                    EmailVerificationFaultKeys.FALLBACK_RESEND_TOO_FREQUENT);
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_RESEND_TOO_FREQUENT);
             }
 
             if (!resendLimits.IsWithinHourlyLimit)
             {
                 logger.WarnFormat("{0}: blocked by hourly limit for accountId '{1}'.", LOG_CTX_RESEND_LIMIT, accountId);
 
-                throw FaultsFactory.Create(
-                    EmailVerificationFaultKeys.CODE_RESEND_HOURLY_LIMIT_EXCEEDED,
-                    EmailVerificationFaultKeys.MSG_RESEND_HOURLY_LIMIT_EXCEEDED,
-                    EmailVerificationFaultKeys.FALLBACK_RESEND_HOURLY_LIMIT_EXCEEDED);
+                throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_RESEND_HOURLY_LIMIT_EXCEEDED);
             }
         }
 

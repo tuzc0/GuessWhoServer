@@ -159,10 +159,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (string.IsNullOrWhiteSpace(normalizedEmail))
                     {
-                        throw FaultsFactory.Create(
-                            PasswordRecoveryFaultKeys.CODE_ACCOUNT_NOT_FOUND,
-                            PasswordRecoveryFaultKeys.MSG_ACCOUNT_NOT_FOUND,
-                            PasswordRecoveryFaultKeys.FALLBACK_ACCOUNT_NOT_FOUND);
+                        throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_ACCOUNT_NOT_FOUND);
                     }
 
                     using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
@@ -172,10 +169,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (accountId <= 0)
                     {
-                        throw FaultsFactory.Create(
-                            PasswordRecoveryFaultKeys.CODE_ACCOUNT_NOT_FOUND,
-                            PasswordRecoveryFaultKeys.MSG_ACCOUNT_NOT_FOUND,
-                            PasswordRecoveryFaultKeys.FALLBACK_ACCOUNT_NOT_FOUND);
+                        throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_ACCOUNT_NOT_FOUND);
                     }
 
                     EmailVerificationTokenRecord activeToken =
@@ -184,9 +178,7 @@ namespace GuessWhoServices.Coordinators
                     if (activeToken == null || !activeToken.IsValid)
                     {
                         throw FaultsFactory.Create(
-                            PasswordRecoveryFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                            PasswordRecoveryFaultKeys.MSG_CODE_EXPIRED,
-                            PasswordRecoveryFaultKeys.FALLBACK_CODE_EXPIRED);
+                            PasswordRecoveryFaultKeys.CODE_CODE_EXPIRED);
                     }
 
                     var tokenMatchArgs = new ValidateTokenMatchArgs(accountId, trimmedCode, activeToken, nowUtc);
@@ -198,9 +190,7 @@ namespace GuessWhoServices.Coordinators
                     if (consumedRows <= 0)
                     {
                         throw FaultsFactory.Create(
-                            PasswordRecoveryFaultKeys.CODE_CODE_INVALID_OR_EXPIRED,
-                            PasswordRecoveryFaultKeys.MSG_CODE_INVALID_OR_EXPIRED,
-                            PasswordRecoveryFaultKeys.FALLBACK_CODE_INVALID_OR_EXPIRED);
+                            PasswordRecoveryFaultKeys.CODE_CODE_INVALID);
                     }
 
                     byte[] newPasswordHash = passwordHasher.HashPassword(newPassword);
@@ -216,10 +206,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (!passwordUpdated)
                     {
-                        throw FaultsFactory.Create(
-                            PasswordRecoveryFaultKeys.CODE_UPDATE_PASSWORD_DB_FAILED,
-                            PasswordRecoveryFaultKeys.MSG_UPDATE_PASSWORD_DB_FAILED,
-                            PasswordRecoveryFaultKeys.FALLBACK_UPDATE_PASSWORD_DB_FAILED);
+                        throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_UPDATE_PASSWORD_DB_FAILED);
                     }
 
                     unitOfWork.Flush();
@@ -284,10 +271,7 @@ namespace GuessWhoServices.Coordinators
 
             Logger.WarnFormat(LOG_MSG_TOKEN_CREATION_FAILED, LOG_CTX_SEND, persistRecoveryToken.AccountId);
 
-            throw FaultsFactory.Create(
-                PasswordRecoveryFaultKeys.CODE_TOKEN_CREATION_FAILED,
-                PasswordRecoveryFaultKeys.MSG_TOKEN_CREATION_FAILED,
-                PasswordRecoveryFaultKeys.FALLBACK_TOKEN_CREATION_FAILED);
+            throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_TOKEN_CREATION_FAILED);
         }
 
         private readonly record struct SendRecoveryEmail(
@@ -313,10 +297,7 @@ namespace GuessWhoServices.Coordinators
             {
                 Logger.WarnFormat(LOG_MSG_EMAIL_MESSAGE_BUILD_RETURNED_NULL, LOG_CTX_SEND, sendRecovery.AccountId);
 
-                throw FaultsFactory.Create(
-                    PasswordRecoveryFaultKeys.CODE_EMAIL_MESSAGE_BUILD_FAILED,
-                    PasswordRecoveryFaultKeys.MSG_EMAIL_MESSAGE_BUILD_FAILED,
-                    PasswordRecoveryFaultKeys.FALLBACK_EMAIL_MESSAGE_BUILD_FAILED);
+                throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_EMAIL_MESSAGE_BUILD_FAILED);
             }
 
             EmailSendResult sendResult = emailSender.Send(message);
@@ -325,10 +306,7 @@ namespace GuessWhoServices.Coordinators
             {
                 Logger.WarnFormat(LOG_MSG_EMAIL_SENDER_RETURNED_NULL, LOG_CTX_SEND, sendRecovery.AccountId);
 
-                throw FaultsFactory.Create(
-                    PasswordRecoveryFaultKeys.CODE_EMAIL_SENDER_RETURNED_NULL,
-                    PasswordRecoveryFaultKeys.MSG_EMAIL_SENDER_RETURNED_NULL,
-                    PasswordRecoveryFaultKeys.FALLBACK_EMAIL_SENDER_RETURNED_NULL);
+                throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_EMAIL_SENDER_RETURNED_NULL);
             }
 
             if (sendResult.IsSuccess)
@@ -352,7 +330,8 @@ namespace GuessWhoServices.Coordinators
             return new PasswordRecoveryResponse
             {
                 Success = true,
-                Message = PasswordRecoveryFaultKeys.MSG_RECOVERY_SENT
+                MessageCode = PasswordRecoveryNoticeCodes.RECOVERY_SENT,
+                Message = string.Empty
             };
         }
 
@@ -362,11 +341,7 @@ namespace GuessWhoServices.Coordinators
             {
                 Logger.Error(LOG_CTX_REGEX_TIMEOUT, timeoutEx);
 
-                throw FaultsFactory.Create(
-                    PasswordRecoveryFaultKeys.CODE_UNEXPECTED_ERROR,
-                    PasswordRecoveryFaultKeys.MSG_UNEXPECTED_ERROR,
-                    PasswordRecoveryFaultKeys.FALLBACK_UNEXPECTED_ERROR,
-                    timeoutEx);
+                throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_UNEXPECTED_ERROR);
             }
         }
 
@@ -377,10 +352,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                PasswordRecoveryFaultKeys.CODE_REQUEST_NULL,
-                PasswordRecoveryFaultKeys.MSG_REQUEST_NULL,
-                PasswordRecoveryFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static void EnsureUpdateRequestIsNotNull(UpdatePasswordRequest request)
@@ -390,10 +362,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                PasswordRecoveryFaultKeys.CODE_REQUEST_NULL,
-                PasswordRecoveryFaultKeys.MSG_REQUEST_NULL,
-                PasswordRecoveryFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static PasswordRecoveryResponse CreateAmbiguousSuccessResponse()
@@ -401,7 +370,8 @@ namespace GuessWhoServices.Coordinators
             return new PasswordRecoveryResponse
             {
                 Success = true,
-                Message = PasswordRecoveryFaultKeys.FALLBACK_AMBIGUOUS_SUCCESS
+                MessageCode = PasswordRecoveryNoticeCodes.AMBIGUOUS_SUCCESS,
+                Message = string.Empty
             };
         }
 

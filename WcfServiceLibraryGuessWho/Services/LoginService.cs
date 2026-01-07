@@ -51,11 +51,6 @@ namespace GuessWhoServices.Services
                             "{0}: login failed for email '{1}'.",
                             LOG_CTX_LOGIN_USER,
                             NormalizeEmail(request.Email));
-
-                        return new LoginResponse
-                        {
-                            ValidUser = false
-                        };
                     }
 
                     return new LoginResponse
@@ -92,10 +87,7 @@ namespace GuessWhoServices.Services
                 return;
             }
 
-            throw FaultsFactory.Create(
-                LoginFaultKeys.CODE_REQUEST_NULL,
-                LoginFaultKeys.MSG_REQUEST_NULL,
-                LoginFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(LoginFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static LoginArgs BuildLoginArgs(LoginRequest request)

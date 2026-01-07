@@ -15,22 +15,20 @@ namespace GuessWhoServices.Services.ErrorHandling
             return Create(code, messageKey, fallbackMessage, null, null, null);
         }
 
+        public static FaultException<ServiceFault> Create(string code)
+        {
+            return Create(code, null, null, null, null, null);
+        }
+
+        public static FaultException<ServiceFault> Create(string code, Exception ex)
+        {
+            return Create(code, null, null, ex, null, null);
+        }
+
         public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage,
             Exception ex)
         {
             return Create(code, messageKey, fallbackMessage, ex, null, null);
-        }
-
-        public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage,
-            Exception ex, string correlationId)
-        {
-            return Create(code, messageKey, fallbackMessage, ex, correlationId, null);
-        }
-
-        public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage,
-            string[] details)
-        {
-            return Create(code, messageKey, fallbackMessage, null, null, details);
         }
 
         public static FaultException<ServiceFault> Create(string code, string messageKey, string fallbackMessage,

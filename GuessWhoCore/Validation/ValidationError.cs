@@ -2,7 +2,9 @@
 {
     public sealed class ValidationError
     {
-        public string Key { get; }
+        public string Key { get; } 
+
+        public string Code => Key;
 
         private ValidationError(string key)
         {

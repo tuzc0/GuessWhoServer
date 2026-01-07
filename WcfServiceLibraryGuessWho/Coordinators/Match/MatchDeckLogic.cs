@@ -186,6 +186,7 @@ namespace GuessWhoServices.Coordinators.Match
                 int swapIndex = GetRandomInt(randomNumber, index + 1);
 
                 string temp = items[index];
+
                 items[index] = items[swapIndex];
                 items[swapIndex] = temp;
             }

@@ -183,10 +183,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                UserRegistrationFaultKeys.CODE_ARGS_REQUIRED,
-                UserRegistrationFaultKeys.MSG_ARGS_REQUIRED,
-                UserRegistrationFaultKeys.FALLBACK_ARGS_REQUIRED);
+            throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_ARGS_REQUIRED);
         }
 
         private static DateTime EnsureNowUtcIsValid(DateTime nowUtc)
@@ -196,10 +193,7 @@ namespace GuessWhoServices.Coordinators
                 return nowUtc;
             }
 
-            throw FaultsFactory.Create(
-                UserRegistrationFaultKeys.CODE_NOWUTC_REQUIRED,
-                UserRegistrationFaultKeys.MSG_NOWUTC_REQUIRED,
-                UserRegistrationFaultKeys.FALLBACK_NOWUTC_REQUIRED);
+            throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_NOWUTC_REQUIRED);
         }
 
         private void ThrowValidationFault(ValidationError error)
@@ -210,61 +204,37 @@ namespace GuessWhoServices.Coordinators
             {
                 case "Registration.InvalidRequest":
 
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_ARGS_REQUIRED,
-                        UserRegistrationFaultKeys.MSG_ARGS_REQUIRED,
-                        UserRegistrationFaultKeys.FALLBACK_ARGS_REQUIRED);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_ARGS_REQUIRED);
 
                 case "Registration.Email.Required":
 
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_EMAIL_REQUIRED,
-                        UserRegistrationFaultKeys.MSG_EMAIL_REQUIRED,
-                        UserRegistrationFaultKeys.FALLBACK_EMAIL_REQUIRED);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_EMAIL_REQUIRED);
 
                 case "Registration.Email.TooLong":
                 case "Registration.Email.InvalidFormat":
 
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_EMAIL_INVALID,
-                        UserRegistrationFaultKeys.MSG_EMAIL_INVALID,
-                        UserRegistrationFaultKeys.FALLBACK_EMAIL_INVALID);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_EMAIL_INVALID);
 
                 case "Registration.DisplayName.Required":
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_DISPLAYNAME_REQUIRED,
-                        UserRegistrationFaultKeys.MSG_DISPLAYNAME_REQUIRED,
-                        UserRegistrationFaultKeys.FALLBACK_DISPLAYNAME_REQUIRED);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_DISPLAYNAME_REQUIRED);
 
                 case "Registration.DisplayName.TooShort":
                 case "Registration.DisplayName.TooLong":
                 case "Registration.DisplayName.InvalidFormat":
 
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_DISPLAYNAME_INVALID,
-                        UserRegistrationFaultKeys.MSG_DISPLAYNAME_INVALID,
-                        UserRegistrationFaultKeys.FALLBACK_DISPLAYNAME_INVALID);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_DISPLAYNAME_INVALID);
 
                 case "Registration.Password.Required":
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_PASSWORD_REQUIRED,
-                        UserRegistrationFaultKeys.MSG_PASSWORD_REQUIRED,
-                        UserRegistrationFaultKeys.FALLBACK_PASSWORD_REQUIRED);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_PASSWORD_REQUIRED);
 
                 case "Registration.Password.TooShort":
                 case "Registration.Password.TooLong":
                 case "Registration.ConfirmPassword.Required":
                 case "Registration.ConfirmPassword.Mismatch":
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_PASSWORD_INVALID,
-                        UserRegistrationFaultKeys.MSG_PASSWORD_INVALID,
-                        UserRegistrationFaultKeys.FALLBACK_PASSWORD_INVALID);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_PASSWORD_INVALID);
 
                 default:
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_UNEXPECTED_ERROR,
-                        UserRegistrationFaultKeys.MSG_UNEXPECTED_ERROR,
-                        UserRegistrationFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_UNEXPECTED_ERROR);
             }
         }
 
@@ -312,9 +282,7 @@ namespace GuessWhoServices.Coordinators
                     Logger.WarnFormat("{0}: email already exists '{1}'.", LOG_CTX_REGISTER, registration.Email);
 
                     throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_EMAIL_ALREADY_EXISTS,
-                        UserRegistrationFaultKeys.MSG_EMAIL_ALREADY_EXISTS,
-                        UserRegistrationFaultKeys.FALLBACK_EMAIL_ALREADY_EXISTS);
+                        UserRegistrationFaultKeys.CODE_EMAIL_ALREADY_EXISTS);
                 }
 
                 var createAccountArgs = new CreateAccountArgs
@@ -342,10 +310,7 @@ namespace GuessWhoServices.Coordinators
                 {
                     Logger.WarnFormat("{0}: token creation failed for accountId '{1}'.", LOG_CTX_REGISTER, created.Account.AccountId);
 
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_TOKEN_CREATION_FAILED,
-                        UserRegistrationFaultKeys.MSG_TOKEN_CREATION_FAILED,
-                        UserRegistrationFaultKeys.FALLBACK_TOKEN_CREATION_FAILED);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_TOKEN_CREATION_FAILED);
                 }
 
                 unitOfWork.Flush();

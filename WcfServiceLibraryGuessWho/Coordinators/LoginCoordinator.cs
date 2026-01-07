@@ -74,10 +74,7 @@ namespace GuessWhoServices.Coordinators
                             Logger.ErrorFormat("{0}: could not mark profile active for userId '{1}'.",
                                 LOG_CTX_LOGIN_INIT, userId);
 
-                            throw FaultsFactory.Create(
-                                LoginCoordinatorFaultKeys.CODE_PROFILE_MARK_ACTIVE_FAILED,
-                                LoginCoordinatorFaultKeys.MSG_PROFILE_MARK_ACTIVE_FAILED,
-                                LoginCoordinatorFaultKeys.FALLBACK_PROFILE_MARK_ACTIVE_FAILED);
+                            throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_PROFILE_MARK_ACTIVE_FAILED);
                         }
 
                         unitOfWork.Flush();
@@ -106,10 +103,7 @@ namespace GuessWhoServices.Coordinators
                             Logger.WarnFormat("{0}: could not terminate active sessions for userProfileId '{1}'.",
                                 LOG_CTX_LOGOUT, userProfileId);
 
-                            throw FaultsFactory.Create(
-                                LoginCoordinatorFaultKeys.CODE_LOGOUT_TERMINATE_SESSIONS_FAILED,
-                                LoginCoordinatorFaultKeys.MSG_LOGOUT_TERMINATE_SESSIONS_FAILED,
-                                LoginCoordinatorFaultKeys.FALLBACK_LOGOUT_TERMINATE_SESSIONS_FAILED);
+                            throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_LOGOUT_TERMINATE_SESSIONS_FAILED);
                         }
 
                         bool markedInactive = unitOfWork.UserAccounts.MarkUserProfileInactive(userProfileId);
@@ -119,10 +113,7 @@ namespace GuessWhoServices.Coordinators
                             Logger.WarnFormat("{0}: could not mark profile inactive for userProfileId '{1}'.",
                                 LOG_CTX_LOGOUT, userProfileId);
 
-                            throw FaultsFactory.Create(
-                                LoginCoordinatorFaultKeys.CODE_LOGOUT_MARK_INACTIVE_FAILED,
-                                LoginCoordinatorFaultKeys.MSG_LOGOUT_MARK_INACTIVE_FAILED,
-                                LoginCoordinatorFaultKeys.FALLBACK_LOGOUT_MARK_INACTIVE_FAILED);
+                            throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_LOGOUT_MARK_INACTIVE_FAILED);
                         }
 
                         unitOfWork.Flush();
@@ -140,10 +131,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                LoginFaultKeys.CODE_REQUEST_NULL,
-                LoginFaultKeys.MSG_REQUEST_NULL,
-                LoginFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(LoginFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static void EnsureValidUserIdOrThrow(long userId)
@@ -153,10 +141,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                LoginCoordinatorFaultKeys.CODE_USER_ID_INVALID,
-                LoginCoordinatorFaultKeys.MSG_USER_ID_INVALID,
-                LoginCoordinatorFaultKeys.FALLBACK_USER_ID_INVALID);
+            throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_USER_ID_INVALID);
         }
 
         protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)

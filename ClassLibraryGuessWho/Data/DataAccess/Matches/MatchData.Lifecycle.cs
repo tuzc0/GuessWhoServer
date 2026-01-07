@@ -422,13 +422,17 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
 
         private List<PlayerWithMatch> LoadActiveEntriesWithMatches(long userId)
         {
-            return (from matchPlayerEntity in dataContext.MATCH_PLAYER
-                    join matchEntity in dataContext.MATCH
-                        on matchPlayerEntity.MATCHID equals matchEntity.MATCHID into matchJoin
-                    from matchOrNull in matchJoin.DefaultIfEmpty()
-                    where matchPlayerEntity.USERID == userId && matchPlayerEntity.LEFTATUTC == null
-                    select new PlayerWithMatch(matchPlayerEntity, matchOrNull))
-                   .ToList();
+            var rawData = (from matchPlayerEntity in dataContext.MATCH_PLAYER
+                           join matchEntity in dataContext.MATCH
+                               on matchPlayerEntity.MATCHID equals matchEntity.MATCHID into matchJoin
+                           from matchOrNull in matchJoin.DefaultIfEmpty()
+                           where matchPlayerEntity.USERID == userId && matchPlayerEntity.LEFTATUTC == null
+                           select new { Player = matchPlayerEntity, Match = matchOrNull })
+                           .ToList(); 
+
+            return rawData
+                .Select(x => new PlayerWithMatch(x.Player, x.Match))
+                .ToList();
         }
 
         private static List<long> GetMatchIdsToCancel(IReadOnlyList<PlayerWithMatch> activeEntriesWithMatch)
