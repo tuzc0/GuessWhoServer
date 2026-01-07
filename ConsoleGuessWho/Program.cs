@@ -48,18 +48,21 @@ namespace ConsoleGuessWho
                 ServiceHost hostMatch = CreateHost<MatchService>(() => CreateMatchService(composition));
                 ServiceHost hostUpdateProfile = CreateHost<UpdateProfileService>(() => CreateUpdateProfileService(composition));
                 ServiceHost hostFriend = CreateHost<FriendService>(() => CreateFriendService(composition));
+                ServiceHost hostLeaderboard = CreateHost<LeaderboardService>(() => CreateLeaderboardService(composition));
 
                 using (hostUser)
                 using (hostLogin)
                 using (hostMatch)
                 using (hostUpdateProfile)
                 using (hostFriend)
+                using (hostLeaderboard)
                 {
                     hostUser.Open();
                     hostLogin.Open();
                     hostMatch.Open();
                     hostUpdateProfile.Open();
                     hostFriend.Open();
+                    hostLeaderboard.Open();
 
                     Logger.Info(SERVICE_HOST_STARTED_MESSAGE);
                     Console.WriteLine(SERVER_ONLINE_MESSAGE);
@@ -211,6 +214,14 @@ namespace ConsoleGuessWho
             return new FriendService(manager);
         }
 
+        private static LeaderboardService CreateLeaderboardService(HostComposition composition)
+        {
+            if (composition == null) throw new ArgumentNullException(nameof(composition));
+
+            var manager = new LeaderboardManager(composition.UnitOfWorkFactory);
+
+            return new LeaderboardService(manager);
+        }
 
         private static MatchService CreateMatchService(HostComposition composition)
         {
