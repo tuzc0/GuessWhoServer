@@ -22,6 +22,8 @@ namespace GuessWhoServices.Services
 
         private const long INVALID_ID = 0;
 
+
+
         public CreateMatchResponse CreateMatch(CreateMatchRequest request)
         {
             return ExecuteService(CONTEXT_CREATE_MATCH, () =>
@@ -237,6 +239,27 @@ namespace GuessWhoServices.Services
             });
         }
 
+        public BasicResponse SendMatchInvitation(SendMatchInvitationRequest request)
+        {
+            return ExecuteService(CONTEXT_SEND_INVITATION, () =>
+            {
+                EnsureRequestNotNull(request);
+
+                bool hasEmail = !string.IsNullOrWhiteSpace(request.TargetEmail);
+                bool hasTargetUser = request.TargetUserId > INVALID_ID;
+
+                if ((!hasEmail && !hasTargetUser) || request.MatchId <= INVALID_ID)
+                {
+                    return BasicFail(CODE_INVALID_ARGS, KEY_INVALID_ARGS);
+                }
+
+                return lobbyLogic.SendInvitation(
+                    request.MatchId,
+                    request.InviterUserId,
+                    request.TargetEmail,
+                    request.TargetUserId);
+            });
+        }
 
         public BasicResponse SubscribeLobby(SubscribeLobbyRequest request)
         {

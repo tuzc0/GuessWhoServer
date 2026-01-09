@@ -39,5 +39,9 @@ namespace GuessWhoContracts.Services
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
         BasicResponse UnsubscribeLobby(UnsubscribeLobbyRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        BasicResponse SendMatchInvitation(SendMatchInvitationRequest request);
     }
 }

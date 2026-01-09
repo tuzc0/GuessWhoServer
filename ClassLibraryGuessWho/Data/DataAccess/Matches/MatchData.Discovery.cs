@@ -93,20 +93,33 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
                 return MatchSnapshot.CreateInvalid();
             }
 
-            MatchSnapshot snapshot = dataContext.MATCH
+            var matchData = dataContext.MATCH
                 .AsNoTracking()
                 .Where(m => m.MATCHID == matchId)
-                .Select(m => new MatchSnapshot(
+                .Select(m => new
+                {
                     m.MATCHID,
-                    m.MATCHCODE ?? string.Empty,
+                    MatchCode = m.MATCHCODE ?? string.Empty,
                     m.STATUSID,
                     m.VISIBILITYID,
                     m.MODEID,
-                    m.CREATEDATUTC))
-                .DefaultIfEmpty(MatchSnapshot.CreateInvalid())
-                .First();
+                    m.CREATEDATUTC
+                })
+                .FirstOrDefault(); 
 
-            return snapshot;
+            if (matchData == null)
+            {
+                return MatchSnapshot.CreateInvalid();
+            }
+
+            return new MatchSnapshot(
+                matchData.MATCHID,
+                matchData.MatchCode,
+                matchData.STATUSID,
+                matchData.VISIBILITYID,
+                matchData.MODEID,
+                matchData.CREATEDATUTC
+            );
         }
 
         public IReadOnlyList<LobbyPlayerSnapshot> GetMatchPlayers(long matchId)

@@ -67,6 +67,7 @@
     <Compile Include="Contracts\Requests\GetPublicLobbyMatchesRequest.cs" />
     <Compile Include="Contracts\Requests\PassTurnRequest.cs" />
     <Compile Include="Contracts\Requests\SearchPublicMatchRequest.cs" />
+    <Compile Include="Contracts\Requests\SendMatchInvitationRequest.cs" />
     <Compile Include="Contracts\Requests\SetMatchPrivateRequest.cs" />
     <Compile Include="Contracts\Requests\SubscribeLobbyRequest.cs" />
     <Compile Include="Contracts\Requests\UnsubscribeLobbyRequest.cs" />

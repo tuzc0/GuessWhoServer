@@ -8,12 +8,14 @@ namespace GuessWhoDataAccess.Data.Factories
         GuessWhoDBEntities Context { get; }
 
         IUserAccountRepository UserAccounts { get; }
+        IUserProfileRepository UserProfiles { get; } // Añadido
         IEmailVerificationRepository EmailVerification { get; }
         IAvatarRepository Avatars { get; }
         ICharacterRepository Characters { get; }
         IMatchDeckRepository MatchDecks { get; }
         IFriendshipRepository Friendships { get; }
         IMatchRepository Matches { get; }
+        IMatchInvitationRepository MatchInvitations { get; } 
         IMatchChatRepository MatchesChats { get; }
         IMatchTurnRepository MatchesTurns { get; }
         IMatchChessClockRepository MatchChessClocks { get; }

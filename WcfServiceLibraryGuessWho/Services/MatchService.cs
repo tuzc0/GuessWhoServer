@@ -41,6 +41,7 @@ namespace GuessWhoServices.Services
         private const string CONTEXT_SET_READY = "MatchService.SetPlayerReadyStatus";
         private const string CONTEXT_SUBSCRIBE = "MatchService.SubscribeLobby";
         private const string CONTEXT_UNSUBSCRIBE = "MatchService.UnsubscribeLobby";
+        private const string CONTEXT_SEND_INVITATION = "MatchService.SendMatchInvitation";
 
         private readonly MatchLobbyLogic lobbyLogic; 
         private readonly MatchLifecycleLogic lifecycleLogic;

@@ -96,14 +96,13 @@ namespace ConsoleGuessWho
             IEmailSender emailSender = new SmtpEmailSender(smtpSettings);
 
             VerificationCodeEmailBuilder verificationCodeEmailBuilder = new VerificationCodeEmailBuilder();
+            MatchInvitationEmailBuilder matchInvitationEmailBuilder = new MatchInvitationEmailBuilder(); 
 
             IMatchDisconnectHandler disconnectHandler =
                 new MatchDisconnectHandler(unitOfWorkFactory, LogManager.GetLogger(typeof(MatchDisconnectHandler)));
 
             ILobbySubscriptionStore lobbySubscriptionStore = new LobbySubscriptionStore(disconnectHandler);
-
             IMatchCallbackDispatcher matchCallbackDispatcher = new MatchCallbackDispatcher(lobbySubscriptionStore);
-
             ILobbySubscriptionOperations lobbySubscriptionOperations = new LobbySubscriptionOperations(lobbySubscriptionStore);
 
             var draft = new HostCompositionDraft
@@ -114,6 +113,7 @@ namespace ConsoleGuessWho
                 VerificationCodeService = verificationCodeService,
                 EmailSender = emailSender,
                 VerificationCodeEmailBuilder = verificationCodeEmailBuilder,
+                MatchInvitationEmailBuilder = matchInvitationEmailBuilder,
 
                 LobbySubscriptionStore = lobbySubscriptionStore,
                 MatchCallbackDispatcher = matchCallbackDispatcher,
@@ -125,10 +125,7 @@ namespace ConsoleGuessWho
 
         private static ServiceHost CreateHost<TService>(Func<TService> serviceFactory)
         {
-            if (serviceFactory == null)
-            {
-                throw new ArgumentNullException(nameof(serviceFactory));
-            }
+            if (serviceFactory == null) throw new ArgumentNullException(nameof(serviceFactory));
 
             ServiceHost host = new ServiceHost(typeof(TService));
             host.Description.Behaviors.Add(new DelegateServiceBehavior(() => serviceFactory()));
@@ -146,7 +143,6 @@ namespace ConsoleGuessWho
                 LogManager.GetLogger(typeof(EmailVerificationDomainService)));
 
             var emailVerificationDomainService = new EmailVerificationDomainService(domainServiceArgs);
-
             TimeSpan verificationCodeLifeTime = composition.SecuritySettings.VerificationCodeLifetime;
 
             var registrationManager = new UserRegistrationManager(
@@ -172,10 +168,7 @@ namespace ConsoleGuessWho
                 emailVerificationDomainService,
                 composition.PasswordHasher);
 
-            return new UserService(
-                registrationManager,
-                emailVerificationManager,
-                passwordRecoveryManager);
+            return new UserService(registrationManager, emailVerificationManager, passwordRecoveryManager);
         }
 
         private static LoginService CreateLoginService(HostComposition composition)
@@ -187,9 +180,7 @@ namespace ConsoleGuessWho
                 composition.PasswordHasher,
                 composition.SecuritySettings);
 
-            var loginCoordinator = new LoginCoordinator(
-                loginManager,
-                composition.UnitOfWorkFactory);
+            var loginCoordinator = new LoginCoordinator(loginManager, composition.UnitOfWorkFactory);
 
             return new LoginService(loginCoordinator);
         }
@@ -198,10 +189,7 @@ namespace ConsoleGuessWho
         {
             if (composition == null) throw new ArgumentNullException(nameof(composition));
 
-            var manager = new UpdateProfileManager(
-                composition.UnitOfWorkFactory,
-                composition.PasswordHasher);
-
+            var manager = new UpdateProfileManager(composition.UnitOfWorkFactory, composition.PasswordHasher);
             return new UpdateProfileService(manager);
         }
 
@@ -210,7 +198,6 @@ namespace ConsoleGuessWho
             if (composition == null) throw new ArgumentNullException(nameof(composition));
 
             var manager = new FriendshipManager(composition.UnitOfWorkFactory);
-
             return new FriendService(manager);
         }
 
@@ -219,7 +206,6 @@ namespace ConsoleGuessWho
             if (composition == null) throw new ArgumentNullException(nameof(composition));
 
             var manager = new LeaderboardManager(composition.UnitOfWorkFactory);
-
             return new LeaderboardService(manager);
         }
 
@@ -229,7 +215,10 @@ namespace ConsoleGuessWho
 
             MatchLobbyLogic lobbyLogic = new MatchLobbyLogic(
                 composition.UnitOfWorkFactory,
-                composition.LobbySubscriptionOperations);
+                composition.LobbySubscriptionOperations,
+                composition.EmailSender,               
+                composition.MatchInvitationEmailBuilder 
+            );
 
             MatchLifecycleLogic lifecycleLogic = new MatchLifecycleLogic(
                 composition.UnitOfWorkFactory,
@@ -246,7 +235,6 @@ namespace ConsoleGuessWho
                 composition.MatchCallbackDispatcher);
 
             MatchPassTurnLogic passTurnLogic = new MatchPassTurnLogic(composition.UnitOfWorkFactory);
-
             MatchGuessingLogic guessingLogic = new MatchGuessingLogic(composition.UnitOfWorkFactory);
 
             var deps = new MatchService.MatchServiceDependencies
@@ -258,7 +246,6 @@ namespace ConsoleGuessWho
                 QuestionLogic = questionLogic,
                 PassTurnLogic = passTurnLogic,
                 GuessingLogic = guessingLogic,
-
                 CallbackDispatcher = composition.MatchCallbackDispatcher
             };
 
@@ -273,6 +260,7 @@ namespace ConsoleGuessWho
             public IVerificationCodeService VerificationCodeService { get; set; }
             public IEmailSender EmailSender { get; set; }
             public VerificationCodeEmailBuilder VerificationCodeEmailBuilder { get; set; }
+            public MatchInvitationEmailBuilder MatchInvitationEmailBuilder { get; set; } 
 
             public ILobbySubscriptionStore LobbySubscriptionStore { get; set; }
             public IMatchCallbackDispatcher MatchCallbackDispatcher { get; set; }
@@ -281,39 +269,22 @@ namespace ConsoleGuessWho
 
         private sealed class HostComposition
         {
-            private const string ERROR_MISSING_DEPENDENCY_FORMAT =
-                "Missing required dependency in HostCompositionDraft: {0}.";
+            private const string ERROR_MISSING_DEPENDENCY_FORMAT = "Missing required dependency in HostCompositionDraft: {0}.";
 
             public HostComposition(HostCompositionDraft draft)
             {
                 if (draft == null) throw new ArgumentNullException(nameof(draft));
 
-                UnitOfWorkFactory = draft.UnitOfWorkFactory
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.UnitOfWorkFactory)), nameof(draft));
-
-                SecuritySettings = draft.SecuritySettings
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.SecuritySettings)), nameof(draft));
-
-                PasswordHasher = draft.PasswordHasher
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.PasswordHasher)), nameof(draft));
-
-                VerificationCodeService = draft.VerificationCodeService
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.VerificationCodeService)), nameof(draft));
-
-                EmailSender = draft.EmailSender
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.EmailSender)), nameof(draft));
-
-                VerificationCodeEmailBuilder = draft.VerificationCodeEmailBuilder
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.VerificationCodeEmailBuilder)), nameof(draft));
-
-                LobbySubscriptionStore = draft.LobbySubscriptionStore
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.LobbySubscriptionStore)), nameof(draft));
-
-                MatchCallbackDispatcher = draft.MatchCallbackDispatcher
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.MatchCallbackDispatcher)), nameof(draft));
-
-                LobbySubscriptionOperations = draft.LobbySubscriptionOperations
-                    ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.LobbySubscriptionOperations)), nameof(draft));
+                UnitOfWorkFactory = draft.UnitOfWorkFactory ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.UnitOfWorkFactory)), nameof(draft));
+                SecuritySettings = draft.SecuritySettings ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.SecuritySettings)), nameof(draft));
+                PasswordHasher = draft.PasswordHasher ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.PasswordHasher)), nameof(draft));
+                VerificationCodeService = draft.VerificationCodeService ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.VerificationCodeService)), nameof(draft));
+                EmailSender = draft.EmailSender ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.EmailSender)), nameof(draft));
+                VerificationCodeEmailBuilder = draft.VerificationCodeEmailBuilder ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.VerificationCodeEmailBuilder)), nameof(draft));
+                MatchInvitationEmailBuilder = draft.MatchInvitationEmailBuilder ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.MatchInvitationEmailBuilder)), nameof(draft)); 
+                LobbySubscriptionStore = draft.LobbySubscriptionStore ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.LobbySubscriptionStore)), nameof(draft));
+                MatchCallbackDispatcher = draft.MatchCallbackDispatcher ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.MatchCallbackDispatcher)), nameof(draft));
+                LobbySubscriptionOperations = draft.LobbySubscriptionOperations ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.LobbySubscriptionOperations)), nameof(draft));
             }
 
             public IGuessWhoUnitOfWorkFactory UnitOfWorkFactory { get; }
@@ -322,7 +293,7 @@ namespace ConsoleGuessWho
             public IVerificationCodeService VerificationCodeService { get; }
             public IEmailSender EmailSender { get; }
             public VerificationCodeEmailBuilder VerificationCodeEmailBuilder { get; }
-
+            public MatchInvitationEmailBuilder MatchInvitationEmailBuilder { get; } 
             public ILobbySubscriptionStore LobbySubscriptionStore { get; }
             public IMatchCallbackDispatcher MatchCallbackDispatcher { get; }
             public ILobbySubscriptionOperations LobbySubscriptionOperations { get; }

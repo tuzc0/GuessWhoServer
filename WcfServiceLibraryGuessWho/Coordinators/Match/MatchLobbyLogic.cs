@@ -5,6 +5,10 @@ using GuessWhoServerDomain.Domain.Models.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using GuessWhoServices.Coordinators.InternalDtos;
+using GuessWhoServices.Communication.Email;
+using GuessWhoServices.Communication.Email.Builders;
+using GuessWhoServices.Communication.Email.Builders.Context;
+using GuessWhoCore.Contracts.Response;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -18,23 +22,119 @@ namespace GuessWhoServices.Coordinators.Match
         private const string CONTEXT_JOIN = nameof(MatchLobbyLogic) + "." + nameof(JoinMatch);
         private const string CONTEXT_SUBSCRIBE = nameof(MatchLobbyLogic) + "." + nameof(SubscribeLobby);
         private const string CONTEXT_UNSUBSCRIBE = nameof(MatchLobbyLogic) + "." + nameof(UnsubscribeLobby);
+        private const string CONTEXT_INVITATION = nameof(MatchLobbyLogic) + "." + nameof(SendInvitation);
 
         private const long INVALID_ID = 0;
 
         private readonly IGuessWhoUnitOfWorkFactory guessWhoUnitOfWorkFactory;
         private readonly ILobbySubscriptionOperations lobbySubscriptionOperations;
+        private readonly IEmailSender emailSender;
+        private readonly IEmailMessageBuilder<MatchInvitationEmailContext> invitationBuilder;
 
         public MatchLobbyLogic(
             IGuessWhoUnitOfWorkFactory guessWhoUnitOfWorkFactory,
-            ILobbySubscriptionOperations lobbySubscriptionOperations)
+            ILobbySubscriptionOperations lobbySubscriptionOperations,
+            IEmailSender emailSender,
+            IEmailMessageBuilder<MatchInvitationEmailContext> invitationBuilder)
         {
             this.guessWhoUnitOfWorkFactory = guessWhoUnitOfWorkFactory ??
                 throw new ArgumentNullException(nameof(guessWhoUnitOfWorkFactory));
 
             this.lobbySubscriptionOperations = lobbySubscriptionOperations ??
                 throw new ArgumentNullException(nameof(lobbySubscriptionOperations));
+
+            this.emailSender = emailSender ??
+                throw new ArgumentNullException(nameof(emailSender));
+
+            this.invitationBuilder = invitationBuilder ??
+                throw new ArgumentNullException(nameof(invitationBuilder));
         }
 
+        public BasicResponse SendInvitation(long matchId, long inviterId, string targetEmail, long targetUserId = 0)
+        {
+            try
+            {
+                using IGuessWhoUnitOfWork unitOfWork = guessWhoUnitOfWorkFactory.Create();
+
+                var matchSnapshot = unitOfWork.Matches.GetMatchById(matchId);
+                var inviterSnapshot = unitOfWork.UserProfiles.GetUserProfileById(inviterId);
+
+                if (!matchSnapshot.IsValid || !inviterSnapshot.IsValid)
+                {
+                    return new BasicResponse
+                    {
+                        Success = false,
+                        Code = "DATA_NOT_FOUND",
+                        MeesageKey = "Match.Invitation.DataNotFound"
+                    };
+                }
+
+                if (string.IsNullOrWhiteSpace(targetEmail) && targetUserId > 0)
+                {
+                    var targetAccountResult = unitOfWork.UserAccounts.GetAccountWithProfileByUserId(targetUserId);
+
+                    if (targetAccountResult != null && targetAccountResult.Account != null)
+                    {
+                        targetEmail = targetAccountResult.Account.Email;
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(targetEmail))
+                {
+                    return new BasicResponse
+                    {
+                        Success = false,
+                        Code = "EMAIL_REQUIRED",
+                        MeesageKey = "Match.Invitation.EmailRequired"
+                    };
+                }
+
+                Guid invitationToken = Guid.NewGuid();
+                DateTime expirationDate = DateTime.UtcNow.AddHours(24);
+
+                using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
+                {
+                    bool added = unitOfWork.MatchInvitations.AddMatchInvitation(
+                        matchId,
+                        inviterId,
+                        targetEmail,
+                        invitationToken,
+                        expirationDate,
+                        targetUserId
+                    );
+
+                    if (!added)
+                    {
+                        transaction.Rollback();
+                        return new BasicResponse { Success = false, Code = "DB_ERROR" };
+                    }
+
+                    unitOfWork.Flush();
+                    transaction.Commit();
+                }
+
+                var emailContext = new MatchInvitationEmailContext(targetEmail, inviterSnapshot.DisplayName, matchSnapshot.MatchCode);
+                var emailMessage = invitationBuilder.Build(emailContext);
+                var emailResult = emailSender.Send(emailMessage);
+
+                return new BasicResponse
+                {
+                    Success = emailResult.IsSuccess,
+                    Code = emailResult.IsSuccess ? "OK" : emailResult.ErrorCode,
+                    MeesageKey = emailResult.IsSuccess ? string.Empty : "Match.Invitation.EmailError"
+                };
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"{CONTEXT_INVITATION}: Unexpected error.", ex);
+                return new BasicResponse
+                {
+                    Success = false,
+                    Code = "INTERNAL_ERROR",
+                    MeesageKey = "Match.Invitation.InternalError"
+                };
+            }
+        }
         public JoinLobbyLogicResult JoinMatch(JoinLobbyArgs joinLobbyArgs)
         {
             JoinInput joinInput = BuildJoinInputOrInvalid(joinLobbyArgs);

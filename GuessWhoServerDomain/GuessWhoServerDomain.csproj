@@ -75,7 +75,10 @@
     <Compile Include="Domain\Enums\Turns\ApplyChessClockResultCode.cs" />
     <Compile Include="Domain\Enums\Turns\RegisterQuestionResultCode.cs" />
     <Compile Include="Domain\Interfaces\Repositories\ILeaderboardRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IMatchInvitationRepository.cs" />
     <Compile Include="Domain\Interfaces\Repositories\IMatchQuestionRepository.cs" />
+    <Compile Include="Domain\Interfaces\Repositories\IUserProfileRepository.cs" />
+    <Compile Include="Domain\Models\Accounts\UserProfileSnapshot.cs" />
     <Compile Include="Domain\Models\Leaderboard\LeaderbodarPlayer.cs" />
     <Compile Include="Domain\Parameters\Turns\SetTurnPhaseArgs.cs" />
     <Compile Include="Domain\Results\Leaderboard\LeaderboardResult.cs" />
