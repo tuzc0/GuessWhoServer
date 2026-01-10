@@ -84,6 +84,7 @@
     <Compile Include="Data\DataAccess\Matches\MatchData.Tournament.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchGuessingData.cs" />
     <Compile Include="Data\DataAccess\Profile\UserProfileData.cs" />
+    <Compile Include="Data\DataAccess\Tournaments\TournamentData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchChessClockData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchTurnAdvanceData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchTurnData.cs" />

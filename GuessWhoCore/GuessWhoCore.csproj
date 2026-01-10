@@ -119,6 +119,7 @@
     <Compile Include="Contracts\Response\SearchProfilesResponse.cs" />
     <Compile Include="Contracts\Response\SearchPublicMatchResponse.cs" />
     <Compile Include="Contracts\Response\SendFriendRequestResponse.cs" />
+    <Compile Include="Contracts\Response\ToruamentPlayerDto.cs" />
     <Compile Include="Contracts\Response\TurnStateDto.cs" />
     <Compile Include="Contracts\Response\UpdateProfileResponse.cs" />
     <Compile Include="Contracts\Response\UserProfileSearchResult.cs" />

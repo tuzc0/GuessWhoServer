@@ -155,6 +155,7 @@
     <Compile Include="Coordinators\Interfaces\ILoginCoordinator.cs" />
     <Compile Include="Coordinators\Interfaces\ILoginManager.cs" />
     <Compile Include="Coordinators\Interfaces\IPasswordRecoveryManager.cs" />
+    <Compile Include="Coordinators\Interfaces\ITournamentManager.cs" />
     <Compile Include="Coordinators\Interfaces\IUpdateProfileManager.cs" />
     <Compile Include="Coordinators\Interfaces\IUserRegistrationManager.cs" />
     <Compile Include="Coordinators\InternalDtos\JoinLobbyArgs.cs" />
@@ -162,6 +163,7 @@
     <Compile Include="Coordinators\InternalDtos\LeaveLobbyLogicResult.cs" />
     <Compile Include="Coordinators\InternalDtos\LobbySubscriptionArgs.cs" />
     <Compile Include="Coordinators\InternalDtos\ReadyLobbyLogicResult.cs" />
+    <Compile Include="Coordinators\InternalDtos\TournamentSubscriptionArgs.cs" />
     <Compile Include="Coordinators\LeaderboardManager.cs" />
     <Compile Include="Coordinators\LoginCoordinator.cs" />
     <Compile Include="Coordinators\LoginManager.cs" />
@@ -174,6 +176,9 @@
     <Compile Include="Coordinators\Match\MatchQuestionLogic.cs" />
     <Compile Include="Coordinators\Match\MatchSecretCharacterLogic.cs" />
     <Compile Include="Coordinators\PasswordRecoveryManager.cs" />
+    <Compile Include="Coordinators\Tournament\ITournamentSubscriptionOperations.cs" />
+    <Compile Include="Coordinators\Tournament\TournamentLobbyLogic.cs" />
+    <Compile Include="Coordinators\Tournament\TournamentSubscriptionOperations.cs" />
     <Compile Include="Coordinators\UpdateProfileManager.cs" />
     <Compile Include="Coordinators\UserRegistrationManager.cs" />
     <Compile Include="Errors\FaultTranslator.cs" />
@@ -181,8 +186,12 @@
     <Compile Include="Infrastructure\IMatchCallbackDispatcher.cs" />
     <Compile Include="Infrastructure\IMatchLifecycleNotifier.cs" />
     <Compile Include="Coordinators\LobbySubscriptionOperations.cs" />
+    <Compile Include="Infrastructure\ITournamentCallbackDispatcher.cs" />
+    <Compile Include="Infrastructure\ITournamentSubscriptionStore.cs" />
     <Compile Include="Infrastructure\LobbySubscriptionStore.cs" />
     <Compile Include="Infrastructure\MatchLifecycleNotifier.cs" />
+    <Compile Include="Infrastructure\TournamentCallbackDispatcher.cs" />
+    <Compile Include="Infrastructure\TournamentSubscriptionStore.cs" />
     <Compile Include="IsExternalInit.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Security\Pbkdf2Sha256PasswordHashing.cs" />
@@ -198,6 +207,7 @@
     <Compile Include="Services\MatchApplication\MatchDeckConstants.cs" />
     <Compile Include="Coordinators\Match\MatchDeckLogic.cs" />
     <Compile Include="Coordinators\Match\MatchLobbyLogic.cs" />
+    <Compile Include="Services\TournamentService.cs" />
     <Compile Include="Services\MatchService.cs" />
     <Compile Include="Services\MatchService.Gameplay.cs" />
     <Compile Include="Services\MatchService.Lobby.cs" />

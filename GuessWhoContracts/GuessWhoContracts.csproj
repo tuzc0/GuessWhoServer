@@ -58,6 +58,8 @@
     <Compile Include="Services\IMatchGameplayOperations.cs" />
     <Compile Include="Services\IMatchLobbyOperations.cs" />
     <Compile Include="Services\IMatchService.cs" />
+    <Compile Include="Services\ITournamentCallback.cs" />
+    <Compile Include="Services\ITournamentService.cs" />
     <Compile Include="Services\IUpdateProfileService.cs" />
     <Compile Include="Services\IUserService.cs" />
   </ItemGroup>

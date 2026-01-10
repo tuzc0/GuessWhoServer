@@ -8,6 +8,7 @@ using GuessWhoDataAccess.Data.DataAccess.Leaderboard;
 using GuessWhoDataAccess.Data.DataAccess.Matches;
 using GuessWhoDataAccess.Data.DataAccess.Profile;
 using GuessWhoDataAccess.Data.DataAccess.Turns;
+using GuessWhoDataAccess.Data.DataAccess.Tournaments; // Asegúrate de tener este using
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using System;
 
@@ -41,6 +42,7 @@ namespace GuessWhoDataAccess.Data.Factories
             IMatchTurnAdvanceRepository matchTurnAdvance = new MatchTurnAdvanceData(context);
             IMatchGuessingRepository matchGuessing = new MatchGuessingData(context);
             ILeaderboardRepository leaderboards = new LeaderboardData(context);
+            ITournamentRepository tournaments = new TournamentData(context);
 
             return new GuessWhoUnitOfWork(
                 context,
@@ -58,7 +60,8 @@ namespace GuessWhoDataAccess.Data.Factories
                 matchChessClock,
                 matchTurnAdvance,
                 matchGuessing,
-                leaderboards);
+                leaderboards,
+                tournaments);
         }
     }
 }
