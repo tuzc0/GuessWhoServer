@@ -68,6 +68,9 @@
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_ORDER_USER_PROFILE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_STATE_USER_PROFILE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_WINNER" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MODERATION_REPORT" Width="1.5" PointX="2.75" PointY="0.75" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.TOURNAMENTSTATUS" Width="1.5" PointX="0.75" PointY="0.875" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_STATUS" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

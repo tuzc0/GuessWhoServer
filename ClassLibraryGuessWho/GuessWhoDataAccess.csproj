@@ -168,10 +168,16 @@
     <Compile Include="Data\MODERATION_ACTION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\MODERATION_REPORT.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
     <Compile Include="Data\sp_helpdiagramdefinition_Result.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\sp_helpdiagrams_Result.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\TOURNAMENTSTATUS.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\TOURNAMENT_4P.cs">
