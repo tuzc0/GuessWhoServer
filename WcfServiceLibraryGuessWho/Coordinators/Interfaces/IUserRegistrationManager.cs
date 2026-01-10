@@ -6,5 +6,6 @@ namespace GuessWhoServices.Coordinators.Interfaces
     public interface IUserRegistrationManager
     {
         RegisterResult RegisterUser(RegisterUserArgs registerUserArgs);
+        RegisterResult RegisterGuest(string displayName);
     }
 }

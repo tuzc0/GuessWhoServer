@@ -4,28 +4,34 @@
   <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
     <!-- Diagram content (shape and connector positions) -->
     <edmx:Diagrams>
-      <Diagram DiagramId="5aba200ae27b481c916af8f4eef4ae54" Name="Diagram1" ZoomLevel="46">
-        <EntityTypeShape EntityType="GuessWhoDBModel.ACCOUNT" Width="1.5" PointX="1.25" PointY="17.375" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.AVATAR" Width="1.5" PointX="1.375" PointY="11.75" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.CHARACTER" Width="1.5" PointX="19.75" PointY="33.5" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.EMAIL_VERIFICATION" Width="1.5" PointX="1.25" PointY="23" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.FRIEND_REQUEST" Width="1.5" PointX="8.25" PointY="20" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.FRIENDREQUESTSTATUS" Width="1.5" PointX="11.375" PointY="20.5" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.FRIENDSHIP" Width="1.5" PointX="1.25" PointY="14.125" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH" Width="1.5" PointX="25.75" PointY="28.125" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_DECK_CARD" Width="1.5" PointX="19.875" PointY="29" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_INVITATION" Width="1.5" PointX="19.125" PointY="19.875" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_MODE" Width="1.5" PointX="28.75" PointY="28.25" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_PLAYER" Width="1.5" PointX="4.25" PointY="31.5" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCHSTATUS" Width="1.5" PointX="21.875" PointY="31.375" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCHVISIBILITY" Width="1.5" PointX="28.75" PointY="31.875" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MODERATION_ACTION" Width="1.5" PointX="16.125" PointY="19.5" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MODERATIONACTIONTYPE" Width="1.5" PointX="13.5" PointY="20.625" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MODERATIONSCOPE" Width="1.5" PointX="16.25" PointY="16.875" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.TOURNAMENT_4P" Width="1.5" PointX="8.875" PointY="15" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.TOURNAMENT_4P_MATCH" Width="1.5" PointX="23.375" PointY="14.125" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.TOURNAMENT_4P_PLAYER" Width="1.5" PointX="8.875" PointY="12.25" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.USER_PROFILE" Width="1.5" PointX="4.75" PointY="11.75" />
+      <Diagram DiagramId="5aba200ae27b481c916af8f4eef4ae54" Name="Diagram1" ZoomLevel="42">
+        <EntityTypeShape EntityType="GuessWhoDBModel.ACCOUNT" Width="1.5" PointX="5.25" PointY="31.875" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.AVATAR" Width="1.5" PointX="0.75" PointY="25.125" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.CHARACTER" Width="1.5" PointX="8.25" PointY="15.125" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.EMAIL_VERIFICATION" Width="1.5" PointX="7.5" PointY="32.5" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.FRIEND_REQUEST" Width="1.5" PointX="5.25" PointY="20.75" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.FRIENDREQUESTSTATUS" Width="1.5" PointX="3" PointY="20.25" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.FRIENDSHIP" Width="1.5" PointX="5.25" PointY="25.125" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.GUEST_SESSION" Width="1.5" PointX="5.25" PointY="42.375" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH" Width="1.5" PointX="8.25" PointY="18.5" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_CHAT_MESSAGE" Width="1.5" PointX="10.5" PointY="18.625" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_DECK_CARD" Width="1.5" PointX="10.5" PointY="15.125" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_INVITATION" Width="1.5" PointX="13.5" PointY="25.875" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_MODE" Width="1.5" PointX="6" PointY="12.625" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_PLAYER" Width="1.5" PointX="13.5" PointY="18" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_TURN_ORDER" Width="1.5" PointX="10.5" PointY="25.625" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_TURN_STATE" Width="1.5" PointX="13.5" PointY="22.375" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCHSTATUS" Width="1.5" PointX="6" PointY="29.25" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MATCHVISIBILITY" Width="1.5" PointX="6" PointY="17.25" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MODERATION_ACTION" Width="1.5" PointX="16.5" PointY="21.75" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MODERATION_REPORT" Width="1.5" PointX="0.75" PointY="0.75" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MODERATIONACTIONTYPE" Width="1.5" PointX="14.25" PointY="31.125" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.MODERATIONSCOPE" Width="1.5" PointX="14.25" PointY="14.75" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.TOURNAMENT_4P" Width="1.5" PointX="8.25" PointY="24.5" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.TOURNAMENT_4P_MATCH" Width="1.5" PointX="10.5" PointY="21.875" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.TOURNAMENT_4P_PLAYER" Width="1.5" PointX="10.5" PointY="29.125" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.TOURNAMENTSTATUS" Width="1.5" PointX="6" PointY="37.25" />
+        <EntityTypeShape EntityType="GuessWhoDBModel.USER_PROFILE" Width="1.5" PointX="3" PointY="23" />
         <AssociationConnector Association="GuessWhoDBModel.FK_ACCOUNT_USER_PROFILE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_EMAIL_VERIF_ACCOUNT" />
         <AssociationConnector Association="GuessWhoDBModel.FK_USER_PROFILE_AVATAR" />
@@ -36,18 +42,25 @@
         <AssociationConnector Association="GuessWhoDBModel.FK_FRIEND_REQUEST_STATUS" />
         <AssociationConnector Association="GuessWhoDBModel.FK_FRIENDSHIP_USER1" />
         <AssociationConnector Association="GuessWhoDBModel.FK_FRIENDSHIP_USER2" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_GUEST_SESSION_USER_PROFILE" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_MATCH" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_DECK_CARD_MATCH" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_INVITATION_MATCH" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_MODE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_PLAYER_MATCH" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_STATUS" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_ORDER_MATCH" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_STATE_MATCH" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_VISIBILITY" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_WINNERUSER" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MODERATION_ACTION_MATCH" />
         <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_MATCH" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_USER_PROFILE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_INVITATION_INVITER" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_INVITATION_TARGETUSER" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_PLAYER_USER" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_ORDER_USER_PROFILE" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_STATE_USER_PROFILE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MODERATION_ACTION_ACTIONTYPE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MODERATION_ACTION_MODERATORUSER" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MODERATION_ACTION_SCOPE" />
@@ -55,18 +68,9 @@
         <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER" />
         <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_TOURNAMENT" />
         <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_STATUS" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_WINNER" />
         <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_USER" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.GUEST_SESSION" Width="1.5" PointX="4.625" PointY="8.75" />
-        <AssociationConnector Association="GuessWhoDBModel.FK_GUEST_SESSION_USER_PROFILE" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_CHAT_MESSAGE" Width="1.5" PointX="25.625" PointY="11" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_TURN_ORDER" Width="1.5" PointX="22.125" PointY="24.875" />
-        <EntityTypeShape EntityType="GuessWhoDBModel.MATCH_TURN_STATE" Width="1.5" PointX="22.125" PointY="20.625" />
-        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_MATCH" />
-        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_ORDER_MATCH" />
-        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_STATE_MATCH" />
-        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_USER_PROFILE" />
-        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_ORDER_USER_PROFILE" />
-        <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_STATE_USER_PROFILE" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

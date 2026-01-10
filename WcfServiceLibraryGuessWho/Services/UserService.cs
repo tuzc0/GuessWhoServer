@@ -23,6 +23,7 @@ namespace GuessWhoServices.Services
         private const string LOG_CTX_RESEND_EMAIL = "UserService.ResendEmailVerificationCode";
         private const string LOG_CTX_SEND_RECOVERY = "UserService.SendPasswordRecoveryCode";
         private const string LOG_CTX_UPDATE_PASSWORD = "UserService.UpdatePasswordWithVerificationCode";
+        private const string LOG_CTX_REGISTER_GUEST = "UserService.RegisterGuest";
 
         private readonly IUserRegistrationManager userRegistrationManager;
         private readonly IEmailVerificationManager emailVerificationManager;
@@ -128,6 +129,26 @@ namespace GuessWhoServices.Services
                 normalizedDisplayName,
                 safePassword,
                 DateTime.UtcNow);
+        }
+
+        public RegisterGuestResponse RegisterGuest(RegisterGuestRequest request)
+        {
+            return ExecuteService(
+                LOG_CTX_REGISTER_GUEST,
+                () =>
+                {
+                    EnsureRequestNotNull(request);
+
+                    RegisterResult result = userRegistrationManager.RegisterGuest(request.DisplayName);
+
+                    return new RegisterGuestResponse
+                    {
+                        Success = true,
+                        UserId = result.UserId,
+                        DisplayName = result.DisplayName,
+                        Code = "GUEST_SUCCESS"
+                    };
+                });
         }
     }
 }

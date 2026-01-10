@@ -19,9 +19,11 @@ namespace GuessWhoServices.Services
         private const string CODE_UNSUBSCRIBE_FAIL = "MATCH_UNSUBSCRIBE_FAIL";
         private const string KEY_UNSUBSCRIBE_FAIL = "Match.UnsubscribeFailed";
 
-        private const string INVALID_ARGS = "INVALID_ARGS";
+        private  const string INVALID_ARGS = "INVALID_ARGS";
 
         private const long INVALID_ID = 0;
+
+
 
         public CreateMatchResponse CreateMatch(CreateMatchRequest request)
         {
@@ -241,6 +243,27 @@ namespace GuessWhoServices.Services
             });
         }
 
+        public BasicResponse SendMatchInvitation(SendMatchInvitationRequest request)
+        {
+            return ExecuteService(CONTEXT_SEND_INVITATION, () =>
+            {
+                EnsureRequestNotNull(request);
+
+                bool hasEmail = !string.IsNullOrWhiteSpace(request.TargetEmail);
+                bool hasTargetUser = request.TargetUserId > INVALID_ID;
+
+                if ((!hasEmail && !hasTargetUser) || request.MatchId <= INVALID_ID)
+                {
+                    return BasicFail(CODE_INVALID_ARGS, KEY_INVALID_ARGS);
+                }
+
+                return lobbyLogic.SendInvitation(
+                    request.MatchId,
+                    request.InviterUserId,
+                    request.TargetEmail,
+                    request.TargetUserId);
+            });
+        }
 
         public BasicResponse SubscribeLobby(SubscribeLobbyRequest request)
         {

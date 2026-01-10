@@ -8,17 +8,21 @@ namespace GuessWhoDataAccess.Data.Factories
         GuessWhoDBEntities Context { get; }
 
         IUserAccountRepository UserAccounts { get; }
+        IUserProfileRepository UserProfiles { get; }
         IEmailVerificationRepository EmailVerification { get; }
         IAvatarRepository Avatars { get; }
         ICharacterRepository Characters { get; }
         IMatchDeckRepository MatchDecks { get; }
         IFriendshipRepository Friendships { get; }
         IMatchRepository Matches { get; }
+        IMatchInvitationRepository MatchInvitations { get; } 
         IMatchChatRepository MatchesChats { get; }
         IMatchTurnRepository MatchesTurns { get; }
         IMatchChessClockRepository MatchChessClocks { get; }
         IMatchTurnAdvanceRepository MatchTurnAdvances { get; }
         IMatchGuessingRepository MatchGuessing { get; }
+        ILeaderboardRepository Leaderboards { get; }
+        ITournamentRepository Tournaments { get; }
 
         IGuessWhoDbTransaction BeginTransaction();
         void Flush();

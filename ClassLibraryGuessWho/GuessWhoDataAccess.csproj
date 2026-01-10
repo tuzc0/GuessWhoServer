@@ -44,6 +44,9 @@
     <Reference Include="log4net, Version=3.2.0.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
       <HintPath>..\packages\log4net.3.2.0\lib\net462\log4net.dll</HintPath>
     </Reference>
+    <Reference Include="StructureMap, Version=4.7.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\StructureMap.4.7.1\lib\net45\StructureMap.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
@@ -72,15 +75,22 @@
     <Compile Include="Data\DataAccess\Accounts\AccountRecordMapper.cs" />
     <Compile Include="Data\DataAccess\Chat\MatchChatData.cs" />
     <Compile Include="Data\DataAccess\EmailVerification\EmailVerificationTokenRecordMapper.cs" />
+    <Compile Include="Data\DataAccess\Leaderboard\LeaderboardData.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Access.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Characters.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Discovery.cs" />
+    <Compile Include="Data\DataAccess\Matches\MatchData.Invitation.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchData.Tournament.cs" />
     <Compile Include="Data\DataAccess\Matches\MatchGuessingData.cs" />
+    <Compile Include="Data\DataAccess\Profile\UserProfileData.cs" />
+    <Compile Include="Data\DataAccess\Tournaments\TournamentData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchChessClockData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchTurnAdvanceData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchTurnData.cs" />
+    <Compile Include="Data\EmailVerification_Resend_Result.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
     <Compile Include="Data\Factories\GuessWhoUnitOfWork.cs" />
     <Compile Include="Data\Factories\GuessWhoUnitOfWorkFactory.cs" />
     <Compile Include="Data\Factories\IGuessWhoUnitOfWork.cs" />
@@ -165,10 +175,16 @@
     <Compile Include="Data\MODERATION_ACTION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\MODERATION_REPORT.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
     <Compile Include="Data\sp_helpdiagramdefinition_Result.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\sp_helpdiagrams_Result.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\TOURNAMENTSTATUS.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\TOURNAMENT_4P.cs">

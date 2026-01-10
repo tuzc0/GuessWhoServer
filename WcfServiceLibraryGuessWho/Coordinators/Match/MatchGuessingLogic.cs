@@ -2,6 +2,7 @@
 using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
+using GuessWhoServices.Coordinators.Tournament;
 using log4net;
 using System;
 
@@ -14,11 +15,16 @@ namespace GuessWhoServices.Coordinators.Match
         private const long INVALID_ID = 0;
 
         private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
+        private readonly TournamentLobbyLogic tournamentLobbyLogic;
 
-        public MatchGuessingLogic(IGuessWhoUnitOfWorkFactory unitOfWorkFactory)
+        public MatchGuessingLogic(
+            IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
+            TournamentLobbyLogic tournamentLobbyLogic)
         {
-            this.unitOfWorkFactory = unitOfWorkFactory ?? 
+            this.unitOfWorkFactory = unitOfWorkFactory ??
                 throw new ArgumentNullException(nameof(unitOfWorkFactory));
+            this.tournamentLobbyLogic = tournamentLobbyLogic ??
+                throw new ArgumentNullException(nameof(tournamentLobbyLogic));
         }
 
         public FinalGuessResult GuessOpponentCharacter(long matchId, long guessingUserId, string guessedCharacterId)
@@ -98,6 +104,8 @@ namespace GuessWhoServices.Coordinators.Match
 
             unitOfWork.Flush();
             transaction.Commit();
+
+            tournamentLobbyLogic.HandleMatchFinished(matchId, winnerUserId);
 
             return FinalGuessResult.Success(isCorrect);
         }

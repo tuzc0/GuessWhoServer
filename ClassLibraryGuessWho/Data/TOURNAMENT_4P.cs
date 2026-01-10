@@ -26,11 +26,14 @@ namespace GuessWhoDataAccess.Data
         public int TURNSECONDS { get; set; }
         public byte STATUSID { get; set; }
         public System.DateTime CREATEDATUTC { get; set; }
+        public Nullable<long> WINNERUSERID { get; set; }
     
         public virtual USER_PROFILE USER_PROFILE { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<TOURNAMENT_4P_PLAYER> TOURNAMENT_4P_PLAYER { get; set; }
+        public virtual TOURNAMENTSTATUS TOURNAMENTSTATUS { get; set; }
+        public virtual USER_PROFILE USER_PROFILE1 { get; set; }
     }
 }

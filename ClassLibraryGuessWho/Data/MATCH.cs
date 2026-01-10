@@ -17,13 +17,13 @@ namespace GuessWhoDataAccess.Data
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
         public MATCH()
         {
+            this.MATCH_CHAT_MESSAGE = new HashSet<MATCH_CHAT_MESSAGE>();
             this.MATCH_DECK_CARD = new HashSet<MATCH_DECK_CARD>();
             this.MATCH_INVITATION = new HashSet<MATCH_INVITATION>();
             this.MATCH_PLAYER = new HashSet<MATCH_PLAYER>();
+            this.MATCH_TURN_ORDER = new HashSet<MATCH_TURN_ORDER>();
             this.MODERATION_ACTION = new HashSet<MODERATION_ACTION>();
             this.TOURNAMENT_4P_MATCH = new HashSet<TOURNAMENT_4P_MATCH>();
-            this.MATCH_CHAT_MESSAGE = new HashSet<MATCH_CHAT_MESSAGE>();
-            this.MATCH_TURN_ORDER = new HashSet<MATCH_TURN_ORDER>();
         }
     
         public long MATCHID { get; set; }
@@ -38,6 +38,8 @@ namespace GuessWhoDataAccess.Data
         public bool ISCODEJOINENABLED { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_CHAT_MESSAGE> MATCH_CHAT_MESSAGE { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH_DECK_CARD> MATCH_DECK_CARD { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH_INVITATION> MATCH_INVITATION { get; set; }
@@ -45,16 +47,14 @@ namespace GuessWhoDataAccess.Data
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH_PLAYER> MATCH_PLAYER { get; set; }
         public virtual MATCHSTATUS MATCHSTATUS { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<MATCH_TURN_ORDER> MATCH_TURN_ORDER { get; set; }
+        public virtual MATCH_TURN_STATE MATCH_TURN_STATE { get; set; }
         public virtual MATCHVISIBILITY MATCHVISIBILITY { get; set; }
         public virtual USER_PROFILE USER_PROFILE { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MODERATION_ACTION> MODERATION_ACTION { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<MATCH_CHAT_MESSAGE> MATCH_CHAT_MESSAGE { get; set; }
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public virtual ICollection<MATCH_TURN_ORDER> MATCH_TURN_ORDER { get; set; }
-        public virtual MATCH_TURN_STATE MATCH_TURN_STATE { get; set; }
     }
 }

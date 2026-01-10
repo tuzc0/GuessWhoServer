@@ -23,6 +23,7 @@ namespace GuessWhoDataAccess.Data
         public bool ISHOST { get; set; }
         public bool ISREADY { get; set; }
         public string SECRETCHARACTERID { get; set; }
+        public int SECONDS_CONSUMED { get; set; }
     
         public virtual CHARACTER CHARACTER { get; set; }
         public virtual MATCH MATCH { get; set; }
