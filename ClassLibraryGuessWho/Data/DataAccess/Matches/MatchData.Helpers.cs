@@ -78,7 +78,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
                 .Any(m => m.MATCHCODE == matchCode);
         }
 
-        private static string GenerateMatchCode()
+        public static string GenerateMatchCode()
         {
             byte[] buffer = new byte[4];
 

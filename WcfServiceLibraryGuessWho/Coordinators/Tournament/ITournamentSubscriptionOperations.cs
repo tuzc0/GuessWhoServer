@@ -11,5 +11,6 @@ namespace GuessWhoServices.Coordinators.Tournament
         bool Unsubscribe(TournamentSubscriptionArgs args);
         void NotifyTournamentLobbyUpdated(long tournamentId, IEnumerable<TournamentPlayerDto> players);
         void NotifyTournamentStarted(long tournamentId, long match1Id, long match2Id);
+        void NotifyTournamentFinalStarted(long tournamentId, long finalMatchId);
     }
 }

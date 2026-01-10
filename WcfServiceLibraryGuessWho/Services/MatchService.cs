@@ -4,6 +4,7 @@ using GuessWhoCore.Contracts.Response;
 using GuessWhoServerDomain.Domain.Models.Turns;
 using GuessWhoServices.Coordinators.Base;
 using GuessWhoServices.Coordinators.Match;
+using GuessWhoServices.Coordinators.Tournament;
 using GuessWhoServices.Errors;
 using GuessWhoServices.Infrastructure;
 using GuessWhoServices.Services.ErrorHandling;
@@ -19,7 +20,7 @@ namespace GuessWhoServices.Services
         IncludeExceptionDetailInFaults = false)]
     public sealed partial class MatchService : ServiceBase, IMatchService
     {
-        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(UserService));
+        protected override ILog Logger { get; } = LogManager.GetLogger(typeof(MatchService));
 
         private const string CONTEXT_ASK_QUESTION = "MatchService.AskQuestion";
         private const string CONTEXT_ANSWER_QUESTION = "MatchService.AnswerQuestion";
@@ -43,22 +44,23 @@ namespace GuessWhoServices.Services
         private const string CONTEXT_UNSUBSCRIBE = "MatchService.UnsubscribeLobby";
         private const string CONTEXT_SEND_INVITATION = "MatchService.SendMatchInvitation";
 
-        private readonly MatchLobbyLogic lobbyLogic; 
+        private readonly MatchLobbyLogic lobbyLogic;
         private readonly MatchLifecycleLogic lifecycleLogic;
-        private readonly MatchDeckLogic deckLogic; 
+        private readonly MatchDeckLogic deckLogic;
         private readonly MatchSecretCharacterLogic secretCharacterLogic;
         private readonly MatchQuestionLogic questionLogic;
         private readonly MatchPassTurnLogic passTurnLogic;
         private readonly MatchGuessingLogic guessingLogic;
         private readonly IMatchCallbackDispatcher callbackDispatcher;
+        private readonly TournamentLobbyLogic tournamentLobbyLogic;
 
         public MatchService(MatchServiceDependencies dependencies)
         {
-            lobbyLogic = dependencies.LobbyLogic ?? 
+            lobbyLogic = dependencies.LobbyLogic ??
                 throw new ArgumentNullException(nameof(lobbyLogic));
-            lifecycleLogic = dependencies.LifecycleLogic ?? 
+            lifecycleLogic = dependencies.LifecycleLogic ??
                 throw new ArgumentNullException(nameof(lifecycleLogic));
-            deckLogic = dependencies.DeckLogic ?? 
+            deckLogic = dependencies.DeckLogic ??
                 throw new ArgumentNullException(nameof(deckLogic));
             secretCharacterLogic = dependencies.SecretCharacterLogic ??
                 throw new ArgumentNullException(nameof(secretCharacterLogic));
@@ -70,6 +72,8 @@ namespace GuessWhoServices.Services
                 throw new ArgumentNullException(nameof(guessingLogic));
             callbackDispatcher = dependencies.CallbackDispatcher ??
                 throw new ArgumentNullException(nameof(callbackDispatcher));
+            tournamentLobbyLogic = dependencies.TournamentLobbyLogic ??
+                throw new ArgumentNullException(nameof(tournamentLobbyLogic));
         }
 
         public sealed class MatchServiceDependencies
@@ -82,6 +86,7 @@ namespace GuessWhoServices.Services
             public MatchPassTurnLogic PassTurnLogic { get; init; }
             public MatchGuessingLogic GuessingLogic { get; init; }
             public IMatchCallbackDispatcher CallbackDispatcher { get; init; }
+            public TournamentLobbyLogic TournamentLobbyLogic { get; init; }
         }
 
         private static BasicResponse BasicOk()

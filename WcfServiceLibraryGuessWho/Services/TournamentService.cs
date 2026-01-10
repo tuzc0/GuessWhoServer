@@ -4,8 +4,6 @@ using GuessWhoServices.Coordinators.Base;
 using GuessWhoServices.Coordinators.InternalDtos;
 using GuessWhoServices.Coordinators.Tournament;
 using GuessWhoServices.Errors;
-using GuessWhoServices.Infrastructure;
-using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
@@ -51,7 +49,6 @@ namespace GuessWhoServices.Services
                 if (response.Success && long.TryParse(response.Code, out long tournamentId))
                 {
                     SubscribeTournament(tournamentId, hostUserId);
-                    response.Code = "OK";
                 }
 
                 return response;
@@ -67,9 +64,14 @@ namespace GuessWhoServices.Services
         {
             try
             {
-                SubscribeTournament(tournamentId, userId);
+                var response = lobbyLogic.JoinTournament(tournamentId, userId);
 
-                return lobbyLogic.JoinTournament(tournamentId, userId);
+                if (response.Success)
+                {
+                    SubscribeTournament(tournamentId, userId);
+                }
+
+                return response;
             }
             catch (Exception ex)
             {

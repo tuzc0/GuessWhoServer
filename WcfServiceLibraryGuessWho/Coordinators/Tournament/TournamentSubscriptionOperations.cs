@@ -13,9 +13,6 @@ namespace GuessWhoServices.Coordinators.Tournament
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(TournamentSubscriptionOperations));
 
-        private const string CONTEXT_SUBSCRIBE = nameof(TournamentSubscriptionOperations) + "." + nameof(Subscribe);
-        private const string CONTEXT_UNSUBSCRIBE = nameof(TournamentSubscriptionOperations) + "." + nameof(Unsubscribe);
-
         private readonly ITournamentSubscriptionStore tournamentSubscriptionStore;
         private readonly ITournamentCallbackDispatcher tournamentCallbackDispatcher;
 
@@ -59,6 +56,11 @@ namespace GuessWhoServices.Coordinators.Tournament
         public void NotifyTournamentStarted(long tournamentId, long match1Id, long match2Id)
         {
             tournamentCallbackDispatcher.Broadcast(tournamentId, callback => callback.OnTournamentStarted(match1Id, match2Id));
+        }
+
+        public void NotifyTournamentFinalStarted(long tournamentId, long finalMatchId)
+        {
+            tournamentCallbackDispatcher.Broadcast(tournamentId, callback => callback.OnTournamentFinalStarted(finalMatchId));
         }
     }
 }

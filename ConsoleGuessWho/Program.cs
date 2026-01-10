@@ -111,6 +111,8 @@ namespace ConsoleGuessWho
             ITournamentCallbackDispatcher tournamentCallbackDispatcher = new TournamentCallbackDispatcher(tournamentSubscriptionStore);
             ITournamentSubscriptionOperations tournamentSubscriptionOperations = new TournamentSubscriptionOperations(tournamentSubscriptionStore, tournamentCallbackDispatcher);
 
+            TournamentLobbyLogic sharedTournamentLogic = new TournamentLobbyLogic(unitOfWorkFactory, tournamentSubscriptionOperations);
+
             var draft = new HostCompositionDraft
             {
                 UnitOfWorkFactory = unitOfWorkFactory,
@@ -125,7 +127,8 @@ namespace ConsoleGuessWho
                 LobbySubscriptionOperations = lobbySubscriptionOperations,
                 TournamentSubscriptionStore = tournamentSubscriptionStore,
                 TournamentCallbackDispatcher = tournamentCallbackDispatcher,
-                TournamentSubscriptionOperations = tournamentSubscriptionOperations
+                TournamentSubscriptionOperations = tournamentSubscriptionOperations,
+                TournamentLobbyLogic = sharedTournamentLogic
             };
 
             return new HostComposition(draft);
@@ -176,13 +179,15 @@ namespace ConsoleGuessWho
 
         private static MatchService CreateMatchService(HostComposition composition)
         {
+            var tournamentLogic = composition.TournamentLobbyLogic;
+
             MatchLobbyLogic lobbyLogic = new MatchLobbyLogic(composition.UnitOfWorkFactory, composition.LobbySubscriptionOperations, composition.EmailSender, composition.MatchInvitationEmailBuilder);
-            MatchLifecycleLogic lifecycleLogic = new MatchLifecycleLogic(composition.UnitOfWorkFactory, composition.MatchCallbackDispatcher);
+            MatchLifecycleLogic lifecycleLogic = new MatchLifecycleLogic(composition.UnitOfWorkFactory, composition.MatchCallbackDispatcher, tournamentLogic);
             MatchDeckLogic deckLogic = new MatchDeckLogic(composition.UnitOfWorkFactory);
             MatchSecretCharacterLogic secretLogic = new MatchSecretCharacterLogic(composition.UnitOfWorkFactory, composition.MatchCallbackDispatcher);
             MatchQuestionLogic questionLogic = new MatchQuestionLogic(composition.UnitOfWorkFactory, composition.MatchCallbackDispatcher);
             MatchPassTurnLogic passTurnLogic = new MatchPassTurnLogic(composition.UnitOfWorkFactory);
-            MatchGuessingLogic guessingLogic = new MatchGuessingLogic(composition.UnitOfWorkFactory);
+            MatchGuessingLogic guessingLogic = new MatchGuessingLogic(composition.UnitOfWorkFactory, tournamentLogic);
 
             var deps = new MatchService.MatchServiceDependencies
             {
@@ -193,17 +198,17 @@ namespace ConsoleGuessWho
                 QuestionLogic = questionLogic,
                 PassTurnLogic = passTurnLogic,
                 GuessingLogic = guessingLogic,
-                CallbackDispatcher = composition.MatchCallbackDispatcher
+                CallbackDispatcher = composition.MatchCallbackDispatcher,
+                TournamentLobbyLogic = tournamentLogic
             };
             return new MatchService(deps);
         }
 
         private static TournamentService CreateTournamentService(HostComposition composition)
         {
-            TournamentLobbyLogic lobbyLogic = new TournamentLobbyLogic(composition.UnitOfWorkFactory, composition.TournamentSubscriptionOperations);
             var deps = new TournamentService.TournamentServiceDependencies
             {
-                LobbyLogic = lobbyLogic,
+                LobbyLogic = composition.TournamentLobbyLogic,
                 SubscriptionOperations = composition.TournamentSubscriptionOperations
             };
             return new TournamentService(deps);
@@ -224,11 +229,13 @@ namespace ConsoleGuessWho
             public ITournamentSubscriptionStore TournamentSubscriptionStore { get; set; }
             public ITournamentCallbackDispatcher TournamentCallbackDispatcher { get; set; }
             public ITournamentSubscriptionOperations TournamentSubscriptionOperations { get; set; }
+            public TournamentLobbyLogic TournamentLobbyLogic { get; set; }
         }
 
         private sealed class HostComposition
         {
             private const string ERROR_MISSING_DEPENDENCY_FORMAT = "Missing required dependency in HostCompositionDraft: {0}.";
+
             public HostComposition(HostCompositionDraft draft)
             {
                 if (draft == null) throw new ArgumentNullException(nameof(draft));
@@ -245,7 +252,9 @@ namespace ConsoleGuessWho
                 TournamentSubscriptionStore = draft.TournamentSubscriptionStore ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.TournamentSubscriptionStore)), nameof(draft));
                 TournamentCallbackDispatcher = draft.TournamentCallbackDispatcher ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.TournamentCallbackDispatcher)), nameof(draft));
                 TournamentSubscriptionOperations = draft.TournamentSubscriptionOperations ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.TournamentSubscriptionOperations)), nameof(draft));
+                TournamentLobbyLogic = draft.TournamentLobbyLogic ?? throw new ArgumentException(string.Format(ERROR_MISSING_DEPENDENCY_FORMAT, nameof(draft.TournamentLobbyLogic)), nameof(draft));
             }
+
             public IGuessWhoUnitOfWorkFactory UnitOfWorkFactory { get; }
             public UserSecuritySettings SecuritySettings { get; }
             public IPasswordHasher PasswordHasher { get; }
@@ -259,6 +268,7 @@ namespace ConsoleGuessWho
             public ITournamentSubscriptionStore TournamentSubscriptionStore { get; }
             public ITournamentCallbackDispatcher TournamentCallbackDispatcher { get; }
             public ITournamentSubscriptionOperations TournamentSubscriptionOperations { get; }
+            public TournamentLobbyLogic TournamentLobbyLogic { get; }
         }
     }
 }

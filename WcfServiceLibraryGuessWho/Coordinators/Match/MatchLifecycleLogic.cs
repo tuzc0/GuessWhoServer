@@ -5,6 +5,7 @@ using GuessWhoServerDomain.Domain.Parameters.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using GuessWhoServices.Infrastructure;
 using GuessWhoServices.Security;
+using GuessWhoServices.Coordinators.Tournament;
 using log4net;
 using System;
 
@@ -15,26 +16,29 @@ namespace GuessWhoServices.Coordinators.Match
         private static readonly ILog Logger = LogManager.GetLogger(typeof(MatchLifecycleLogic));
 
         private const string CONTEXT_CREATE = "MatchLifecycleLogic.CreateMatch";
-
         private const long INVALID_ID = 0;
         private const int MAX_CREATE_ATTEMPTS = 12;
 
         private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
         private readonly IMatchCallbackDispatcher callbackDispatcher;
+        private readonly TournamentLobbyLogic tournamentLobbyLogic;
 
         public MatchLifecycleLogic(
             IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
-            IMatchCallbackDispatcher callbackDispatcher)
+            IMatchCallbackDispatcher callbackDispatcher,
+            TournamentLobbyLogic tournamentLobbyLogic)
         {
-            this.unitOfWorkFactory = unitOfWorkFactory ?? 
+            this.unitOfWorkFactory = unitOfWorkFactory ??
                 throw new ArgumentNullException(nameof(unitOfWorkFactory));
-            this.callbackDispatcher = callbackDispatcher ?? 
+            this.callbackDispatcher = callbackDispatcher ??
                 throw new ArgumentNullException(nameof(callbackDispatcher));
+            this.tournamentLobbyLogic = tournamentLobbyLogic ??
+                throw new ArgumentNullException(nameof(tournamentLobbyLogic));
         }
 
         public MatchSnapshot CreateMatch(long hostUserId, DateTime nowUtc)
         {
-            if(hostUserId <= INVALID_ID)
+            if (hostUserId <= INVALID_ID)
             {
                 return MatchSnapshot.CreateInvalid();
             }
@@ -63,7 +67,7 @@ namespace GuessWhoServices.Coordinators.Match
                 }
             }
 
-            Logger.WarnFormat("{0}: create match failed after retries. ProfileId={1}.", 
+            Logger.WarnFormat("{0}: create match failed after retries. ProfileId={1}.",
                 CONTEXT_CREATE, hostUserId);
 
             return MatchSnapshot.CreateInvalid();
@@ -116,6 +120,8 @@ namespace GuessWhoServices.Coordinators.Match
             callbackDispatcher.Broadcast(matchId, callback =>
                 callback.OnGameEnded(matchId, result.WinnerUserId));
 
+            tournamentLobbyLogic.HandleMatchFinished(matchId, result.WinnerUserId);
+
             return result;
         }
 
@@ -128,13 +134,13 @@ namespace GuessWhoServices.Coordinators.Match
 
             using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-            SetMatchPrivateResult result = 
+            SetMatchPrivateResult result =
                 unitOfWork.Matches.SetMatchPrivate(matchId, callerUserId);
 
             if (result.IsSuccess)
             {
                 unitOfWork.Flush();
-                
+
                 return SetMatchPrivateResult.Success();
             }
 

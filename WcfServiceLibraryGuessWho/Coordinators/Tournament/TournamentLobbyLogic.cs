@@ -1,11 +1,11 @@
-﻿using GuessWhoCore.Contracts.Response;
+﻿using GuessWhoContracts.Services;
+using GuessWhoCore.Contracts.Response;
+using GuessWhoDataAccess.Data.DataAccess.Matches;
 using GuessWhoDataAccess.Data.Factories;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.Tournaments;
 using GuessWhoServerDomain.Domain.Parameters.Matches;
-using GuessWhoServerDomain.Domain.Enums.Matches;
-using GuessWhoServices.Coordinators.Tournament;
-using GuessWhoContracts.Services;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -121,8 +121,8 @@ namespace GuessWhoServices.Coordinators.Tournament
 
                 if (match1.IsValid && match2.IsValid)
                 {
-                    unitOfWork.Tournaments.LinkMatchToTournament(tournamentId, match1.MatchId, false);
-                    unitOfWork.Tournaments.LinkMatchToTournament(tournamentId, match2.MatchId, false);
+                    unitOfWork.Tournaments.LinkMatchToTournament(tournamentId, match1.MatchId, 1);
+                    unitOfWork.Tournaments.LinkMatchToTournament(tournamentId, match2.MatchId, 2);
 
                     unitOfWork.Tournaments.UpdateStatus(tournamentId, STATUS_ACTIVE);
                     unitOfWork.Flush();
@@ -136,6 +136,7 @@ namespace GuessWhoServices.Coordinators.Tournament
                 throw;
             }
         }
+
         public BasicResponse HostTournament(long hostUserId, int turnSeconds)
         {
             try
@@ -163,6 +164,52 @@ namespace GuessWhoServices.Coordinators.Tournament
             {
                 Logger.Error($"TournamentLobbyLogic.HostTournament: Unexpected error.", ex);
                 return new BasicResponse { Success = false, Code = "INTERNAL_ERROR" };
+            }
+        }
+
+        public void HandleMatchFinished(long matchId, long winnerUserId)
+        {
+            try
+            {
+                using (var unitOfWork = guessWhoUnitOfWorkFactory.Create())
+                {
+                    long tournamentId = unitOfWork.Tournaments.GetTournamentIdByMatch(matchId);
+                    if (tournamentId <= 0) return;
+
+                    int position = unitOfWork.Tournaments.GetBracketPosition(matchId);
+
+                    if (position == 3) 
+                    {
+                        unitOfWork.Tournaments.UpdateStatus(tournamentId, 3); 
+                        unitOfWork.Tournaments.SetWinner(tournamentId, winnerUserId);
+                        unitOfWork.Flush();
+                        return;
+                    }
+
+                    var winners = unitOfWork.Tournaments.GetTournamentWinners(tournamentId).ToList();
+                    if (winners.Count == 2)
+                    {
+                        var finalMatch = unitOfWork.Matches.CreateMatchClassic(new CreateMatchArgs
+                        {
+                            UserProfileId = winners[0],
+                            MatchStatus = MatchStatus.Lobby,
+                            Visibility = MatchVisibility.Private,
+                            Mode = MatchMode.Classic,
+                            CreateDate = DateTime.UtcNow,
+                            MatchCode = MatchData.GenerateMatchCode()
+                        });
+
+                        unitOfWork.Matches.AddPlayerToPublicMatchById(finalMatch.MatchId, winners[1]);
+                        unitOfWork.Tournaments.LinkMatchToTournament(tournamentId, finalMatch.MatchId, 3);
+                        unitOfWork.Flush();
+
+                        tournamentSubscriptionOperations.NotifyTournamentFinalStarted(tournamentId, finalMatch.MatchId);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error al procesar fin de partida de torneo {matchId}", ex);
             }
         }
     }

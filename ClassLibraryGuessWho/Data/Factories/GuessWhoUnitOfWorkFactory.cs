@@ -8,7 +8,7 @@ using GuessWhoDataAccess.Data.DataAccess.Leaderboard;
 using GuessWhoDataAccess.Data.DataAccess.Matches;
 using GuessWhoDataAccess.Data.DataAccess.Profile;
 using GuessWhoDataAccess.Data.DataAccess.Turns;
-using GuessWhoDataAccess.Data.DataAccess.Tournaments; // Asegúrate de tener este using
+using GuessWhoDataAccess.Data.DataAccess.Tournaments; 
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using System;
 

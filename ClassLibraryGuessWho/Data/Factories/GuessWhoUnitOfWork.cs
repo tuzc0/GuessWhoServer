@@ -25,7 +25,7 @@ namespace GuessWhoDataAccess.Data.Factories
             IMatchTurnAdvanceRepository matchTurnAdvance,
             IMatchGuessingRepository matchGuessing,
             ILeaderboardRepository leaderboards,
-            ITournamentRepository tournaments) 
+            ITournamentRepository tournaments)
         {
             this.context = context ??
                 throw new ArgumentNullException(nameof(context));
@@ -60,7 +60,7 @@ namespace GuessWhoDataAccess.Data.Factories
                 throw new ArgumentNullException(nameof(matchGuessing));
             Leaderboards = leaderboards ??
                 throw new ArgumentNullException(nameof(leaderboards));
-            Tournaments = tournaments ?? 
+            Tournaments = tournaments ??
                 throw new ArgumentNullException(nameof(tournaments));
         }
 
@@ -81,7 +81,7 @@ namespace GuessWhoDataAccess.Data.Factories
         public IMatchTurnAdvanceRepository MatchTurnAdvances { get; }
         public IMatchGuessingRepository MatchGuessing { get; }
         public ILeaderboardRepository Leaderboards { get; }
-        public ITournamentRepository Tournaments { get; } 
+        public ITournamentRepository Tournaments { get; }
 
         public IGuessWhoDbTransaction BeginTransaction()
         {

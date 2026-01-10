@@ -16,5 +16,8 @@ namespace GuessWhoContracts.Services
 
         [OperationContract(IsOneWay = true)]
         void OnTournamentStarted(long match1Id, long match2Id);
+
+        [OperationContract(IsOneWay = true)]
+        void OnTournamentFinalStarted(long finalMatchId);
     }
 }

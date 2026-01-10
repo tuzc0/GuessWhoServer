@@ -34,11 +34,14 @@ namespace GuessWhoDataAccess.Data.DataAccess.Tournaments
 
         public bool AddPlayerToTournament(long tournamentId, long userId)
         {
+            int currentPlayersCount = dataContext.TOURNAMENT_4P_PLAYER
+                .Count(p => p.TOURNAMENTID == (int)tournamentId);
+
             var entity = new TOURNAMENT_4P_PLAYER
             {
                 TOURNAMENTID = (int)tournamentId,
                 USERID = userId,
-                SLOTNUMBER = (byte)0
+                SLOTNUMBER = (byte)(currentPlayersCount + 1)
             };
 
             dataContext.TOURNAMENT_4P_PLAYER.Add(entity);
@@ -63,17 +66,19 @@ namespace GuessWhoDataAccess.Data.DataAccess.Tournaments
             return dataContext.TOURNAMENT_4P_PLAYER.Count(p => p.TOURNAMENTID == (int)tournamentId);
         }
 
-        public void LinkMatchToTournament(long tournamentId, long matchId, bool isFinal)
+        public void LinkMatchToTournament(long tournamentId, long matchId, int bracketPosition)
         {
-            var entity = new TOURNAMENT_4P_MATCH
+            byte round = (byte)(bracketPosition <= 2 ? 1 : 2);
+
+            var tournamentMatch = new TOURNAMENT_4P_MATCH
             {
                 TOURNAMENTID = (int)tournamentId,
-                MATCHID = matchId,
-                ROUNDNUMBER = (byte)(isFinal ? 2 : 1),
-                BRACKETPOSITION = (byte)0
+                MATCHID = (int)matchId,
+                BRACKETPOSITION = (byte)bracketPosition,
+                ROUNDNUMBER = round 
             };
 
-            dataContext.TOURNAMENT_4P_MATCH.Add(entity);
+            dataContext.TOURNAMENT_4P_MATCH.Add(tournamentMatch);
         }
 
         public void UpdateStatus(long tournamentId, int statusId)
@@ -87,10 +92,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Tournaments
 
         public bool HandleDisconnect(long userId, DateTime nowUtc)
         {
-            if (userId <= INVALID_ID)
-            {
-                return false;
-            }
+            if (userId <= INVALID_ID) return false;
 
             try
             {
@@ -110,6 +112,41 @@ namespace GuessWhoDataAccess.Data.DataAccess.Tournaments
             {
                 return false;
             }
+        }
+
+        public int GetBracketPosition(long matchId)
+        {
+            return dataContext.TOURNAMENT_4P_MATCH
+                .Where(tm => tm.MATCHID == matchId)
+                .Select(tm => tm.BRACKETPOSITION)
+                .FirstOrDefault();
+        }
+
+        public void SetWinner(long tournamentId, long winnerUserId)
+        {
+            var tournament = dataContext.TOURNAMENT_4P
+                .FirstOrDefault(t => t.TOURNAMENTID == tournamentId);
+
+            if (tournament != null)
+            {
+                tournament.WINNERUSERID = winnerUserId;
+            }
+        }
+        public long GetTournamentIdByMatch(long matchId)
+        {
+            return dataContext.TOURNAMENT_4P_MATCH
+                .Where(m => m.MATCHID == (int)matchId)
+                .Select(m => (long)m.TOURNAMENTID)
+                .FirstOrDefault();
+        }
+
+        public IEnumerable<long> GetTournamentWinners(long tournamentId)
+        {
+            return dataContext.TOURNAMENT_4P_MATCH
+                .Where(m => m.TOURNAMENTID == (int)tournamentId
+                         && m.MATCH.WINNERUSERID != null)
+                .Select(m => (long)m.MATCH.WINNERUSERID.Value)
+                .ToList();
         }
     }
 }
