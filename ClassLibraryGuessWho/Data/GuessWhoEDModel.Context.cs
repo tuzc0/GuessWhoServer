@@ -52,8 +52,6 @@ namespace GuessWhoDataAccess.Data
         public virtual DbSet<MATCH_CHAT_MESSAGE> MATCH_CHAT_MESSAGE { get; set; }
         public virtual DbSet<MATCH_TURN_ORDER> MATCH_TURN_ORDER { get; set; }
         public virtual DbSet<MATCH_TURN_STATE> MATCH_TURN_STATE { get; set; }
-        public virtual DbSet<MODERATION_REPORT> MODERATION_REPORT { get; set; }
-        public virtual DbSet<TOURNAMENTSTATUS> TOURNAMENTSTATUS { get; set; }
     
         public virtual int SP_ACCEPTFRIENDREQUEST(Nullable<long> fRIENDREQUESTID)
         {

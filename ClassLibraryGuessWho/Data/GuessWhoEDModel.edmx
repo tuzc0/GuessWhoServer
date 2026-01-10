@@ -219,17 +219,6 @@
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
           <Property Name="EXPIRESATUTC" Type="datetime2" Precision="7" StoreGeneratedPattern="Computed" />
         </EntityType>
-        <EntityType Name="MODERATION_REPORT">
-          <Key>
-            <PropertyRef Name="REPORTID" />
-          </Key>
-          <Property Name="REPORTID" Type="bigint" StoreGeneratedPattern="Identity" Nullable="false" />
-          <Property Name="MATCHID" Type="bigint" Nullable="false" />
-          <Property Name="REPORTERUSERID" Type="bigint" Nullable="false" />
-          <Property Name="TARGETUSERID" Type="bigint" Nullable="false" />
-          <Property Name="REASON" Type="nvarchar" MaxLength="500" Nullable="false" />
-          <Property Name="CREATEDATUTC" Type="datetime2" Precision="7" Nullable="false" />
-        </EntityType>
         <EntityType Name="MODERATIONACTIONTYPE">
           <Key>
             <PropertyRef Name="ACTIONTYPEID" />
@@ -273,13 +262,6 @@
           <Property Name="TOURNAMENTID" Type="int" Nullable="false" />
           <Property Name="USERID" Type="bigint" Nullable="false" />
           <Property Name="SLOTNUMBER" Type="tinyint" Nullable="false" />
-        </EntityType>
-        <EntityType Name="TOURNAMENTSTATUS">
-          <Key>
-            <PropertyRef Name="STATUSID" />
-          </Key>
-          <Property Name="STATUSID" Type="tinyint" Nullable="false" />
-          <Property Name="NAME" Type="nvarchar" MaxLength="50" Nullable="false" />
         </EntityType>
         <EntityType Name="USER_PROFILE">
           <Key>
@@ -729,18 +711,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <Association Name="FK_TOURNAMENT_4P_STATUS">
-          <End Role="TOURNAMENTSTATUS" Type="Self.TOURNAMENTSTATUS" Multiplicity="1" />
-          <End Role="TOURNAMENT_4P" Type="Self.TOURNAMENT_4P" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="TOURNAMENTSTATUS">
-              <PropertyRef Name="STATUSID" />
-            </Principal>
-            <Dependent Role="TOURNAMENT_4P">
-              <PropertyRef Name="STATUSID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         <Association Name="FK_TOURNAMENT_4P_WINNER">
           <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="0..1" />
           <End Role="TOURNAMENT_4P" Type="Self.TOURNAMENT_4P" Multiplicity="*" />
@@ -792,13 +762,11 @@
           <EntitySet Name="MATCHSTATUS" EntityType="Self.MATCHSTATUS" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MATCHVISIBILITY" EntityType="Self.MATCHVISIBILITY" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MODERATION_ACTION" EntityType="Self.MODERATION_ACTION" Schema="dbo" store:Type="Tables" />
-          <EntitySet Name="MODERATION_REPORT" EntityType="Self.MODERATION_REPORT" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MODERATIONACTIONTYPE" EntityType="Self.MODERATIONACTIONTYPE" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MODERATIONSCOPE" EntityType="Self.MODERATIONSCOPE" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="TOURNAMENT_4P" EntityType="Self.TOURNAMENT_4P" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="TOURNAMENT_4P_MATCH" EntityType="Self.TOURNAMENT_4P_MATCH" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="TOURNAMENT_4P_PLAYER" EntityType="Self.TOURNAMENT_4P_PLAYER" Schema="dbo" store:Type="Tables" />
-          <EntitySet Name="TOURNAMENTSTATUS" EntityType="Self.TOURNAMENTSTATUS" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="USER_PROFILE" EntityType="Self.USER_PROFILE" Schema="dbo" store:Type="Tables" />
           <AssociationSet Name="FK_ACCOUNT_USER_PROFILE" Association="Self.FK_ACCOUNT_USER_PROFILE">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
@@ -943,10 +911,6 @@
           <AssociationSet Name="FK_TOURNAMENT_4P_PLAYER_USER" Association="Self.FK_TOURNAMENT_4P_PLAYER_USER">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="TOURNAMENT_4P_PLAYER" EntitySet="TOURNAMENT_4P_PLAYER" />
-          </AssociationSet>
-          <AssociationSet Name="FK_TOURNAMENT_4P_STATUS" Association="Self.FK_TOURNAMENT_4P_STATUS">
-            <End Role="TOURNAMENTSTATUS" EntitySet="TOURNAMENTSTATUS" />
-            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
           </AssociationSet>
           <AssociationSet Name="FK_TOURNAMENT_4P_WINNER" Association="Self.FK_TOURNAMENT_4P_WINNER">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
@@ -1181,12 +1145,6 @@
           </AssociationSet>
           <AssociationSet Name="FK_TOURNAMENT_4P_WINNER" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_WINNER">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
-            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
-          </AssociationSet>
-          <EntitySet Name="MODERATION_REPORT" EntityType="GuessWhoDBModel.MODERATION_REPORT" />
-          <EntitySet Name="TOURNAMENTSTATUS" EntityType="GuessWhoDBModel.TOURNAMENTSTATUS" />
-          <AssociationSet Name="FK_TOURNAMENT_4P_STATUS" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_STATUS">
-            <End Role="TOURNAMENTSTATUS" EntitySet="TOURNAMENTSTATUS" />
             <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
           </AssociationSet>
           </EntityContainer>
@@ -1444,7 +1402,6 @@
           <NavigationProperty Name="TOURNAMENT_4P_PLAYER" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" FromRole="TOURNAMENT_4P" ToRole="TOURNAMENT_4P_PLAYER" />
           <Property Name="WINNERUSERID" Type="Int64" />
           <NavigationProperty Name="USER_PROFILE1" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_WINNER" FromRole="TOURNAMENT_4P" ToRole="USER_PROFILE" />
-          <NavigationProperty Name="TOURNAMENTSTATUS" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_STATUS" FromRole="TOURNAMENT_4P" ToRole="TOURNAMENTSTATUS" />
         </EntityType>
         <EntityType Name="TOURNAMENT_4P_MATCH">
           <Key>
@@ -2008,37 +1965,6 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
-        <EntityType Name="MODERATION_REPORT">
-          <Key>
-            <PropertyRef Name="REPORTID" />
-          </Key>
-          <Property Name="REPORTID" Type="Int64" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
-          <Property Name="MATCHID" Type="Int64" Nullable="false" />
-          <Property Name="REPORTERUSERID" Type="Int64" Nullable="false" />
-          <Property Name="TARGETUSERID" Type="Int64" Nullable="false" />
-          <Property Name="REASON" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
-          <Property Name="CREATEDATUTC" Type="DateTime" Nullable="false" Precision="7" />
-        </EntityType>
-        <EntityType Name="TOURNAMENTSTATUS">
-          <Key>
-            <PropertyRef Name="STATUSID" />
-          </Key>
-          <Property Name="STATUSID" Type="Byte" Nullable="false" />
-          <Property Name="NAME" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
-          <NavigationProperty Name="TOURNAMENT_4P" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_STATUS" FromRole="TOURNAMENTSTATUS" ToRole="TOURNAMENT_4P" />
-        </EntityType>
-        <Association Name="FK_TOURNAMENT_4P_STATUS">
-          <End Type="GuessWhoDBModel.TOURNAMENTSTATUS" Role="TOURNAMENTSTATUS" Multiplicity="1" />
-          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="*" />
-          <ReferentialConstraint>
-            <Principal Role="TOURNAMENTSTATUS">
-              <PropertyRef Name="STATUSID" />
-            </Principal>
-            <Dependent Role="TOURNAMENT_4P">
-              <PropertyRef Name="STATUSID" />
-            </Dependent>
-          </ReferentialConstraint>
-        </Association>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -2335,26 +2261,6 @@
                 <ScalarProperty Name="CURRENTPOSITION" ColumnName="CURRENTPOSITION" />
                 <ScalarProperty Name="TURNNUMBER" ColumnName="TURNNUMBER" />
                 <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
-          <EntitySetMapping Name="MODERATION_REPORT">
-            <EntityTypeMapping TypeName="GuessWhoDBModel.MODERATION_REPORT">
-              <MappingFragment StoreEntitySet="MODERATION_REPORT">
-                <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
-                <ScalarProperty Name="REASON" ColumnName="REASON" />
-                <ScalarProperty Name="TARGETUSERID" ColumnName="TARGETUSERID" />
-                <ScalarProperty Name="REPORTERUSERID" ColumnName="REPORTERUSERID" />
-                <ScalarProperty Name="MATCHID" ColumnName="MATCHID" />
-                <ScalarProperty Name="REPORTID" ColumnName="REPORTID" />
-              </MappingFragment>
-            </EntityTypeMapping>
-          </EntitySetMapping>
-          <EntitySetMapping Name="TOURNAMENTSTATUS">
-            <EntityTypeMapping TypeName="GuessWhoDBModel.TOURNAMENTSTATUS">
-              <MappingFragment StoreEntitySet="TOURNAMENTSTATUS">
-                <ScalarProperty Name="NAME" ColumnName="NAME" />
-                <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
