@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuessWhoCore", "GuessWhoCor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuessWhoServerDomain", "GuessWhoServerDomain\GuessWhoServerDomain.csproj", "{2B0E43A3-9959-41CD-B55C-59CE9266D828}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuessWhoTests", "GuessWhoTests\GuessWhoTests.csproj", "{0D25A928-541C-4B98-997A-A86350F24DBC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{2B0E43A3-9959-41CD-B55C-59CE9266D828}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2B0E43A3-9959-41CD-B55C-59CE9266D828}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2B0E43A3-9959-41CD-B55C-59CE9266D828}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D25A928-541C-4B98-997A-A86350F24DBC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0D25A928-541C-4B98-997A-A86350F24DBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0D25A928-541C-4B98-997A-A86350F24DBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0D25A928-541C-4B98-997A-A86350F24DBC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
