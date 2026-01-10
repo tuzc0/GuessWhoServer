@@ -9,6 +9,7 @@ using GuessWhoServerDomain.Domain.Results.Match;
 using GuessWhoServices.Coordinators.Match;
 using GuessWhoServices.Infrastructure;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
+using GuessWhoServices.Coordinators.Tournament; // Asegúrate de tener este using
 
 namespace GuessWhoTests.Services.Coordinators.Match
 {
@@ -23,6 +24,8 @@ namespace GuessWhoTests.Services.Coordinators.Match
         private Mock<IGuessWhoUnitOfWork> uowMock;
         private Mock<IMatchRepository> matchRepoMock;
         private Mock<IMatchCallbackDispatcher> dispatcherMock;
+        private Mock<ITournamentSubscriptionOperations> tournamentOpsMock;
+        private TournamentLobbyLogic tournamentLogic;
         private MatchLifecycleLogic logic;
 
         [TestInitialize]
@@ -32,25 +35,27 @@ namespace GuessWhoTests.Services.Coordinators.Match
             uowMock = new Mock<IGuessWhoUnitOfWork>();
             matchRepoMock = new Mock<IMatchRepository>();
             dispatcherMock = new Mock<IMatchCallbackDispatcher>();
+            tournamentOpsMock = new Mock<ITournamentSubscriptionOperations>();
 
             factoryMock.Setup(f => f.Create()).Returns(uowMock.Object);
             uowMock.Setup(u => u.Matches).Returns(matchRepoMock.Object);
 
-            logic = new MatchLifecycleLogic(factoryMock.Object, dispatcherMock.Object);
+            tournamentLogic = new TournamentLobbyLogic(factoryMock.Object, tournamentOpsMock.Object);
+
+            logic = new MatchLifecycleLogic(factoryMock.Object, dispatcherMock.Object, tournamentLogic);
         }
 
         [TestMethod]
         [ExpectedException(typeof(ArgumentNullException))]
         public void TestConstructor_NullFactory_ShouldThrowException()
         {
-            new MatchLifecycleLogic(null, dispatcherMock.Object);
+            new MatchLifecycleLogic(null, dispatcherMock.Object, tournamentLogic);
         }
 
         [TestMethod]
         public void TestCreateMatch_InvalidHostId_ShouldReturnInvalidSnapshot()
         {
             MatchSnapshot result = logic.CreateMatch(0, DateTime.UtcNow);
-
             Assert.IsFalse(result.IsValid);
         }
 
@@ -136,6 +141,9 @@ namespace GuessWhoTests.Services.Coordinators.Match
         {
             matchRepoMock.Setup(r => r.EndMatch(It.IsAny<EndMatchArgs>()))
                 .Returns(EndMatchResult.Success(USER_ID));
+
+            var tournamentRepoMock = new Mock<ITournamentRepository>();
+            uowMock.Setup(u => u.Tournaments).Returns(tournamentRepoMock.Object);
 
             EndMatchResult result = logic.EndMatch(MATCH_ID);
 

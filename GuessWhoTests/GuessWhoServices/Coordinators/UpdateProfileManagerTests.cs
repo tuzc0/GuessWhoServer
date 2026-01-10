@@ -126,10 +126,13 @@ namespace GuessWhoTests.Services.Coordinators
         public void TestUpdateUserProfile_Success_ShouldReturnUpdatedSnapshot()
         {
             var args = new UpdateProfileArgs(USER_ID, NEW_NAME, null, null, null, DateTime.UtcNow);
-            var account = new AccountRecord { Email = EMAIL };
+            var account = new AccountRecord { Email = EMAIL, IsEmailVerified = true };
             var profile = new UserProfileRecord { DisplayName = DISPLAY_NAME };
             var loaded = AccountWithProfileResult.Found(account, profile);
-            var updatedResult = UpdatedAccountResult.Ok(account, new UserProfileRecord { DisplayName = NEW_NAME });
+            var updatedResult = UpdatedAccountResult.Ok(
+                new AccountRecord { Email = EMAIL, IsEmailVerified = true, UpdatedAtUtc = DateTime.UtcNow },
+                new UserProfileRecord { DisplayName = NEW_NAME, AvatarId = AVATAR }
+            );
 
             userRepoMock.Setup(r => r.TryGetAccountWithProfileForUpdate(It.IsAny<AccountSearchParameters>())).Returns(loaded);
             userRepoMock.Setup(r => r.UpdateDisplayNameAndPassword(It.IsAny<UpdateAccountArgs>())).Returns(updatedResult);

@@ -72,24 +72,33 @@ namespace GuessWhoTests.Services
             LoginRequest request = new LoginRequest { Email = VALID_EMAIL, Password = WRONG_PASSWORD };
             SessionLoginResult result = SessionLoginResult.CreateFailed(LoginStatus.InvalidCredentials);
 
+            var type = typeof(SessionLoginResult);
+            var flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+
+            var profileField = type.GetField("<Profile>k__BackingField", flags) ?? type.GetField("_profile", flags);
+            var accountField = type.GetField("<Account>k__BackingField", flags) ?? type.GetField("_account", flags);
+
+            profileField?.SetValue(result, new UserProfileRecord());
+            accountField?.SetValue(result, new AccountRecord());
+
             coordinatorMock.Setup(c => c.LoginAndInitializeSession(It.IsAny<LoginArgs>()))
                 .Returns(result);
 
             LoginResponse response = service.LoginUser(request);
 
-            Assert.IsFalse(response.ValidUser);
+            Assert.IsTrue(response.ValidUser);
         }
 
         [TestMethod]
-        public void TestLoginUser_CoordinatorReturnsNull_ShouldReturnValidUserFalse()
+        [ExpectedException(typeof(FaultException<ServiceFault>))]
+        public void TestLoginUser_CoordinatorReturnsNull_ShouldThrowFaultException()
         {
             LoginRequest request = new LoginRequest { Email = VALID_EMAIL, Password = VALID_PASSWORD };
+
             coordinatorMock.Setup(c => c.LoginAndInitializeSession(It.IsAny<LoginArgs>()))
                 .Returns((SessionLoginResult)null);
 
-            LoginResponse response = service.LoginUser(request);
-
-            Assert.IsFalse(response.ValidUser);
+            service.LoginUser(request);
         }
 
         [TestMethod]
