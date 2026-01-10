@@ -29,6 +29,11 @@ namespace GuessWhoCore.Validation
             RegexOptions.Compiled | RegexOptions.CultureInvariant,
             TimeSpan.FromMilliseconds(REGEX_VALIDATION_TIMEOUT_MS));
 
+        private static readonly Regex PasswordRegex = new Regex(
+            @"^(?!.*\s)(?=.*\p{Ll})(?=.*\p{Lu})(?=.*\p{Nd})(?=.*[^\p{L}\p{N}]).+$",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(REGEX_VALIDATION_TIMEOUT_MS));
+
         public static IReadOnlyList<ValidationError> Validate(UserRulesDraft draft)
         {
             if (draft == null)
@@ -152,6 +157,7 @@ namespace GuessWhoCore.Validation
             }
 
             ValidatePasswordLength(password, errors);
+            ValidatePasswordComplexityIfLengthOk(password, errors);
         }
 
         private static void ValidateConfirmPassword(PasswordConfirmationDraft passwords, ICollection<ValidationError> errors)
@@ -214,6 +220,7 @@ namespace GuessWhoCore.Validation
             }
 
             ValidatePasswordLength(newPassword, errors);
+            ValidatePasswordComplexityIfLengthOk(newPassword, errors);
         }
 
         private static void ValidatePasswordLength(string password, ICollection<ValidationError> errors)
@@ -226,6 +233,19 @@ namespace GuessWhoCore.Validation
             if (password.Length > PASSWORD_MAX_LENGTH)
             {
                 errors.Add(ValidationError.Create(UserValidationCodes.PASSWORD_TOO_LONG));
+            }
+        }
+
+        private static void ValidatePasswordComplexityIfLengthOk(string password, ICollection<ValidationError> errors)
+        {
+            if (password.Length < PASSWORD_MIN_LENGTH || password.Length > PASSWORD_MAX_LENGTH)
+            {
+                return;
+            }
+
+            if (!PasswordRegex.IsMatch(password))
+            {
+                errors.Add(ValidationError.Create(UserValidationCodes.PASSWORD_INVALID_FORMAT));
             }
         }
     }

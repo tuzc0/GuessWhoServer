@@ -94,6 +94,7 @@ namespace GuessWhoServices.Coordinators
                     EnsureRecoveryRequestIsNotNull(request);
 
                     string normalizedEmail = NormalizeEmail(request.Email);
+
                     if (IsEmailMissing(normalizedEmail))
                     {
                         return CreateAmbiguousSuccessResponse();
@@ -108,8 +109,10 @@ namespace GuessWhoServices.Coordinators
                     long accountId;
 
                     using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
+                    using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
                     {
                         accountId = TryGetAccountIdOrZero(unitOfWork, normalizedEmail);
+
                         if (accountId <= 0)
                         {
                             return CreateAmbiguousSuccessResponse();
@@ -123,14 +126,16 @@ namespace GuessWhoServices.Coordinators
                         PersistRecoveryTokenOrThrow(
                             unitOfWork,
                             new PersistRecoveryToken(
-                                accountId,
-                                codeResult.HashCode,
-                                nowUtc,
-                                lifeTime));
+                                accountId, 
+                                codeResult.HashCode, 
+                                nowUtc, 
+                                lifeTime)
+                            );
 
                         unitOfWork.Flush();
-                        
+                        transaction.Commit();
                     }
+
 
                     SendRecoveryEmailOrThrow(
                         new SendRecoveryEmail(
@@ -177,8 +182,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (activeToken == null || !activeToken.IsValid)
                     {
-                        throw FaultsFactory.Create(
-                            PasswordRecoveryFaultKeys.CODE_CODE_EXPIRED);
+                        throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_CODE_EXPIRED);
                     }
 
                     var tokenMatchArgs = new ValidateTokenMatchArgs(accountId, trimmedCode, activeToken, nowUtc);
@@ -189,8 +193,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (consumedRows <= 0)
                     {
-                        throw FaultsFactory.Create(
-                            PasswordRecoveryFaultKeys.CODE_CODE_INVALID);
+                        throw FaultsFactory.Create(PasswordRecoveryFaultKeys.CODE_CODE_INVALID);
                     }
 
                     byte[] newPasswordHash = passwordHasher.HashPassword(newPassword);
@@ -253,6 +256,12 @@ namespace GuessWhoServices.Coordinators
             {
                 throw new ArgumentNullException(nameof(unitOfWork));
             }
+
+            unitOfWork.EmailVerification.ConsumeActiveTokens(new ConsumeActiveTokensArgs
+            {
+                AccountId = persistRecoveryToken.AccountId,
+                ConsumedUtc = persistRecoveryToken.NowUtc
+            });
 
             var createTokenArgs = new CreateEmailTokenArgs
             {

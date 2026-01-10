@@ -202,39 +202,35 @@ namespace GuessWhoServices.Coordinators
 
             switch (key)
             {
-                case "Registration.InvalidRequest":
-
+                case UserValidationCodes.INVALID_REQUEST:
                     throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_ARGS_REQUIRED);
 
-                case "Registration.Email.Required":
-
+                case UserValidationCodes.EMAIL_REQUIRED:
                     throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_EMAIL_REQUIRED);
 
-                case "Registration.Email.TooLong":
-                case "Registration.Email.InvalidFormat":
-
+                case UserValidationCodes.EMAIL_TOO_LONG:
+                case UserValidationCodes.EMAIL_INVALID_FORMAT:
                     throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_EMAIL_INVALID);
 
-                case "Registration.DisplayName.Required":
+                case UserValidationCodes.DISPLAY_NAME_REQUIRED:
                     throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_DISPLAYNAME_REQUIRED);
 
-                case "Registration.DisplayName.TooShort":
-                case "Registration.DisplayName.TooLong":
-                case "Registration.DisplayName.InvalidFormat":
-
+                case UserValidationCodes.DISPLAY_NAME_TOO_SHORT:
+                case UserValidationCodes.DISPLAY_NAME_TOO_LONG:
+                case UserValidationCodes.DISPLAY_NAME_INVALID_FORMAT:
                     throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_DISPLAYNAME_INVALID);
 
-                case "Registration.Password.Required":
+                case UserValidationCodes.PASSWORD_REQUIRED:
                     throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_PASSWORD_REQUIRED);
 
-                case "Registration.Password.TooShort":
-                case "Registration.Password.TooLong":
-                case "Registration.ConfirmPassword.Required":
-                case "Registration.ConfirmPassword.Mismatch":
+                case UserValidationCodes.PASSWORD_TOO_SHORT:
+                case UserValidationCodes.PASSWORD_TOO_LONG:
+                case UserValidationCodes.CONFIRM_PASSWORD_REQUIRED:
+                case UserValidationCodes.CONFIRM_PASSWORD_MISMATCH:
                     throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_PASSWORD_INVALID);
 
                 default:
-                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_UNEXPECTED_ERROR);
+                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_VALIDATION_FAILED);
             }
         }
 
@@ -250,6 +246,41 @@ namespace GuessWhoServices.Coordinators
 
         private RegistrationDbResult CreateAccountAndToken(IGuessWhoUnitOfWork unitOfWork, NormalizedRegistration registration)
         {
+            EnsureCreateAccountInputsOrThrow(unitOfWork, registration);
+
+            byte[] passwordHash = HashPassword(registration.Password);
+            VerificationCodeResult codeResult = CreateVerificationCodeOrThrow();
+
+            using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
+
+            string defaultAvatarId = GetDefaultAvatarIdOrThrow(unitOfWork);
+
+            CreateAccountArgs createAccountArgs = BuildCreateAccountArgs(
+                registration,
+                passwordHash,
+                defaultAvatarId);
+
+            CreatedAccountResult created = CreateAccountOrThrowEmailExists(
+                unitOfWork,
+                createAccountArgs,
+                registration.Email);
+
+            ResetEmailVerificationState(unitOfWork, created.Account.AccountId, registration.NowUtc);
+
+            CreateEmailTokenArgs tokenArgs = BuildCreateEmailTokenArgs(
+                created.Account.AccountId,
+                codeResult.HashCode,
+                registration.NowUtc);
+
+            AddVerificationTokenOrThrow(unitOfWork, tokenArgs, created.Account.AccountId);
+
+            Commit(unitOfWork, transaction);
+
+            return BuildRegistrationDbResult(created, codeResult);
+        }
+
+        private static void EnsureCreateAccountInputsOrThrow(IGuessWhoUnitOfWork unitOfWork, NormalizedRegistration registration)
+        {
             if (unitOfWork == null)
             {
                 throw new ArgumentNullException(nameof(unitOfWork));
@@ -259,65 +290,105 @@ namespace GuessWhoServices.Coordinators
             {
                 throw new ArgumentNullException(nameof(registration));
             }
+        }
 
-            byte[] passwordHash = passwordHasher.HashPassword(registration.Password);
-            VerificationCodeResult codeResult = verificationCodeService.CreateVerificationCodeOrFault();
+        private byte[] HashPassword(string password)
+        {
+            return passwordHasher.HashPassword(password ?? EMPTY);
+        }
 
-            using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
+        private VerificationCodeResult CreateVerificationCodeOrThrow()
+        {
+            return verificationCodeService.CreateVerificationCodeOrFault();
+        }
+
+        private string GetDefaultAvatarIdOrThrow(IGuessWhoUnitOfWork unitOfWork)
+        {
+            string defaultAvatarId = unitOfWork.Avatars.GetDefaultAvatarId();
+
+            if (!string.IsNullOrWhiteSpace(defaultAvatarId))
             {
-                string defaultAvatarId = unitOfWork.Avatars.GetDefaultAvatarId();
-
-                if (string.IsNullOrWhiteSpace(defaultAvatarId))
-                {
-                    Logger.ErrorFormat("{0}: default avatar id not configured.", LOG_CTX_REGISTER);
-
-                    throw FaultsFactory.Create(
-                        InfrastructureFaultKeys.CODE_DEFAULT_AVATAR_NOT_CONFIGURED,
-                        InfrastructureFaultKeys.MSG_DEFAULT_AVATAR_NOT_CONFIGURED,
-                        InfrastructureFaultKeys.FALLBACK_DEFAULT_AVATAR_NOT_CONFIGURED);
-                }
-
-                if (unitOfWork.UserAccounts.EmailExists(registration.Email))
-                {
-                    Logger.WarnFormat("{0}: email already exists '{1}'.", LOG_CTX_REGISTER, registration.Email);
-
-                    throw FaultsFactory.Create(
-                        UserRegistrationFaultKeys.CODE_EMAIL_ALREADY_EXISTS);
-                }
-
-                var createAccountArgs = new CreateAccountArgs
-                {
-                    Email = registration.Email,
-                    PasswordHash = passwordHash,
-                    DisplayName = registration.DisplayName,
-                    CreationDate = registration.NowUtc,
-                    AvatarId = defaultAvatarId
-                };
-
-                CreatedAccountResult created = unitOfWork.UserAccounts.CreateAccount(createAccountArgs);
-
-                var tokenArgs = new CreateEmailTokenArgs
-                {
-                    AccountId = created.Account.AccountId,
-                    CodeHash = codeResult.HashCode,
-                    NowUtc = registration.NowUtc,
-                    LifeSpan = verificationCodeLifeTime
-                };
-
-                bool tokenCreated = unitOfWork.EmailVerification.AddVerificationToken(tokenArgs);
-
-                if (!tokenCreated)
-                {
-                    Logger.WarnFormat("{0}: token creation failed for accountId '{1}'.", LOG_CTX_REGISTER, created.Account.AccountId);
-
-                    throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_TOKEN_CREATION_FAILED);
-                }
-
-                unitOfWork.Flush();
-                transaction.Commit();
-
-                return new RegistrationDbResult(created.Account, created.Profile, codeResult);
+                return defaultAvatarId;
             }
+
+            Logger.ErrorFormat("{0}: default avatar id not configured.", LOG_CTX_REGISTER);
+            throw FaultsFactory.Create(InfrastructureFaultKeys.CODE_DEFAULT_AVATAR_NOT_CONFIGURED);
+        }
+
+        private static CreateAccountArgs BuildCreateAccountArgs(
+            NormalizedRegistration registration,
+            byte[] passwordHash,
+            string defaultAvatarId)
+        {
+            return new CreateAccountArgs
+            {
+                Email = registration.Email,
+                PasswordHash = passwordHash ?? Array.Empty<byte>(),
+                DisplayName = registration.DisplayName,
+                CreationDate = registration.NowUtc,
+                AvatarId = defaultAvatarId
+            };
+        }
+
+        private CreatedAccountResult CreateAccountOrThrowEmailExists(
+            IGuessWhoUnitOfWork unitOfWork,
+            CreateAccountArgs createAccountArgs,
+            string emailForLog)
+        {
+            CreatedAccountResult created = unitOfWork.UserAccounts.CreateAccount(createAccountArgs);
+
+            if (created != null && created.Account != null && created.Account.IsValid)
+            {
+                return created;
+            }
+
+            Logger.WarnFormat("{0}: email already exists '{1}'.", LOG_CTX_REGISTER, emailForLog ?? EMPTY);
+            throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_EMAIL_ALREADY_EXISTS);
+        }
+
+        private static void ResetEmailVerificationState(IGuessWhoUnitOfWork unitOfWork, long accountId, DateTime nowUtc)
+        {
+            unitOfWork.EmailVerification.ConsumeActiveTokens(
+                new GuessWhoServerDomain.Domain.Parameters.EmailVerification.ConsumeActiveTokensArgs
+                {
+                    AccountId = accountId,
+                    ConsumedUtc = nowUtc
+                });
+        }
+
+        private CreateEmailTokenArgs BuildCreateEmailTokenArgs(long accountId, byte[] codeHash, DateTime nowUtc)
+        {
+            return new CreateEmailTokenArgs
+            {
+                AccountId = accountId,
+                CodeHash = codeHash ?? Array.Empty<byte>(),
+                NowUtc = nowUtc,
+                LifeSpan = verificationCodeLifeTime
+            };
+        }
+
+        private void AddVerificationTokenOrThrow(IGuessWhoUnitOfWork unitOfWork, CreateEmailTokenArgs tokenArgs, long accountId)
+        {
+            bool tokenCreated = unitOfWork.EmailVerification.AddVerificationToken(tokenArgs);
+
+            if (tokenCreated)
+            {
+                return;
+            }
+
+            Logger.WarnFormat("{0}: token creation failed for accountId '{1}'.", LOG_CTX_REGISTER, accountId);
+            throw FaultsFactory.Create(UserRegistrationFaultKeys.CODE_TOKEN_CREATION_FAILED);
+        }
+
+        private static void Commit(IGuessWhoUnitOfWork unitOfWork, IGuessWhoDbTransaction transaction)
+        {
+            unitOfWork.Flush();
+            transaction.Commit();
+        }
+
+        private static RegistrationDbResult BuildRegistrationDbResult(CreatedAccountResult created, VerificationCodeResult codeResult)
+        {
+            return new RegistrationDbResult(created.Account, created.Profile, codeResult);
         }
 
         private readonly record struct SendVerificationEmailArgs(

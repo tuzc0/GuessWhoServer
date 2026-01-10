@@ -192,38 +192,29 @@ namespace GuessWhoServices.Services
                 return;
             }
 
-            throw FaultsFactory.Create(
-                FriendFaultKeys.CODE_REQUEST_NULL,
-                FriendFaultKeys.MSG_REQUEST_NULL,
-                FriendFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(FriendFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static FriendRequestActionArgs BuildActionArgs(FriendRequestOperationRequest request)
         {
             long accountId = ParseIdOrThrow(
-                request.AccountId,
-                FriendFaultKeys.CODE_INVALID_ACCOUNT_ID,
-                FriendFaultKeys.MSG_INVALID_ACCOUNT_ID,
-                FriendFaultKeys.FALLBACK_INVALID_ACCOUNT_ID);
+                request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
 
             long friendRequestId = ParseIdOrThrow(
-                request.FriendRequestId,
-                FriendFaultKeys.CODE_INVALID_IDS,
-                FriendFaultKeys.MSG_INVALID_IDS,
-                FriendFaultKeys.FALLBACK_INVALID_IDS);
+                request.FriendRequestId, FriendFaultKeys.CODE_INVALID_IDS);
 
             DateTime nowUtc = DateTime.UtcNow;
 
             return new FriendRequestActionArgs(accountId, friendRequestId, nowUtc);
         }
 
-        private static long ParseIdOrThrow(string raw, string code, string msgKey, string fallback)
+        private static long ParseIdOrThrow(string raw, string code)
         {
             string trimmed = (raw ?? EMPTY).Trim();
 
             if (!long.TryParse(trimmed, out long value) || value < MIN_VALID_ID)
             {
-                throw FaultsFactory.Create(code, msgKey, fallback);
+                throw FaultsFactory.Create(code);
             }
 
             return value;

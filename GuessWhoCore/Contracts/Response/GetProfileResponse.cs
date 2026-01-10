@@ -6,6 +6,8 @@ namespace GuessWhoCore.Contracts.Response
     [DataContract]
     public class GetProfileResponse
     {
+        [DataMember(IsRequired = true)] public long AccountId { get; set; }
+        [DataMember(IsRequired = true)] public bool IsEmailVerified { get; set; }
         [DataMember(IsRequired = true)] public string Username { get; set; }
         [DataMember(IsRequired = true)] public string Email { get; set; }
         [DataMember(IsRequired = true)] public DateTime CreatedAtUtc { get; set; }
