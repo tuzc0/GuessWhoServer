@@ -62,13 +62,13 @@
     <Compile Include="Services\IUserService.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\GuessWhoCore\GuessWhoCore.csproj">
       <Project>{e0c21307-032a-49c0-a33d-e6ca2f6c0e5e}</Project>
       <Name>GuessWhoCore</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

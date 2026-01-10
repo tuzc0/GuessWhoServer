@@ -80,6 +80,7 @@
     <Compile Include="Domain\Interfaces\Repositories\IUserProfileRepository.cs" />
     <Compile Include="Domain\Models\Accounts\UserProfileSnapshot.cs" />
     <Compile Include="Domain\Models\Leaderboard\LeaderbodarPlayer.cs" />
+    <Compile Include="Domain\Parameters\EmailVerification\ConsumeActiveTokenArgs.cs" />
     <Compile Include="Domain\Parameters\Turns\SetTurnPhaseArgs.cs" />
     <Compile Include="Domain\Results\Leaderboard\LeaderboardResult.cs" />
     <Compile Include="Domain\Results\Turns\AnswerQuestionResult.cs" />

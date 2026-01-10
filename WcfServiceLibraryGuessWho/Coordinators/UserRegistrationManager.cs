@@ -484,10 +484,7 @@ namespace GuessWhoServices.Coordinators
 
                         if (string.IsNullOrWhiteSpace(defaultAvatarId))
                         {
-                            throw FaultsFactory.Create(
-                                InfrastructureFaultKeys.CODE_DEFAULT_AVATAR_NOT_CONFIGURED,
-                                InfrastructureFaultKeys.MSG_DEFAULT_AVATAR_NOT_CONFIGURED,
-                                InfrastructureFaultKeys.FALLBACK_DEFAULT_AVATAR_NOT_CONFIGURED);
+                            throw FaultsFactory.Create(InfrastructureFaultKeys.CODE_DEFAULT_AVATAR_NOT_CONFIGURED);
                         }
 
                         var guestProfile = new UserProfileRecord
