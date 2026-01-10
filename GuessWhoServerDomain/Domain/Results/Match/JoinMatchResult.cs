@@ -2,15 +2,14 @@
 
 namespace GuessWhoServerDomain.Domain.Results.Match
 {
-    public readonly record struct JoinMatchResult(
-
-        JoinMatchResultCode Code,
-        long MatchId)
+    public readonly record struct JoinMatchResult(JoinMatchResultCode Code, long MatchId)
     {
-        public bool IsValid => Code == JoinMatchResultCode.Success;
+        public bool IsValid =>
+            Code == JoinMatchResultCode.Success ||
+            Code == JoinMatchResultCode.PlayerAlreadyInMatch;
 
         public static JoinMatchResult Success(long matchId) => new(JoinMatchResultCode.Success, matchId);
-
         public static JoinMatchResult Fail(JoinMatchResultCode code, long matchId) => new(code, matchId);
     }
+
 }

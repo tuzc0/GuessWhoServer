@@ -16,6 +16,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
             {
                 return default;
             }
+
             if (tournamentArgs.Player1UserId <= 0 || tournamentArgs.Player2UserId <= 0 || 
                 tournamentArgs.Player1UserId == tournamentArgs.Player2UserId)
             {

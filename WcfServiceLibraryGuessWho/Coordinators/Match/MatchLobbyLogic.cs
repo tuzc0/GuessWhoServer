@@ -45,6 +45,7 @@ namespace GuessWhoServices.Coordinators.Match
             }
 
             using IGuessWhoUnitOfWork unitOfWork = guessWhoUnitOfWorkFactory.Create();
+
             IMatchRepository matchRepository = unitOfWork.Matches;
 
             MatchSnapshot openLobbyMatch = matchRepository.GetOpenMatchByCode(joinInput.MatchCode);
@@ -67,14 +68,21 @@ namespace GuessWhoServices.Coordinators.Match
             {
                 joinMatchResult = ExecuteJoinMatch(matchRepository, joinMatchArgs);
 
-                if (!joinMatchResult.IsValid)
+                if (joinMatchResult.Code == JoinMatchResultCode.PlayerAlreadyInMatch)
+                {
+                    transaction.Rollback();
+                    joinMatchResult = JoinMatchResult.Success(openLobbyMatch.MatchId);
+                }
+                else if (!joinMatchResult.IsValid)
                 {
                     transaction.Rollback();
                     return CreateJoinDbFailure(joinMatchResult);
                 }
-
-                unitOfWork.Flush();
-                transaction.Commit();
+                else
+                {
+                    unitOfWork.Flush();
+                    transaction.Commit();
+                }
             }
 
             IReadOnlyList<LobbyPlayerSnapshot> lobbyPlayers =

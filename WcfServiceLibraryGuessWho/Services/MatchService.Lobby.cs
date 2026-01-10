@@ -1,5 +1,6 @@
 ﻿using GuessWhoCore.Contracts.Requests;
 using GuessWhoCore.Contracts.Response;
+using GuessWhoServerDomain.Domain.Enums.Matches;
 using GuessWhoServerDomain.Domain.Models.Matches;
 using GuessWhoServerDomain.Domain.Results.Match;
 using GuessWhoServices.Coordinators.InternalDtos;
@@ -107,10 +108,13 @@ namespace GuessWhoServices.Services
                     Players = MapPlayers(join.Players)
                 };
 
-                if (join.HasJoinedPlayer)
+                if (join.Result.Code == JoinMatchResultCode.Success && join.HasJoinedPlayer)
                 {
-                    callbackDispatcher.Broadcast(join.Match.MatchId, callbackChanell => callbackChanell.OnPlayerJoined(MapPlayer(join.JoinedPlayer)));
+                    callbackDispatcher.Broadcast(
+                        join.Match.MatchId,
+                        callbackChanell => callbackChanell.OnPlayerJoined(MapPlayer(join.JoinedPlayer)));
                 }
+
 
                 return response;
             });

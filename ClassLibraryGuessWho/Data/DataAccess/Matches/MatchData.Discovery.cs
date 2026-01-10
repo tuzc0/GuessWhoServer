@@ -18,6 +18,27 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
                 AND MP.LEFTATUTC IS NULL
               ORDER BY MP.USERID ASC;";
 
+        private sealed class MatchRow
+        {
+            public long MatchId { get; set; }
+            public string MatchCode { get; set; }
+            public byte StatusId { get; set; }
+            public byte VisibilityId { get; set; }
+            public byte ModeId { get; set; }
+            public DateTime CreatedAtUtc { get; set; }
+        }
+
+        private sealed class LobbyPlayerRow
+        {
+            public long MatchId { get; set; }
+            public long UserId { get; set; }
+            public string DisplayName { get; set; }
+            public string AvatarId { get; set; }
+            public int SlotNumber { get; set; }
+            public bool IsReady { get; set; }
+            public bool IsHost { get; set; }
+        }
+
         public MatchSnapshot GetOpenMatchByCode(string matchCode)
         {
             string safeCode = NormalizeMatchCode(matchCode);
@@ -66,7 +87,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
 
         public IReadOnlyList<MatchSnapshot> GetPublicLobbyMatches()
         {
-            List<MatchSnapshot> matches = dataContext.MATCH
+            List<MatchRow> rows = dataContext.MATCH
                 .AsNoTracking()
                 .Where(m =>
                     m.VISIBILITYID == MatchVisibilityIds.PUBLIC &&
@@ -74,16 +95,38 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
                     m.STARTTIME == null &&
                     m.ENDTIME == null)
                 .OrderByDescending(m => m.CREATEDATUTC)
-                .Select(m => new MatchSnapshot(
-                    m.MATCHID,
-                    m.MATCHCODE ?? string.Empty,
-                    m.STATUSID,
-                    m.VISIBILITYID,
-                    m.MODEID,
-                    m.CREATEDATUTC))
+                .Select(m => new MatchRow
+                {
+                    MatchId = m.MATCHID,
+                    MatchCode = m.MATCHCODE,
+                    StatusId = m.STATUSID,
+                    VisibilityId = m.VISIBILITYID,
+                    ModeId = m.MODEID,
+                    CreatedAtUtc = m.CREATEDATUTC
+                })
                 .ToList();
 
-            return matches;
+            if (rows.Count == 0)
+            {
+                return Array.Empty<MatchSnapshot>();
+            }
+
+            var result = new List<MatchSnapshot>(rows.Count);
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                MatchRow row = rows[i];
+
+                result.Add(new MatchSnapshot(
+                    row.MatchId,
+                    row.MatchCode ?? string.Empty,
+                    row.StatusId,
+                    row.VisibilityId,
+                    row.ModeId,
+                    row.CreatedAtUtc));
+            }
+
+            return result;
         }
 
         public MatchSnapshot GetMatchById(long matchId)
@@ -93,20 +136,34 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
                 return MatchSnapshot.CreateInvalid();
             }
 
-            MatchSnapshot snapshot = dataContext.MATCH
+            MatchRow row = dataContext.MATCH
                 .AsNoTracking()
                 .Where(m => m.MATCHID == matchId)
-                .Select(m => new MatchSnapshot(
-                    m.MATCHID,
-                    m.MATCHCODE ?? string.Empty,
-                    m.STATUSID,
-                    m.VISIBILITYID,
-                    m.MODEID,
-                    m.CREATEDATUTC))
-                .DefaultIfEmpty(MatchSnapshot.CreateInvalid())
-                .First();
+                .Select(m => new MatchRow
+                {
+                    MatchId = m.MATCHID,
+                    MatchCode = m.MATCHCODE,
+                    StatusId = m.STATUSID,
+                    VisibilityId = m.VISIBILITYID,
+                    ModeId = m.MODEID,
+                    CreatedAtUtc = m.CREATEDATUTC
+                })
+                .FirstOrDefault();
 
-            return snapshot;
+            if (row == null)
+            {
+                return MatchSnapshot.CreateInvalid();
+            }
+
+            MatchSnapshot snapshot = new MatchSnapshot(
+                row.MatchId,
+                row.MatchCode ?? string.Empty,
+                row.StatusId,
+                row.VisibilityId,
+                row.ModeId,
+                row.CreatedAtUtc);
+
+            return snapshot.IsValid ? snapshot : MatchSnapshot.CreateInvalid();
         }
 
         public IReadOnlyList<LobbyPlayerSnapshot> GetMatchPlayers(long matchId)
@@ -116,27 +173,50 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
                 return Array.Empty<LobbyPlayerSnapshot>();
             }
 
-            List<LobbyPlayerSnapshot> players =
+            List<LobbyPlayerRow> rows =
                 (from matchPlayerEntity in dataContext.MATCH_PLAYER.AsNoTracking()
                  join userProfileEntity in dataContext.USER_PROFILE.AsNoTracking()
                     on matchPlayerEntity.USERID equals userProfileEntity.USERID
-                 join accountEntity in dataContext.ACCOUNT.AsNoTracking() 
-                    on userProfileEntity.USERID equals accountEntity.USERID 
+                 join accountEntity in dataContext.ACCOUNT.AsNoTracking()
+                    on userProfileEntity.USERID equals accountEntity.USERID
                  where matchPlayerEntity.MATCHID == matchId &&
                        matchPlayerEntity.LEFTATUTC == null &&
-                       !accountEntity.ISDELETED 
-                 orderby matchPlayerEntity.SLOTNUMBER 
-                 select new LobbyPlayerSnapshot(
-                     matchPlayerEntity.MATCHID,
-                     matchPlayerEntity.USERID,
-                     userProfileEntity.DISPLAYNAME ?? string.Empty,
-                     userProfileEntity.AVATARID ?? string.Empty,
-                     (byte)matchPlayerEntity.SLOTNUMBER,
-                     matchPlayerEntity.ISREADY,
-                     matchPlayerEntity.ISHOST))
+                       !accountEntity.ISDELETED
+                 orderby matchPlayerEntity.SLOTNUMBER
+                 select new LobbyPlayerRow
+                 {
+                     MatchId = matchPlayerEntity.MATCHID,
+                     UserId = matchPlayerEntity.USERID,
+                     DisplayName = userProfileEntity.DISPLAYNAME,
+                     AvatarId = userProfileEntity.AVATARID,
+                     SlotNumber = (int)matchPlayerEntity.SLOTNUMBER,
+                     IsReady = matchPlayerEntity.ISREADY,
+                     IsHost = matchPlayerEntity.ISHOST
+                 })
                 .ToList();
 
-            return players;
+            if (rows.Count == 0)
+            {
+                return Array.Empty<LobbyPlayerSnapshot>();
+            }
+
+            var result = new List<LobbyPlayerSnapshot>(rows.Count);
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                LobbyPlayerRow row = rows[i];
+
+                result.Add(new LobbyPlayerSnapshot(
+                    row.MatchId,
+                    row.UserId,
+                    row.DisplayName ?? string.Empty,
+                    row.AvatarId ?? string.Empty,
+                    (byte)row.SlotNumber,
+                    row.IsReady,
+                    row.IsHost));
+            }
+
+            return result;
         }
 
         public IReadOnlyList<long> GetActivePlayerIds(long matchId, int takeMax)
@@ -158,12 +238,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
                     new SqlParameter("@TakeMax", safeTake))
                 .ToList();
 
-            if (rows.Count == 0)
-            {
-                return Array.Empty<long>();
-            }
-
-            return rows;
+            return rows.Count == 0 ? Array.Empty<long>() : rows;
         }
 
         private static int NormalizeTake(int takeMax)
@@ -176,7 +251,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
             return takeMax > MAX_TAKE ? MAX_TAKE : takeMax;
         }
 
-        private static string NormalizeMatchCode(string matchCode) 
+        private static string NormalizeMatchCode(string matchCode)
         {
             return (matchCode ?? string.Empty).Trim().ToUpperInvariant();
         }
