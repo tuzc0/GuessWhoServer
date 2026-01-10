@@ -69,6 +69,8 @@ namespace GuessWhoServices.Coordinators
             LogManager.GetLogger(typeof(UserRegistrationManager));
 
         private const string LOG_CTX_REGISTER = "UserRegistrationManager.RegisterUser";
+        private const string LOG_CTX_REGISTER_GUEST = "UserRegistrationManager.RegisterGuest";
+        private const string GUEST_TAG_FORMAT = "D6";
 
         private const int MIN_EXPIRATION_MINUTES = 1;
 
@@ -394,6 +396,77 @@ namespace GuessWhoServices.Coordinators
             public AccountRecord Account { get; }
             public UserProfileRecord Profile { get; }
             public VerificationCodeResult VerificationCode { get; }
+        }
+
+        public RegisterResult RegisterGuest(string requestedName)
+        {
+            return ExecuteService(
+                LOG_CTX_REGISTER_GUEST,
+                () =>
+                {
+                    string uniqueTag = GenerateGuestTag();
+                    string finalName = BuildGuestDisplayName(requestedName, uniqueTag);
+
+                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
+                    {
+                        string defaultAvatarId = unitOfWork.Avatars.GetDefaultAvatarId();
+
+                        if (string.IsNullOrWhiteSpace(defaultAvatarId))
+                        {
+                            throw FaultsFactory.Create(
+                                InfrastructureFaultKeys.CODE_DEFAULT_AVATAR_NOT_CONFIGURED,
+                                InfrastructureFaultKeys.MSG_DEFAULT_AVATAR_NOT_CONFIGURED,
+                                InfrastructureFaultKeys.FALLBACK_DEFAULT_AVATAR_NOT_CONFIGURED);
+                        }
+
+                        var guestProfile = new UserProfileRecord
+                        {
+                            DisplayName = finalName,
+                            AvatarId = defaultAvatarId,
+                            IsGuest = true,
+                            IsActive = true,
+                            CreatedAtUtc = DateTime.UtcNow
+                        };
+
+                        long userId = unitOfWork.UserProfiles.AddUserProfile(guestProfile);
+                        unitOfWork.Flush();
+
+                        var resultArgs = new RegisterResultArgs(0, userId, EMPTY)
+                        {
+                            DisplayName = finalName,
+                            EmailVerificationRequired = false
+                        };
+
+                        return new RegisterResult(resultArgs);
+                    }
+                });
+        }
+
+        private string GenerateGuestTag()
+        {
+            byte[] buffer = new byte[4];
+            using (var rng = System.Security.Cryptography.RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(buffer);
+            }
+            int randomInt = BitConverter.ToInt32(buffer, 0) & int.MaxValue;
+            return (randomInt % 1000000).ToString(GUEST_TAG_FORMAT);
+        }
+
+        private static string BuildGuestDisplayName(string requestedName, string tag)
+        {
+            if (string.IsNullOrWhiteSpace(requestedName))
+            {
+                return $"Guest#{tag}";
+            }
+
+            string baseName = requestedName.Trim();
+            if (baseName.Length > 15)
+            {
+                baseName = baseName.Substring(0, 15);
+            }
+
+            return $"{baseName}#{tag}";
         }
     }
 }

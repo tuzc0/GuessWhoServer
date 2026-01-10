@@ -18,7 +18,7 @@ namespace GuessWhoServices.Services
         private const string CODE_UNSUBSCRIBE_FAIL = "MATCH_UNSUBSCRIBE_FAIL";
         private const string KEY_UNSUBSCRIBE_FAIL = "Match.UnsubscribeFailed";
 
-        private const string INVALID_ARGS = "INVALID_ARGS";
+        private  const string INVALID_ARGS = "INVALID_ARGS";
 
         private const long INVALID_ID = 0;
 

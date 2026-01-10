@@ -8,7 +8,7 @@ namespace GuessWhoDataAccess.Data.Factories
         GuessWhoDBEntities Context { get; }
 
         IUserAccountRepository UserAccounts { get; }
-        IUserProfileRepository UserProfiles { get; } // Añadido
+        IUserProfileRepository UserProfiles { get; }
         IEmailVerificationRepository EmailVerification { get; }
         IAvatarRepository Avatars { get; }
         ICharacterRepository Characters { get; }

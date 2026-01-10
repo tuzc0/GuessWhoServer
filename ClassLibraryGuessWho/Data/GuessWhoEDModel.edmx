@@ -150,6 +150,7 @@
           <Property Name="DEFAULT_MATCH_DURATION_SEC" Type="int" />
           <Property Name="DEFAULT_MAX_PLAYERS" Type="tinyint" Nullable="false" />
           <Property Name="IS_ACTIVE" Type="bit" Nullable="false" />
+          <Property Name="TOTAL_TIME_LIMIT_SEC" Type="int" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCH_PLAYER">
           <Key>
@@ -165,6 +166,7 @@
           <Property Name="ISHOST" Type="bit" Nullable="false" />
           <Property Name="ISREADY" Type="bit" Nullable="false" />
           <Property Name="SECRETCHARACTERID" Type="nvarchar" MaxLength="100" />
+          <Property Name="SECONDS_CONSUMED" Type="int" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCH_TURN_ORDER">
           <Key>
@@ -240,6 +242,7 @@
           <Property Name="TURNSECONDS" Type="int" Nullable="false" />
           <Property Name="STATUSID" Type="tinyint" Nullable="false" />
           <Property Name="CREATEDATUTC" Type="datetime2" Precision="0" Nullable="false" />
+          <Property Name="WINNERUSERID" Type="bigint" />
         </EntityType>
         <EntityType Name="TOURNAMENT_4P_MATCH">
           <Key>
@@ -708,6 +711,18 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_TOURNAMENT_4P_WINNER">
+          <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="0..1" />
+          <End Role="TOURNAMENT_4P" Type="Self.TOURNAMENT_4P" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="TOURNAMENT_4P">
+              <PropertyRef Name="WINNERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_USER_PROFILE_AVATAR">
           <End Role="AVATAR" Type="Self.AVATAR" Multiplicity="0..1" />
           <End Role="USER_PROFILE" Type="Self.USER_PROFILE" Multiplicity="*" />
@@ -896,6 +911,10 @@
           <AssociationSet Name="FK_TOURNAMENT_4P_PLAYER_USER" Association="Self.FK_TOURNAMENT_4P_PLAYER_USER">
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="TOURNAMENT_4P_PLAYER" EntitySet="TOURNAMENT_4P_PLAYER" />
+          </AssociationSet>
+          <AssociationSet Name="FK_TOURNAMENT_4P_WINNER" Association="Self.FK_TOURNAMENT_4P_WINNER">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
           </AssociationSet>
           <AssociationSet Name="FK_USER_PROFILE_AVATAR" Association="Self.FK_USER_PROFILE_AVATAR">
             <End Role="AVATAR" EntitySet="AVATAR" />
@@ -1124,6 +1143,10 @@
             <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
             <End Role="MATCH_TURN_STATE" EntitySet="MATCH_TURN_STATE" />
           </AssociationSet>
+          <AssociationSet Name="FK_TOURNAMENT_4P_WINNER" Association="GuessWhoDBModel.FK_TOURNAMENT_4P_WINNER">
+            <End Role="USER_PROFILE" EntitySet="USER_PROFILE" />
+            <End Role="TOURNAMENT_4P" EntitySet="TOURNAMENT_4P" />
+          </AssociationSet>
           </EntityContainer>
         <ComplexType Name="sp_helpdiagramdefinition_Result">
           <Property Type="Int32" Name="version" Nullable="true" />
@@ -1292,6 +1315,7 @@
           <Property Name="DEFAULT_MAX_PLAYERS" Type="Byte" Nullable="false" />
           <Property Name="IS_ACTIVE" Type="Boolean" Nullable="false" />
           <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_MATCH_MODE" FromRole="MATCH_MODE" ToRole="MATCH" />
+          <Property Name="TOTAL_TIME_LIMIT_SEC" Type="Int32" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCH_PLAYER">
           <Key>
@@ -1310,6 +1334,7 @@
           <NavigationProperty Name="CHARACTER" Relationship="GuessWhoDBModel.FK_MATCH_PLAYER_CHARACTER" FromRole="MATCH_PLAYER" ToRole="CHARACTER" />
           <NavigationProperty Name="MATCH" Relationship="GuessWhoDBModel.FK_MATCH_PLAYER_MATCH" FromRole="MATCH_PLAYER" ToRole="MATCH" />
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_MATCH_PLAYER_USER" FromRole="MATCH_PLAYER" ToRole="USER_PROFILE" />
+          <Property Name="SECONDS_CONSUMED" Type="Int32" Nullable="false" />
         </EntityType>
         <EntityType Name="MATCHSTATUS">
           <Key>
@@ -1375,6 +1400,8 @@
           <NavigationProperty Name="USER_PROFILE" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_HOSTUSER" FromRole="TOURNAMENT_4P" ToRole="USER_PROFILE" />
           <NavigationProperty Name="TOURNAMENT_4P_MATCH" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_MATCH_TOURNAMENT" FromRole="TOURNAMENT_4P" ToRole="TOURNAMENT_4P_MATCH" />
           <NavigationProperty Name="TOURNAMENT_4P_PLAYER" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_PLAYER_TOURNAMENT" FromRole="TOURNAMENT_4P" ToRole="TOURNAMENT_4P_PLAYER" />
+          <Property Name="WINNERUSERID" Type="Int64" />
+          <NavigationProperty Name="USER_PROFILE1" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_WINNER" FromRole="TOURNAMENT_4P" ToRole="USER_PROFILE" />
         </EntityType>
         <EntityType Name="TOURNAMENT_4P_MATCH">
           <Key>
@@ -1428,6 +1455,7 @@
           <NavigationProperty Name="MATCH_CHAT_MESSAGE" Relationship="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_USER_PROFILE" FromRole="USER_PROFILE" ToRole="MATCH_CHAT_MESSAGE" />
           <NavigationProperty Name="MATCH_TURN_ORDER" Relationship="GuessWhoDBModel.FK_MATCH_TURN_ORDER_USER_PROFILE" FromRole="USER_PROFILE" ToRole="MATCH_TURN_ORDER" />
           <NavigationProperty Name="MATCH_TURN_STATE" Relationship="GuessWhoDBModel.FK_MATCH_TURN_STATE_USER_PROFILE" FromRole="USER_PROFILE" ToRole="MATCH_TURN_STATE" />
+          <NavigationProperty Name="TOURNAMENT_4P1" Relationship="GuessWhoDBModel.FK_TOURNAMENT_4P_WINNER" FromRole="USER_PROFILE" ToRole="TOURNAMENT_4P" />
         </EntityType>
         <Association Name="FK_ACCOUNT_USER_PROFILE">
           <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="1" />
@@ -1925,6 +1953,18 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_TOURNAMENT_4P_WINNER">
+          <End Type="GuessWhoDBModel.USER_PROFILE" Role="USER_PROFILE" Multiplicity="0..1" />
+          <End Type="GuessWhoDBModel.TOURNAMENT_4P" Role="TOURNAMENT_4P" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="USER_PROFILE">
+              <PropertyRef Name="USERID" />
+            </Principal>
+            <Dependent Role="TOURNAMENT_4P">
+              <PropertyRef Name="WINNERUSERID" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -2059,6 +2099,7 @@
           <EntitySetMapping Name="MATCH_MODE">
             <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_MODE">
               <MappingFragment StoreEntitySet="MATCH_MODE">
+                <ScalarProperty Name="TOTAL_TIME_LIMIT_SEC" ColumnName="TOTAL_TIME_LIMIT_SEC" />
                 <ScalarProperty Name="IS_ACTIVE" ColumnName="IS_ACTIVE" />
                 <ScalarProperty Name="DEFAULT_MAX_PLAYERS" ColumnName="DEFAULT_MAX_PLAYERS" />
                 <ScalarProperty Name="DEFAULT_MATCH_DURATION_SEC" ColumnName="DEFAULT_MATCH_DURATION_SEC" />
@@ -2073,6 +2114,7 @@
           <EntitySetMapping Name="MATCH_PLAYER">
             <EntityTypeMapping TypeName="GuessWhoDBModel.MATCH_PLAYER">
               <MappingFragment StoreEntitySet="MATCH_PLAYER">
+                <ScalarProperty Name="SECONDS_CONSUMED" ColumnName="SECONDS_CONSUMED" />
                 <ScalarProperty Name="SECRETCHARACTERID" ColumnName="SECRETCHARACTERID" />
                 <ScalarProperty Name="ISREADY" ColumnName="ISREADY" />
                 <ScalarProperty Name="ISHOST" ColumnName="ISHOST" />
@@ -2136,6 +2178,7 @@
           <EntitySetMapping Name="TOURNAMENT_4P">
             <EntityTypeMapping TypeName="GuessWhoDBModel.TOURNAMENT_4P">
               <MappingFragment StoreEntitySet="TOURNAMENT_4P">
+                <ScalarProperty Name="WINNERUSERID" ColumnName="WINNERUSERID" />
                 <ScalarProperty Name="CREATEDATUTC" ColumnName="CREATEDATUTC" />
                 <ScalarProperty Name="STATUSID" ColumnName="STATUSID" />
                 <ScalarProperty Name="TURNSECONDS" ColumnName="TURNSECONDS" />

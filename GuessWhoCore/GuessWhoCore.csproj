@@ -66,6 +66,7 @@
     <Compile Include="Contracts\Requests\GetOrCreateMatchDeckRequest.cs" />
     <Compile Include="Contracts\Requests\GetPublicLobbyMatchesRequest.cs" />
     <Compile Include="Contracts\Requests\PassTurnRequest.cs" />
+    <Compile Include="Contracts\Requests\RegisterGuestRequest.cs" />
     <Compile Include="Contracts\Requests\SearchPublicMatchRequest.cs" />
     <Compile Include="Contracts\Requests\SendMatchInvitationRequest.cs" />
     <Compile Include="Contracts\Requests\SetMatchPrivateRequest.cs" />
@@ -113,6 +114,7 @@
     <Compile Include="Contracts\Response\PassTurnResponse.cs" />
     <Compile Include="Contracts\Response\PasswordRecoveryResponse.cs" />
     <Compile Include="Contracts\Response\PlublicLobbyMatchDto.cs" />
+    <Compile Include="Contracts\Response\RegisterGuestResponse.cs" />
     <Compile Include="Contracts\Response\RegisterResponse.cs" />
     <Compile Include="Contracts\Response\SearchProfilesResponse.cs" />
     <Compile Include="Contracts\Response\SearchPublicMatchResponse.cs" />

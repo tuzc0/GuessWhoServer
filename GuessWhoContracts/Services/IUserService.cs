@@ -27,5 +27,9 @@ namespace GuessWhoContracts.Services
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
         bool UpdatePasswordWithVerificationCode(UpdatePasswordRequest request);
+
+        [OperationContract]
+        [FaultContract(typeof(ServiceFault))]
+        RegisterGuestResponse RegisterGuest(RegisterGuestRequest request);
     }
 }

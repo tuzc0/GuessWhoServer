@@ -28,6 +28,7 @@ namespace GuessWhoDataAccess.Data
         public Nullable<int> DEFAULT_MATCH_DURATION_SEC { get; set; }
         public byte DEFAULT_MAX_PLAYERS { get; set; }
         public bool IS_ACTIVE { get; set; }
+        public int TOTAL_TIME_LIMIT_SEC { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<MATCH> MATCH { get; set; }

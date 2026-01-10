@@ -29,5 +29,22 @@ namespace GuessWhoDataAccess.Data.DataAccess.Profile
                 profile.ISGUEST
             );
         }
+
+        public long AddUserProfile(UserProfileRecord userProfile)
+        {
+            var entity = new USER_PROFILE
+            {
+                DISPLAYNAME = userProfile.DisplayName,
+                ISACTIVE = userProfile.IsActive,
+                ISGUEST = userProfile.IsGuest,
+                CREATEDATUTC = userProfile.CreatedAtUtc,
+                AVATARID = userProfile.AvatarId
+            };
+
+            dataContext.USER_PROFILE.Add(entity);
+            dataContext.SaveChanges();
+
+            return entity.USERID;
+        }
     }
 }

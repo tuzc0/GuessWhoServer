@@ -67,6 +67,7 @@
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_CHAT_MESSAGE_USER_PROFILE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_ORDER_USER_PROFILE" />
         <AssociationConnector Association="GuessWhoDBModel.FK_MATCH_TURN_STATE_USER_PROFILE" />
+        <AssociationConnector Association="GuessWhoDBModel.FK_TOURNAMENT_4P_WINNER" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>
