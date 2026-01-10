@@ -34,24 +34,26 @@ namespace GuessWhoDataAccess.Data
         public virtual DbSet<FRIEND_REQUEST> FRIEND_REQUEST { get; set; }
         public virtual DbSet<FRIENDREQUESTSTATUS> FRIENDREQUESTSTATUS { get; set; }
         public virtual DbSet<FRIENDSHIP> FRIENDSHIP { get; set; }
+        public virtual DbSet<GUEST_SESSION> GUEST_SESSION { get; set; }
         public virtual DbSet<MATCH> MATCH { get; set; }
+        public virtual DbSet<MATCH_CHAT_MESSAGE> MATCH_CHAT_MESSAGE { get; set; }
         public virtual DbSet<MATCH_DECK_CARD> MATCH_DECK_CARD { get; set; }
         public virtual DbSet<MATCH_INVITATION> MATCH_INVITATION { get; set; }
         public virtual DbSet<MATCH_MODE> MATCH_MODE { get; set; }
         public virtual DbSet<MATCH_PLAYER> MATCH_PLAYER { get; set; }
+        public virtual DbSet<MATCH_TURN_ORDER> MATCH_TURN_ORDER { get; set; }
+        public virtual DbSet<MATCH_TURN_STATE> MATCH_TURN_STATE { get; set; }
         public virtual DbSet<MATCHSTATUS> MATCHSTATUS { get; set; }
         public virtual DbSet<MATCHVISIBILITY> MATCHVISIBILITY { get; set; }
         public virtual DbSet<MODERATION_ACTION> MODERATION_ACTION { get; set; }
+        public virtual DbSet<MODERATION_REPORT> MODERATION_REPORT { get; set; }
         public virtual DbSet<MODERATIONACTIONTYPE> MODERATIONACTIONTYPE { get; set; }
         public virtual DbSet<MODERATIONSCOPE> MODERATIONSCOPE { get; set; }
         public virtual DbSet<TOURNAMENT_4P> TOURNAMENT_4P { get; set; }
         public virtual DbSet<TOURNAMENT_4P_MATCH> TOURNAMENT_4P_MATCH { get; set; }
         public virtual DbSet<TOURNAMENT_4P_PLAYER> TOURNAMENT_4P_PLAYER { get; set; }
+        public virtual DbSet<TOURNAMENTSTATUS> TOURNAMENTSTATUS { get; set; }
         public virtual DbSet<USER_PROFILE> USER_PROFILE { get; set; }
-        public virtual DbSet<GUEST_SESSION> GUEST_SESSION { get; set; }
-        public virtual DbSet<MATCH_CHAT_MESSAGE> MATCH_CHAT_MESSAGE { get; set; }
-        public virtual DbSet<MATCH_TURN_ORDER> MATCH_TURN_ORDER { get; set; }
-        public virtual DbSet<MATCH_TURN_STATE> MATCH_TURN_STATE { get; set; }
     
         public virtual int SP_ACCEPTFRIENDREQUEST(Nullable<long> fRIENDREQUESTID)
         {
@@ -198,6 +200,106 @@ namespace GuessWhoDataAccess.Data
                 new ObjectParameter("ADDRESSEEUSERID", typeof(long));
     
             return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction("SP_CREATEFRIENDREQUEST1", rEQUESTERUSERIDParameter, aDDRESSEEUSERIDParameter);
+        }
+    
+        public virtual ObjectResult<EmailVerification_Resend_Result> EmailVerification_Resend(Nullable<long> accountId, byte[] codeHash, Nullable<System.DateTime> expiresUtc)
+        {
+            var accountIdParameter = accountId.HasValue ?
+                new ObjectParameter("AccountId", accountId) :
+                new ObjectParameter("AccountId", typeof(long));
+    
+            var codeHashParameter = codeHash != null ?
+                new ObjectParameter("CodeHash", codeHash) :
+                new ObjectParameter("CodeHash", typeof(byte[]));
+    
+            var expiresUtcParameter = expiresUtc.HasValue ?
+                new ObjectParameter("ExpiresUtc", expiresUtc) :
+                new ObjectParameter("ExpiresUtc", typeof(System.DateTime));
+    
+            return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction<EmailVerification_Resend_Result>("EmailVerification_Resend", accountIdParameter, codeHashParameter, expiresUtcParameter);
+        }
+    
+        public virtual int usp_Match_HandleDisconnect(Nullable<long> userId, Nullable<System.DateTime> nowUtc, Nullable<byte> matchStatusLobby, Nullable<byte> matchStatusActive, Nullable<byte> matchStatusFinished, Nullable<byte> matchStatusCancelled)
+        {
+            var userIdParameter = userId.HasValue ?
+                new ObjectParameter("UserId", userId) :
+                new ObjectParameter("UserId", typeof(long));
+    
+            var nowUtcParameter = nowUtc.HasValue ?
+                new ObjectParameter("NowUtc", nowUtc) :
+                new ObjectParameter("NowUtc", typeof(System.DateTime));
+    
+            var matchStatusLobbyParameter = matchStatusLobby.HasValue ?
+                new ObjectParameter("MatchStatusLobby", matchStatusLobby) :
+                new ObjectParameter("MatchStatusLobby", typeof(byte));
+    
+            var matchStatusActiveParameter = matchStatusActive.HasValue ?
+                new ObjectParameter("MatchStatusActive", matchStatusActive) :
+                new ObjectParameter("MatchStatusActive", typeof(byte));
+    
+            var matchStatusFinishedParameter = matchStatusFinished.HasValue ?
+                new ObjectParameter("MatchStatusFinished", matchStatusFinished) :
+                new ObjectParameter("MatchStatusFinished", typeof(byte));
+    
+            var matchStatusCancelledParameter = matchStatusCancelled.HasValue ?
+                new ObjectParameter("MatchStatusCancelled", matchStatusCancelled) :
+                new ObjectParameter("MatchStatusCancelled", typeof(byte));
+    
+            return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction("usp_Match_HandleDisconnect", userIdParameter, nowUtcParameter, matchStatusLobbyParameter, matchStatusActiveParameter, matchStatusFinishedParameter, matchStatusCancelledParameter);
+        }
+    
+        public virtual ObjectResult<Nullable<int>> usp_Match_StartAtomic(Nullable<long> matchId, Nullable<long> hostUserId, Nullable<System.DateTime> nowUtc, Nullable<int> expectedPlayers, Nullable<byte> hostSlotNumber, Nullable<byte> guestSlotNumber, Nullable<byte> matchStatusLobby, Nullable<byte> matchStatusActive)
+        {
+            var matchIdParameter = matchId.HasValue ?
+                new ObjectParameter("MatchId", matchId) :
+                new ObjectParameter("MatchId", typeof(long));
+    
+            var hostUserIdParameter = hostUserId.HasValue ?
+                new ObjectParameter("HostUserId", hostUserId) :
+                new ObjectParameter("HostUserId", typeof(long));
+    
+            var nowUtcParameter = nowUtc.HasValue ?
+                new ObjectParameter("NowUtc", nowUtc) :
+                new ObjectParameter("NowUtc", typeof(System.DateTime));
+    
+            var expectedPlayersParameter = expectedPlayers.HasValue ?
+                new ObjectParameter("ExpectedPlayers", expectedPlayers) :
+                new ObjectParameter("ExpectedPlayers", typeof(int));
+    
+            var hostSlotNumberParameter = hostSlotNumber.HasValue ?
+                new ObjectParameter("HostSlotNumber", hostSlotNumber) :
+                new ObjectParameter("HostSlotNumber", typeof(byte));
+    
+            var guestSlotNumberParameter = guestSlotNumber.HasValue ?
+                new ObjectParameter("GuestSlotNumber", guestSlotNumber) :
+                new ObjectParameter("GuestSlotNumber", typeof(byte));
+    
+            var matchStatusLobbyParameter = matchStatusLobby.HasValue ?
+                new ObjectParameter("MatchStatusLobby", matchStatusLobby) :
+                new ObjectParameter("MatchStatusLobby", typeof(byte));
+    
+            var matchStatusActiveParameter = matchStatusActive.HasValue ?
+                new ObjectParameter("MatchStatusActive", matchStatusActive) :
+                new ObjectParameter("MatchStatusActive", typeof(byte));
+    
+            return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction<Nullable<int>>("usp_Match_StartAtomic", matchIdParameter, hostUserIdParameter, nowUtcParameter, expectedPlayersParameter, hostSlotNumberParameter, guestSlotNumberParameter, matchStatusLobbyParameter, matchStatusActiveParameter);
+        }
+    
+        public virtual int uspMatchTurn_Initialize(Nullable<long> matchId, Nullable<System.DateTime> nowUtc, Nullable<System.DateTime> turnExpiresAtUtc)
+        {
+            var matchIdParameter = matchId.HasValue ?
+                new ObjectParameter("MatchId", matchId) :
+                new ObjectParameter("MatchId", typeof(long));
+    
+            var nowUtcParameter = nowUtc.HasValue ?
+                new ObjectParameter("NowUtc", nowUtc) :
+                new ObjectParameter("NowUtc", typeof(System.DateTime));
+    
+            var turnExpiresAtUtcParameter = turnExpiresAtUtc.HasValue ?
+                new ObjectParameter("TurnExpiresAtUtc", turnExpiresAtUtc) :
+                new ObjectParameter("TurnExpiresAtUtc", typeof(System.DateTime));
+    
+            return ((IObjectContextAdapter)this).ObjectContext.ExecuteFunction("uspMatchTurn_Initialize", matchIdParameter, nowUtcParameter, turnExpiresAtUtcParameter);
         }
     }
 }

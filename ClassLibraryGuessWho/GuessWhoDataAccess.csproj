@@ -87,6 +87,9 @@
     <Compile Include="Data\DataAccess\Turns\MatchChessClockData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchTurnAdvanceData.cs" />
     <Compile Include="Data\DataAccess\Turns\MatchTurnData.cs" />
+    <Compile Include="Data\EmailVerification_Resend_Result.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
     <Compile Include="Data\Factories\GuessWhoUnitOfWork.cs" />
     <Compile Include="Data\Factories\GuessWhoUnitOfWorkFactory.cs" />
     <Compile Include="Data\Factories\IGuessWhoUnitOfWork.cs" />
@@ -171,10 +174,16 @@
     <Compile Include="Data\MODERATION_ACTION.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\MODERATION_REPORT.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
     <Compile Include="Data\sp_helpdiagramdefinition_Result.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\sp_helpdiagrams_Result.cs">
+      <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\TOURNAMENTSTATUS.cs">
       <DependentUpon>GuessWhoEDModel.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\TOURNAMENT_4P.cs">
