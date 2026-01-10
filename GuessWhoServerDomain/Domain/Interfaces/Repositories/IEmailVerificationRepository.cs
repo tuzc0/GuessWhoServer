@@ -1,5 +1,6 @@
 ﻿using GuessWhoServerDomain.Domain.Models.EmailVerification;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
+using GuessWhoServerDomain.Domain.Parameters.EmailVerification;
 using GuessWhoServerDomain.Domain.Results.Accounts;
 using System;
 
@@ -20,5 +21,7 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
         EmailVerificationResendLimitsResult GetEmailVerificationResendLimits(ResendLimitsQuery limitsQuery);
 
         void ExpireActiveTokens(ExpireTokensArgs expireTokensArgs);
+
+        int ConsumeActiveTokens(ConsumeActiveTokensArgs activeToken);
     }
 }

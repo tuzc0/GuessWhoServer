@@ -49,19 +49,20 @@ namespace GuessWhoServices.Coordinators
                 {
                     EnsureValidUserIdOrThrow(userId);
 
-                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
-                    {
-                        AccountWithProfileResult result =
-                            unitOfWork.UserAccounts.GetAccountWithProfileByUserId(userId);
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-                        EnsureFoundOrThrow(result);
+                    AccountWithProfileResult result =
+                        unitOfWork.UserAccounts.GetAccountWithProfileByUserId(userId);
 
-                        return new ProfileSnapshot(
-                            result.Profile.DisplayName,
-                            result.Account.Email,
-                            result.Account.CreatedAtUtc,
-                            result.Profile.AvatarId);
-                    }
+                    EnsureFoundOrThrow(result);
+
+                    return new ProfileSnapshot(
+                        accountId: result.Account.AccountId,
+                        isEmailVerified: result.Account.IsEmailVerified,
+                        username: result.Profile.DisplayName,
+                        email: result.Account.Email,
+                        createdAtUtc: result.Account.CreatedAtUtc,
+                        avatarId: result.Profile.AvatarId);
                 });
         }
 
@@ -88,10 +89,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (!wantsNameChange && !wantsAvatarChange && !wantsPasswordChange)
                     {
-                        throw FaultsFactory.Create(
-                            UpdateProfileFaultKeys.CODE_NO_CHANGES_PROVIDED,
-                            UpdateProfileFaultKeys.MSG_NO_CHANGES_PROVIDED,
-                            UpdateProfileFaultKeys.FALLBACK_NO_CHANGES_PROVIDED);
+                        throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_NO_CHANGES_PROVIDED);
                     }
 
                     var search = new AccountSearchParameters
@@ -107,6 +105,12 @@ namespace GuessWhoServices.Coordinators
                         unitOfWork.UserAccounts.TryGetAccountWithProfileForUpdate(search);
 
                     EnsureFoundOrThrow(loaded);
+                    EnsureEmailVerifiedOrThrow(loaded.Account);
+
+                    if (wantsAvatarChange)
+                    {
+                        EnsureAvatarExistsOrThrow(unitOfWork, newAvatarId);
+                    }
 
                     byte[] effectivePasswordHash = loaded.Account.PasswordHash;
                     DateTime nowUtc = args.NowUtc != default ? args.NowUtc : DateTime.UtcNow;
@@ -130,10 +134,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (updated == null || !updated.IsSuccess)
                     {
-                        throw FaultsFactory.Create(
-                            UpdateProfileFaultKeys.CODE_UPDATE_FAILED,
-                            UpdateProfileFaultKeys.MSG_UPDATE_FAILED,
-                            UpdateProfileFaultKeys.FALLBACK_UPDATE_FAILED);
+                        throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_UPDATE_FAILED);
                     }
 
                     unitOfWork.Flush();
@@ -170,10 +171,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (!success)
                     {
-                        throw FaultsFactory.Create(
-                            UpdateProfileFaultKeys.CODE_PROFILE_DELETE_FAILED,
-                            UpdateProfileFaultKeys.MSG_PROFILE_DELETE_FAILED,
-                            UpdateProfileFaultKeys.FALLBACK_PROFILE_DELETE_FAILED);
+                        throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_PROFILE_DELETE_FAILED);
                     }
 
                     unitOfWork.Flush();
@@ -183,17 +181,14 @@ namespace GuessWhoServices.Coordinators
                 });
         }
 
-        private static void EnsureArgsNotNullOrThrow(UpdateProfileArgs args)
+        private static void EnsureArgsNotNullOrThrow(UpdateProfileArgs updateProfileArgs)
         {
-            if (args != null)
+            if (updateProfileArgs != null)
             {
                 return;
             }
 
-            throw FaultsFactory.Create(
-                UpdateProfileFaultKeys.CODE_REQUEST_NULL,
-                UpdateProfileFaultKeys.MSG_REQUEST_NULL,
-                UpdateProfileFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static ProfileUpdateDraft BuildProfileUpdateDraft(UpdateProfileArgs args)
@@ -224,35 +219,20 @@ namespace GuessWhoServices.Coordinators
                 case "Profile.DisplayName.TooShort":
                 case "Profile.DisplayName.TooLong":
                 case "Profile.DisplayName.InvalidFormat":
-                    throw FaultsFactory.Create(
-                        UpdateProfileFaultKeys.CODE_DISPLAYNAME_INVALID,
-                        UpdateProfileFaultKeys.MSG_DISPLAYNAME_INVALID,
-                        UpdateProfileFaultKeys.FALLBACK_DISPLAYNAME_INVALID);
+                    throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_DISPLAYNAME_INVALID);
 
                 case "Profile.Avatar.TooLong":
-                    throw FaultsFactory.Create(
-                        UpdateProfileFaultKeys.CODE_AVATAR_INVALID,
-                        UpdateProfileFaultKeys.MSG_AVATAR_INVALID,
-                        UpdateProfileFaultKeys.FALLBACK_AVATAR_INVALID);
+                    throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_AVATAR_INVALID);
 
                 case "Profile.Password.CurrentRequired":
-                    throw FaultsFactory.Create(
-                        UpdateProfileFaultKeys.CODE_CURRENT_PASSWORD_REQUIRED,
-                        UpdateProfileFaultKeys.MSG_CURRENT_PASSWORD_REQUIRED,
-                        UpdateProfileFaultKeys.FALLBACK_CURRENT_PASSWORD_REQUIRED);
+                    throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_CURRENT_PASSWORD_REQUIRED);
 
                 case "Profile.Password.TooShort":
                 case "Profile.Password.TooLong":
-                    throw FaultsFactory.Create(
-                        UpdateProfileFaultKeys.CODE_PASSWORD_INVALID,
-                        UpdateProfileFaultKeys.MSG_PASSWORD_INVALID,
-                        UpdateProfileFaultKeys.FALLBACK_PASSWORD_INVALID);
+                    throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_PASSWORD_INVALID);
 
                 default:
-                    throw FaultsFactory.Create(
-                        UpdateProfileFaultKeys.CODE_REQUEST_NULL,
-                        UpdateProfileFaultKeys.MSG_REQUEST_NULL,
-                        UpdateProfileFaultKeys.FALLBACK_REQUEST_NULL);
+                    throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_REQUEST_NULL);
             }
         }
 
@@ -263,10 +243,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                UpdateProfileFaultKeys.CODE_USER_ID_INVALID,
-                UpdateProfileFaultKeys.MSG_USER_ID_INVALID,
-                UpdateProfileFaultKeys.FALLBACK_USER_ID_INVALID);
+            throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_USER_ID_INVALID);
         }
 
         private static void EnsureFoundOrThrow(AccountWithProfileResult result)
@@ -276,10 +253,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                UpdateProfileFaultKeys.CODE_PROFILE_NOT_FOUND,
-                UpdateProfileFaultKeys.MSG_PROFILE_NOT_FOUND,
-                UpdateProfileFaultKeys.FALLBACK_PROFILE_NOT_FOUND);
+            throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_PROFILE_NOT_FOUND);
         }
 
         private byte[] ValidateAndHashNewPasswordOrThrow(UpdateProfileArgs args, byte[] currentPasswordHash)
@@ -288,23 +262,49 @@ namespace GuessWhoServices.Coordinators
 
             if (string.IsNullOrWhiteSpace(currentPasswordPlain))
             {
-                throw FaultsFactory.Create(
-                    UpdateProfileFaultKeys.CODE_CURRENT_PASSWORD_REQUIRED,
-                    UpdateProfileFaultKeys.MSG_CURRENT_PASSWORD_REQUIRED,
-                    UpdateProfileFaultKeys.FALLBACK_CURRENT_PASSWORD_REQUIRED);
+                throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_CURRENT_PASSWORD_REQUIRED);
             }
 
             bool isCurrentValid = passwordHasher.VerifyPassword(currentPasswordPlain, currentPasswordHash);
 
             if (!isCurrentValid)
             {
-                throw FaultsFactory.Create(
-                    UpdateProfileFaultKeys.CODE_CURRENT_PASSWORD_INCORRECT,
-                    UpdateProfileFaultKeys.MSG_CURRENT_PASSWORD_INCORRECT,
-                    UpdateProfileFaultKeys.FALLBACK_CURRENT_PASSWORD_INCORRECT);
+                throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_CURRENT_PASSWORD_INCORRECT);
             }
 
             return passwordHasher.HashPassword(args.NewPasswordPlain ?? EMPTY);
+        }
+
+        private static void EnsureAvatarExistsOrThrow(IGuessWhoUnitOfWork unitOfWork, string avatarId)
+        {
+            if (unitOfWork == null)
+            {
+                throw new ArgumentNullException(nameof(unitOfWork));
+            }
+
+            string safeAvatarId = (avatarId ?? EMPTY).Trim();
+
+            if (string.IsNullOrWhiteSpace(safeAvatarId))
+            {
+                return;
+            }
+
+            bool exists = unitOfWork.Avatars.AvatarExists(safeAvatarId);
+
+            if (!exists)
+            {
+                throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_AVATAR_INVALID);
+            }
+        }
+
+        private static void EnsureEmailVerifiedOrThrow(AccountRecord account)
+        {
+            if (account != null && account.IsEmailVerified)
+            {
+                return;
+            }
+
+            throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_EMAIL_NOT_VERIFIED);
         }
 
         protected override FaultException<ServiceFault> TranslateTechnicalFault(Exception ex)

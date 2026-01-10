@@ -1,6 +1,7 @@
 ﻿using GuessWhoServerDomain.Domain.Interfaces.Repositories;
 using GuessWhoServerDomain.Domain.Models.EmailVerification;
 using GuessWhoServerDomain.Domain.Parameters.Accounts.Email;
+using GuessWhoServerDomain.Domain.Parameters.EmailVerification;
 using GuessWhoServerDomain.Domain.Results.Accounts;
 using System;
 using System.Linq;
@@ -29,6 +30,13 @@ namespace GuessWhoDataAccess.Data.DataAccess.EmailVerification
               WHERE ACCOUNTID = @p1
                 AND CONSUMEDUTC IS NULL
                 AND EXPIRESUTC > @p0";
+
+        private const string SQL_CONSUME_ACTIVE_TOKENS_BY_ACCOUNT =
+            @"UPDATE dbo.EMAIL_VERIFICATION
+              SET CONSUMEDUTC = @p0
+              WHERE ACCOUNTID = @p1
+                AND CONSUMEDUTC IS NULL";
+
 
         private readonly GuessWhoDBEntities dataContext;
 
@@ -145,6 +153,26 @@ namespace GuessWhoDataAccess.Data.DataAccess.EmailVerification
                 expireTokensArgs.NewExpirationUtc,
                 expireTokensArgs.AccountId);
         }
+
+        public int ConsumeActiveTokens(ConsumeActiveTokensArgs activeToken)
+        {
+            if (activeToken == null)
+            {
+                return 0;
+            }
+
+            if (activeToken.AccountId <= 0)
+            {
+                return 0;
+            }
+
+            return dataContext.Database.ExecuteSqlCommand(
+                SQL_CONSUME_ACTIVE_TOKENS_BY_ACCOUNT,
+                activeToken.ConsumedUtc,
+                activeToken.AccountId);
+        }
+
+
 
         private EMAIL_VERIFICATION GetLatestTokenEntity(long accountId, Expression<Func<EMAIL_VERIFICATION, bool>> predicate)
         {

@@ -82,10 +82,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (string.IsNullOrWhiteSpace(trimmed))
                     {
-                        throw FaultsFactory.Create(
-                            FriendFaultKeys.CODE_INVALID_DISPLAY_NAME,
-                            FriendFaultKeys.MSG_INVALID_DISPLAY_NAME,
-                            FriendFaultKeys.FALLBACK_INVALID_DISPLAY_NAME);
+                        throw FaultsFactory.Create(FriendFaultKeys.CODE_INVALID_DISPLAY_NAME);
                     }
 
                     using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create()) 
@@ -152,10 +149,7 @@ namespace GuessWhoServices.Coordinators
                         Logger.WarnFormat("{0}: created friend request id was not generated after Flush. fromUserId='{1}', toUserId='{2}'.",
                             LOG_CTX_SEND, fromUserId, toUserId);
 
-                        throw FaultsFactory.Create(
-                            FriendFaultKeys.CODE_UNEXPECTED_ERROR,
-                            FriendFaultKeys.MSG_UNEXPECTED_ERROR,
-                            FriendFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+                        throw FaultsFactory.Create(FriendFaultKeys.CODE_UNEXPECTED_ERROR);
                     }
 
                     transaction.Commit();
@@ -240,10 +234,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                FriendFaultKeys.CODE_INVALID_IDS,
-                FriendFaultKeys.MSG_INVALID_IDS,
-                FriendFaultKeys.FALLBACK_INVALID_IDS);
+            throw FaultsFactory.Create(FriendFaultKeys.CODE_INVALID_IDS);
         }
 
         private long ResolveFromUserIdOrThrow(IGuessWhoUnitOfWork unitOfWork, long fromAccountId) 
@@ -262,10 +253,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                FriendFaultKeys.CODE_CANNOT_FRIEND_SELF,
-                FriendFaultKeys.MSG_CANNOT_FRIEND_SELF,
-                FriendFaultKeys.FALLBACK_CANNOT_FRIEND_SELF);
+            throw FaultsFactory.Create(FriendFaultKeys.CODE_CANNOT_FRIEND_SELF);
         }
 
         private void EnsureDestinationActiveOrThrow(IGuessWhoUnitOfWork unitOfWork, long toUserId) 
@@ -275,10 +263,7 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                FriendFaultKeys.CODE_DESTINATION_INACTIVE,
-                FriendFaultKeys.MSG_DESTINATION_INACTIVE,
-                FriendFaultKeys.FALLBACK_DESTINATION_INACTIVE);
+            throw FaultsFactory.Create(FriendFaultKeys.CODE_DESTINATION_INACTIVE);
         }
 
         private static SendFriendRequestResult TryMap(FriendRequestDataResult dataResult)
@@ -313,10 +298,7 @@ namespace GuessWhoServices.Coordinators
 
             if (!long.TryParse(trimmed, out long value) || value < MIN_VALID_ID)
             {
-                throw FaultsFactory.Create(
-                    FriendFaultKeys.CODE_INVALID_ACCOUNT_ID,
-                    FriendFaultKeys.MSG_INVALID_ACCOUNT_ID,
-                    FriendFaultKeys.FALLBACK_INVALID_ACCOUNT_ID);
+                throw FaultsFactory.Create(FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
             }
 
             return value;
@@ -329,20 +311,14 @@ namespace GuessWhoServices.Coordinators
                 return;
             }
 
-            throw FaultsFactory.Create(
-                FriendFaultKeys.CODE_ACCOUNT_NOT_FOUND,
-                FriendFaultKeys.MSG_ACCOUNT_NOT_FOUND,
-                FriendFaultKeys.FALLBACK_ACCOUNT_NOT_FOUND);
+            throw FaultsFactory.Create(FriendFaultKeys.CODE_ACCOUNT_NOT_FOUND);
         }
 
         private static void ValidateActionArgsOrThrow(FriendRequestActionArgs args)
         {
             if (args == null || args.AccountId < MIN_VALID_ID || args.FriendRequestId < MIN_VALID_ID)
             {
-                throw FaultsFactory.Create(
-                    FriendFaultKeys.CODE_INVALID_IDS,
-                    FriendFaultKeys.MSG_INVALID_IDS,
-                    FriendFaultKeys.FALLBACK_INVALID_IDS);
+                throw FaultsFactory.Create(FriendFaultKeys.CODE_INVALID_IDS);
             }
         }
 
@@ -350,10 +326,7 @@ namespace GuessWhoServices.Coordinators
         {
             if (result == null)
             {
-                throw FaultsFactory.Create(
-                    FriendFaultKeys.CODE_NOT_FOUND,
-                    FriendFaultKeys.MSG_NOT_FOUND,
-                    FriendFaultKeys.FALLBACK_NOT_FOUND);
+                throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_FOUND);
             }
 
             switch (result.Status)
@@ -364,22 +337,13 @@ namespace GuessWhoServices.Coordinators
                     return;
 
                 case FriendRequestDataStatus.NotFound:
-                    throw FaultsFactory.Create(
-                        FriendFaultKeys.CODE_NOT_FOUND,
-                        FriendFaultKeys.MSG_NOT_FOUND,
-                        FriendFaultKeys.FALLBACK_NOT_FOUND);
+                    throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_FOUND);
 
                 case FriendRequestDataStatus.NotPending:
-                    throw FaultsFactory.Create(
-                        FriendFaultKeys.CODE_NOT_PENDING,
-                        FriendFaultKeys.MSG_NOT_PENDING,
-                        FriendFaultKeys.FALLBACK_NOT_PENDING);
+                    throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_PENDING);
 
                 case FriendRequestDataStatus.NotAuthorized:
-                    throw FaultsFactory.Create(
-                        FriendFaultKeys.CODE_NOT_AUTHORIZED,
-                        FriendFaultKeys.MSG_NOT_AUTHORIZED,
-                        FriendFaultKeys.FALLBACK_NOT_AUTHORIZED);
+                    throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_AUTHORIZED);
 
                 default:
                    
@@ -387,10 +351,7 @@ namespace GuessWhoServices.Coordinators
                         .WarnFormat("{0}: unexpected FriendRequestDataStatus '{1}' for friendRequestId '{2}'.",
                         LOG_CTX_ACCEPT, result.Status, result.FriendRequestId);
 
-                    throw FaultsFactory.Create(
-                        FriendFaultKeys.CODE_UNEXPECTED_ERROR,
-                        FriendFaultKeys.MSG_UNEXPECTED_ERROR,
-                        FriendFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+                    throw FaultsFactory.Create(FriendFaultKeys.CODE_UNEXPECTED_ERROR);
             }
         }
 

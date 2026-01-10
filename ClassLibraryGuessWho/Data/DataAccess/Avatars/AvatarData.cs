@@ -9,6 +9,8 @@ namespace GuessWhoDataAccess.Data.DataAccess.Avatars
 {
     public class AvatarData : IAvatarRepository
     {
+        private const string EMPTY = "";
+     
         private readonly GuessWhoDBEntities dataBaseContext; 
 
         public AvatarData (GuessWhoDBEntities dataBaseContext)
@@ -39,6 +41,18 @@ namespace GuessWhoDataAccess.Data.DataAccess.Avatars
                 .FirstOrDefault();
 
             return defaultAvatarId ?? string.Empty;
+        }
+
+        public bool AvatarExists(string avatarId)
+        {
+            string safeAvatarId = (avatarId ?? EMPTY).Trim();
+
+            if (string.IsNullOrWhiteSpace(safeAvatarId))
+            {
+                return false;
+            }
+
+            return dataBaseContext.AVATAR.Any(a => a.AVATARID == safeAvatarId && a.ISACTIVE);
         }
     }
 }

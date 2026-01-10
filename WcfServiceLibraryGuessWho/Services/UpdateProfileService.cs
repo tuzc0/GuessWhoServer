@@ -46,6 +46,8 @@ namespace GuessWhoServices.Services
 
                     return new GetProfileResponse
                     {
+                        AccountId = snapshot.AccountId,
+                        IsEmailVerified = snapshot.IsEmailVerified,
                         Username = snapshot.Username ?? EMPTY,
                         Email = snapshot.Email ?? EMPTY,
                         CreatedAtUtc = snapshot.CreatedAtUtc,
@@ -101,20 +103,14 @@ namespace GuessWhoServices.Services
                 return;
             }
 
-            throw FaultsFactory.Create(
-                UpdateProfileFaultKeys.CODE_REQUEST_NULL,
-                UpdateProfileFaultKeys.MSG_REQUEST_NULL,
-                UpdateProfileFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static UpdateProfileArgs BuildUpdateArgs(UpdateProfileRequest request)
         {
             if (request.UserId < MIN_VALID_ID)
             {
-                throw FaultsFactory.Create(
-                    UpdateProfileFaultKeys.CODE_USER_ID_INVALID,
-                    UpdateProfileFaultKeys.MSG_USER_ID_INVALID,
-                    UpdateProfileFaultKeys.FALLBACK_USER_ID_INVALID);
+                throw FaultsFactory.Create(UpdateProfileFaultKeys.CODE_USER_ID_INVALID);
             }
 
             return new UpdateProfileArgs(

@@ -4,6 +4,8 @@ using GuessWhoServerDomain.Domain.Models.Accounts;
 using GuessWhoServerDomain.Domain.Parameters.Accounts;
 using GuessWhoServerDomain.Domain.Results.Accounts;
 using System;
+using System.Data.Entity.Infrastructure;
+using System.Data.SqlClient;
 using System.Linq;
 
 namespace GuessWhoDataAccess.Data.DataAccess.Accounts
@@ -11,9 +13,12 @@ namespace GuessWhoDataAccess.Data.DataAccess.Accounts
     public sealed class UserAccountData : IUserAccountRepository
     {
         private const bool DEFAULT_IS_EMAIL_VERIFIED = false;
-        private const int INVALID_ACCOUNT = -1;
 
+        private const int INVALID_ACCOUNT = -1;
         private const long MIN_VALID_ENTITY_ID = 1;
+
+        private const int SQL_DUPLICATE_KEY = 2627;
+        private const int SQL_DUPLICATE_INDEX = 2601;
 
         private const string EMPTY = "";
 
@@ -43,24 +48,40 @@ namespace GuessWhoDataAccess.Data.DataAccess.Accounts
                 throw new ArgumentNullException(nameof(createAccountArgs));
             }
 
-            var profileEntity = new USER_PROFILE
-            {
-                DISPLAYNAME = createAccountArgs.DisplayName,
-                CREATEDATUTC = createAccountArgs.CreationDate,
-                AVATARID = createAccountArgs.AvatarId
-            };
+            string normalizedEmail = NormalizeEmailOrEmpty(createAccountArgs.Email);
 
-            var accountEntity = new ACCOUNT
-            {
-                EMAIL = NormalizeEmailOrEmpty(createAccountArgs.Email),
-                PASSWORD = createAccountArgs.PasswordHash ?? Array.Empty<byte>(),
-                ISEMAILVERIFIED = DEFAULT_IS_EMAIL_VERIFIED,
-                CREATEDATUTC = createAccountArgs.CreationDate,
-                UPDATEDATUTC = createAccountArgs.CreationDate,
-                USER_PROFILE = profileEntity
-            };
+            ACCOUNT existingAccount = FindAccountByEmail(normalizedEmail);
 
-            dataContext.ACCOUNT.Add(accountEntity);
+            if (existingAccount != null)
+            {
+                if (!existingAccount.ISDELETED)
+                {
+                    return CreatedAccountResult.Ok(
+                        AccountRecord.CreateInvalid(),
+                        UserProfileRecord.CreateInvalid());
+                }
+
+                return ReactivateAccount(existingAccount, createAccountArgs);
+            }
+
+            return CreateNewAccount(createAccountArgs, normalizedEmail);
+        }
+
+        private ACCOUNT FindAccountByEmail(string normalizedEmail)
+        {
+            if (string.IsNullOrWhiteSpace(normalizedEmail))
+            {
+                return null;
+            }
+
+            return dataContext.ACCOUNT.SingleOrDefault(a => a.EMAIL == normalizedEmail);
+        }
+
+        private CreatedAccountResult ReactivateAccount(ACCOUNT accountEntity, CreateAccountArgs args)
+        {
+            USER_PROFILE profileEntity = FindUserProfile(accountEntity.USERID) ?? CreateMissingProfile(accountEntity.USERID, args);
+
+            ApplyReactivationChanges(accountEntity, profileEntity, args);
 
             dataContext.SaveChanges();
 
@@ -68,6 +89,93 @@ namespace GuessWhoDataAccess.Data.DataAccess.Accounts
             UserProfileRecord profile = AccountRecordMapper.ToUserProfileRecord(profileEntity);
 
             return CreatedAccountResult.Ok(account, profile);
+        }
+
+        private USER_PROFILE CreateMissingProfile(long userId, CreateAccountArgs args)
+        {
+            var profileEntity = new USER_PROFILE
+            {
+                USERID = userId,
+                DISPLAYNAME = args.DisplayName,
+                CREATEDATUTC = args.CreationDate,
+                AVATARID = args.AvatarId,
+                ISACTIVE = true
+            };
+
+            dataContext.USER_PROFILE.Add(profileEntity);
+
+            return profileEntity;
+        }
+
+        private static void ApplyReactivationChanges(ACCOUNT accountEntity, USER_PROFILE profileEntity, CreateAccountArgs args)
+        {
+            DateTime nowUtc = args.CreationDate;
+
+            accountEntity.ISDELETED = false;
+            accountEntity.DELETEDATUTC = null;
+
+            accountEntity.PASSWORD = args.PasswordHash ?? Array.Empty<byte>();
+            accountEntity.ISEMAILVERIFIED = DEFAULT_IS_EMAIL_VERIFIED;
+            accountEntity.UPDATEDATUTC = nowUtc;
+
+            accountEntity.LOCKEDUNTILUTC = null;
+
+            profileEntity.DISPLAYNAME = args.DisplayName;
+            profileEntity.AVATARID = args.AvatarId;
+            profileEntity.ISACTIVE = true;
+        }
+
+        private CreatedAccountResult CreateNewAccount(CreateAccountArgs args, string normalizedEmail)
+        {
+            var profileEntity = new USER_PROFILE
+            {
+                DISPLAYNAME = args.DisplayName,
+                CREATEDATUTC = args.CreationDate,
+                AVATARID = args.AvatarId,
+                ISACTIVE = true
+            };
+
+            var accountEntity = new ACCOUNT
+            {
+                EMAIL = normalizedEmail,
+                PASSWORD = args.PasswordHash ?? Array.Empty<byte>(),
+                ISEMAILVERIFIED = DEFAULT_IS_EMAIL_VERIFIED,
+                CREATEDATUTC = args.CreationDate,
+                UPDATEDATUTC = args.CreationDate,
+                ISDELETED = false,
+                DELETEDATUTC = null,
+                USER_PROFILE = profileEntity
+            };
+
+            dataContext.ACCOUNT.Add(accountEntity);
+
+            try
+            {
+                dataContext.SaveChanges();
+            }
+            catch (DbUpdateException ex) when (IsDuplicateEmailDbUpdateException(ex))
+            {
+                return CreatedAccountResult.Ok(
+                    AccountRecord.CreateInvalid(),
+                    UserProfileRecord.CreateInvalid());
+            }
+
+            AccountRecord account = AccountRecordMapper.ToAccountRecord(accountEntity);
+            UserProfileRecord profile = AccountRecordMapper.ToUserProfileRecord(profileEntity);
+
+            return CreatedAccountResult.Ok(account, profile);
+        }
+
+        private static bool IsDuplicateEmailDbUpdateException(DbUpdateException ex)
+        {
+            SqlException sqlEx = ex?.InnerException?.InnerException as SqlException;
+
+            if (sqlEx == null)
+            {
+                return false;
+            }
+
+            return sqlEx.Number == SQL_DUPLICATE_KEY || sqlEx.Number == SQL_DUPLICATE_INDEX;
         }
 
         public AccountRecord GetAccountByIdAccount(long accountId)

@@ -115,10 +115,7 @@ namespace GuessWhoServices.Services
                 return;
             }
 
-            throw FaultsFactory.Create(
-                InfrastructureFaultKeys.CODE_REQUEST_NULL,
-                InfrastructureFaultKeys.MSG_REQUEST_NULL,
-                InfrastructureFaultKeys.FALLBACK_REQUEST_NULL);
+            throw FaultsFactory.Create(InfrastructureFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static RegisterUserArgs BuildRegistrationArgs(RegisterRequest request)

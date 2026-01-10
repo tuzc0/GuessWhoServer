@@ -14,6 +14,7 @@
         public const string DISPLAY_NAME_INVALID_FORMAT = "USER_DISPLAY_NAME_INVALID_FORMAT";
 
         public const string PASSWORD_REQUIRED = "USER_PASSWORD_REQUIRED";
+        public const string PASSWORD_INVALID_FORMAT = "PASSWORD_INVALID_FORMAT";
         public const string PASSWORD_TOO_SHORT = "USER_PASSWORD_TOO_SHORT";
         public const string PASSWORD_TOO_LONG = "USER_PASSWORD_TOO_LONG";
 

@@ -167,6 +167,20 @@ namespace GuessWhoServices.Coordinators
 
                         domainService.ValidateResendLimitsOrThrow(request.AccountId, nowUtc);
 
+                        int consumed = unitOfWork.EmailVerification.ConsumeActiveTokens(new ConsumeActiveTokensArgs
+                        {
+                            AccountId = request.AccountId,
+                            ConsumedUtc = nowUtc
+                        });
+
+                        if (consumed <= 0)
+                        {
+                            Logger.WarnFormat("EmailVerificationManager.ResendEmailVerificationCode: could not consume active tokens for accountId '{0}'.",
+                                request.AccountId);
+
+                            throw FaultsFactory.Create(EmailVerificationFaultKeys.CODE_TOKEN_CREATION_FAILED);
+                        }
+
                         verificationCode = verificationCodeService.CreateVerificationCodeOrFault();
 
                         TimeSpan lifeTime = domainService.GetVerificationCodeLifetime();

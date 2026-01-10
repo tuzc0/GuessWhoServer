@@ -6,7 +6,7 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
     public interface IAvatarRepository
     {
         List<AvatarRecord> GetActiveAvatars();
-
         string GetDefaultAvatarId();
+        bool AvatarExists(string avatarId);
     }
 }

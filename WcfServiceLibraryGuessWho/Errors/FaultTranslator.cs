@@ -50,10 +50,7 @@ namespace GuessWhoServices.Errors
             {
                 logger.Error("Unexpected error: exception is null.");
 
-                return FaultsFactory.Create(
-                    InfrastructureFaultKeys.CODE_UNEXPECTED_ERROR,
-                    InfrastructureFaultKeys.MSG_UNEXPECTED_ERROR,
-                    InfrastructureFaultKeys.FALLBACK_UNEXPECTED_ERROR);
+                return FaultsFactory.Create(InfrastructureFaultKeys.CODE_UNEXPECTED_ERROR);
             }
 
             SqlException sqlEx = TryGetSqlException(ex);
@@ -64,22 +61,14 @@ namespace GuessWhoServices.Errors
                 {
                     logger.Error("Database operation timeout.", sqlEx);
 
-                    return FaultsFactory.Create(
-                        InfrastructureFaultKeys.CODE_DATABASE_COMMAND_TIMEOUT,
-                        InfrastructureFaultKeys.MSG_DATABASE_COMMAND_TIMEOUT,
-                        InfrastructureFaultKeys.FALLBACK_DATABASE_COMMAND_TIMEOUT,
-                        sqlEx);
+                    return FaultsFactory.Create(InfrastructureFaultKeys.CODE_DATABASE_COMMAND_TIMEOUT, sqlEx);
                 }
 
                 if (IsDatabaseMissing(sqlEx))
                 {
                     logger.Fatal("Database does not exist or cannot be opened.", sqlEx);
 
-                    return FaultsFactory.Create(
-                        InfrastructureFaultKeys.CODE_DATABASE_NOT_FOUND,
-                        InfrastructureFaultKeys.MSG_DATABASE_NOT_FOUND,
-                        InfrastructureFaultKeys.FALLBACK_DATABASE_NOT_FOUND,
-                        sqlEx);
+                    return FaultsFactory.Create(InfrastructureFaultKeys.CODE_DATABASE_NOT_FOUND, sqlEx);
                 }
 
                 FaultException<ServiceFault> unreachableFault = TryTranslateUnreachable(sqlEx, logger);
@@ -93,32 +82,20 @@ namespace GuessWhoServices.Errors
                 {
                     logger.Error("Physical storage error detected.", sqlEx);
 
-                    return FaultsFactory.Create(
-                        InfrastructureFaultKeys.CODE_UNEXPECTED_ERROR,
-                        InfrastructureFaultKeys.MSG_UNEXPECTED_ERROR,
-                        InfrastructureFaultKeys.FALLBACK_UNEXPECTED_ERROR,
-                        sqlEx);
+                    return FaultsFactory.Create(InfrastructureFaultKeys.CODE_UNEXPECTED_ERROR, sqlEx);
                 }
 
                 if (sqlEx.Number == SqlErrorCodes.LOGIN_FAILED)
                 {
                     logger.Fatal("Database login failed (server configuration).", sqlEx);
 
-                    return FaultsFactory.Create(
-                        InfrastructureFaultKeys.CODE_DATABASE_CONNECTION_FAILURE,
-                        InfrastructureFaultKeys.MSG_DATABASE_CONNECTION_FAILURE,
-                        InfrastructureFaultKeys.FALLBACK_DATABASE_CONNECTION_FAILURE,
-                        sqlEx);
+                    return FaultsFactory.Create(InfrastructureFaultKeys.CODE_DATABASE_CONNECTION_FAILURE, sqlEx);
                 }
             }
 
             logger.Error("Unexpected server error.", ex);
 
-            return FaultsFactory.Create(
-                InfrastructureFaultKeys.CODE_UNEXPECTED_ERROR,
-                InfrastructureFaultKeys.MSG_UNEXPECTED_ERROR,
-                InfrastructureFaultKeys.FALLBACK_UNEXPECTED_ERROR,
-                ex);
+            return FaultsFactory.Create(InfrastructureFaultKeys.CODE_UNEXPECTED_ERROR, ex);
         }
 
         private static FaultException<ServiceFault> TryTranslateUnreachable(SqlException sqlEx, ILog logger)
@@ -127,33 +104,21 @@ namespace GuessWhoServices.Errors
             {
                 logger.Fatal("Database network path not found.", sqlEx);
 
-                return FaultsFactory.Create(
-                    InfrastructureFaultKeys.CODE_DATABASE_NETWORK_PATH_NOT_FOUND,
-                    InfrastructureFaultKeys.MSG_DATABASE_NETWORK_PATH_NOT_FOUND,
-                    InfrastructureFaultKeys.FALLBACK_DATABASE_NETWORK_PATH_NOT_FOUND,
-                    sqlEx);
+                return FaultsFactory.Create(InfrastructureFaultKeys.CODE_DATABASE_NETWORK_PATH_NOT_FOUND, sqlEx);
             }
 
             if (sqlEx.Number == SqlErrorCodes.SERVER_NOT_FOUND)
             {
                 logger.Fatal("Database server not found.", sqlEx);
 
-                return FaultsFactory.Create(
-                    InfrastructureFaultKeys.CODE_DATABASE_SERVER_NOT_FOUND,
-                    InfrastructureFaultKeys.MSG_DATABASE_SERVER_NOT_FOUND,
-                    InfrastructureFaultKeys.FALLBACK_DATABASE_SERVER_NOT_FOUND,
-                    sqlEx);
+                return FaultsFactory.Create(InfrastructureFaultKeys.CODE_DATABASE_SERVER_NOT_FOUND, sqlEx);
             }
 
             if (sqlEx.Number == SqlErrorCodes.TRANSPORT_LEVEL_ERROR)
             {
                 logger.Fatal("Database transport-level error.", sqlEx);
 
-                return FaultsFactory.Create(
-                    InfrastructureFaultKeys.CODE_DATABASE_TRANSPORT_LEVEL_ERROR,
-                    InfrastructureFaultKeys.MSG_DATABASE_TRANSPORT_LEVEL_ERROR,
-                    InfrastructureFaultKeys.FALLBACK_DATABASE_TRANSPORT_LEVEL_ERROR,
-                    sqlEx);
+                return FaultsFactory.Create(InfrastructureFaultKeys.CODE_DATABASE_TRANSPORT_LEVEL_ERROR, sqlEx);
             }
 
             return null;
