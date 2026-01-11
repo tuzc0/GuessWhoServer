@@ -23,8 +23,6 @@ namespace GuessWhoServices.Services
 
         private const long INVALID_ID = 0;
 
-
-
         public CreateMatchResponse CreateMatch(CreateMatchRequest request)
         {
             return ExecuteService(CONTEXT_CREATE_MATCH, () =>
