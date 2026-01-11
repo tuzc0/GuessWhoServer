@@ -7,9 +7,9 @@ namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface IFriendshipManager
     {
-        IList<UserProfileSearchRecord> GetFriends(string accountId);
+        IList<UserProfileSearchRecord> GetFriends(long accountId);
 
-        IList<FriendRequestRecord> GetPendingRequests(string accountId);
+        IList<FriendRequestRecord> GetPendingRequests(long accountId);
 
         IList<UserProfileSearchRecord> SearchProfiles(string displayName);
 
@@ -36,12 +36,12 @@ namespace GuessWhoServices.Coordinators.Interfaces
         }
 
         public static SendFriendRequestResult OkCreated(long friendRequestId) =>
-            new SendFriendRequestResult(success: true, autoAccepted: false, friendRequestId: friendRequestId.ToString());
+            new SendFriendRequestResult(true, false, friendRequestId.ToString());
 
         public static SendFriendRequestResult OkAutoAccepted() =>
-            new SendFriendRequestResult(success: true, autoAccepted: true, friendRequestId: string.Empty);
+            new SendFriendRequestResult(true, true, string.Empty);
 
         public static SendFriendRequestResult ExistingPending(long friendRequestId) =>
-            new SendFriendRequestResult(success: false, autoAccepted: false, friendRequestId: friendRequestId.ToString());
+            new SendFriendRequestResult(false, false, friendRequestId.ToString());
     }
 }

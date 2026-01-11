@@ -99,15 +99,10 @@ namespace GuessWhoServices.Services
                 () =>
                 {
                     EnsureRequestNotNull(request);
-
                     FriendRequestActionArgs args = BuildActionArgs(request);
-
                     bool success = friendshipManager.AcceptFriendRequest(args);
 
-                    return new BasicResponse
-                    {
-                        Success = success
-                    };
+                    return new BasicResponse { Success = success };
                 });
         }
 
@@ -118,15 +113,10 @@ namespace GuessWhoServices.Services
                 () =>
                 {
                     EnsureRequestNotNull(request);
-
                     FriendRequestActionArgs args = BuildActionArgs(request);
-
                     bool success = friendshipManager.RejectFriendRequest(args);
 
-                    return new BasicResponse
-                    {
-                        Success = success
-                    };
+                    return new BasicResponse { Success = success };
                 });
         }
 
@@ -137,15 +127,10 @@ namespace GuessWhoServices.Services
                 () =>
                 {
                     EnsureRequestNotNull(request);
-
                     FriendRequestActionArgs args = BuildActionArgs(request);
-
                     bool success = friendshipManager.CancelFriendRequest(args);
 
-                    return new BasicResponse
-                    {
-                        Success = success
-                    };
+                    return new BasicResponse { Success = success };
                 });
         }
 
@@ -156,9 +141,9 @@ namespace GuessWhoServices.Services
                 () =>
                 {
                     EnsureRequestNotNull(request);
+                    long accountId = ParseIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
 
-                    IList<UserProfileSearchRecord> friends =
-                        friendshipManager.GetFriends(request.AccountId);
+                    IList<UserProfileSearchRecord> friends = friendshipManager.GetFriends(accountId);
 
                     return new GetFriendsResponse
                     {
@@ -174,9 +159,9 @@ namespace GuessWhoServices.Services
                 () =>
                 {
                     EnsureRequestNotNull(request);
+                    long accountId = ParseIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
 
-                    IList<FriendRequestRecord> records =
-                        friendshipManager.GetPendingRequests(request.AccountId);
+                    IList<FriendRequestRecord> records = friendshipManager.GetPendingRequests(accountId);
 
                     return new GetPendingRequestsResponse
                     {
@@ -187,25 +172,18 @@ namespace GuessWhoServices.Services
 
         private static void EnsureRequestNotNull(object request)
         {
-            if (request != null)
+            if (request == null)
             {
-                return;
+                throw FaultsFactory.Create(FriendFaultKeys.CODE_REQUEST_NULL);
             }
-
-            throw FaultsFactory.Create(FriendFaultKeys.CODE_REQUEST_NULL);
         }
 
         private static FriendRequestActionArgs BuildActionArgs(FriendRequestOperationRequest request)
         {
-            long accountId = ParseIdOrThrow(
-                request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
+            long accountId = ParseIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
+            long friendRequestId = ParseIdOrThrow(request.FriendRequestId, FriendFaultKeys.CODE_INVALID_IDS);
 
-            long friendRequestId = ParseIdOrThrow(
-                request.FriendRequestId, FriendFaultKeys.CODE_INVALID_IDS);
-
-            DateTime nowUtc = DateTime.UtcNow;
-
-            return new FriendRequestActionArgs(accountId, friendRequestId, nowUtc);
+            return new FriendRequestActionArgs(accountId, friendRequestId, DateTime.UtcNow);
         }
 
         private static long ParseIdOrThrow(string raw, string code)
@@ -220,13 +198,9 @@ namespace GuessWhoServices.Services
             return value;
         }
 
-        private static List<UserProfileSearchResult> MapProfiles(
-            IList<UserProfileSearchRecord> profiles)
+        private static List<UserProfileSearchResult> MapProfiles(IList<UserProfileSearchRecord> profiles)
         {
-            if (profiles == null || profiles.Count == 0)
-            {
-                return new List<UserProfileSearchResult>();
-            }
+            if (profiles == null) return new List<UserProfileSearchResult>();
 
             return profiles.Select(p => new UserProfileSearchResult
             {
@@ -238,10 +212,7 @@ namespace GuessWhoServices.Services
 
         private static List<FriendRequest> MapFriendRequests(IList<FriendRequestRecord> records)
         {
-            if (records == null || records.Count == 0)
-            {
-                return new List<FriendRequest>();
-            }
+            if (records == null) return new List<FriendRequest>();
 
             return records.Select(r => new FriendRequest
             {

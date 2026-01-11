@@ -33,42 +33,35 @@ namespace GuessWhoServices.Coordinators
 
         public FriendshipManager(IGuessWhoUnitOfWorkFactory unitOfWorkFactory)
         {
-            this.unitOfWorkFactory = unitOfWorkFactory ?? 
+            this.unitOfWorkFactory = unitOfWorkFactory ??
                 throw new ArgumentNullException(nameof(unitOfWorkFactory));
         }
 
-        public IList<UserProfileSearchRecord> GetFriends(string accountId)
+        public IList<UserProfileSearchRecord> GetFriends(long accountId)
         {
             return ExecuteService(
                 LOG_CTX_GET_FRIENDS,
                 () =>
                 {
-                    long parsedAccountId = ParseAccountIdOrThrow(accountId);
-
                     using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-                    long userId = unitOfWork.Friendships.TryResolveUserIdFromAccountId(parsedAccountId);
-                    EnsureUserIdFoundOrThrow(userId);
+                    long userId = ResolveUserIdFromAccountOrThrow(unitOfWork, accountId);
 
                     return unitOfWork.Friendships.GetFriends(userId) ?? new List<UserProfileSearchRecord>();
                 });
         }
 
-        public IList<FriendRequestRecord> GetPendingRequests(string accountId)
+        public IList<FriendRequestRecord> GetPendingRequests(long accountId)
         {
             return ExecuteService(
                 LOG_CTX_GET_PENDING,
                 () =>
                 {
-                    long parsedAccountId = ParseAccountIdOrThrow(accountId);
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create()) 
-                    {
-                        long userId = unitOfWork.Friendships.TryResolveUserIdFromAccountId(parsedAccountId);
-                        EnsureUserIdFoundOrThrow(userId);
+                    long userId = ResolveUserIdFromAccountOrThrow(unitOfWork, accountId);
 
-                        return unitOfWork.Friendships.GetPendingRequests(userId) ?? new List<FriendRequestRecord>();
-                    }
+                    return unitOfWork.Friendships.GetPendingRequests(userId) ?? new List<FriendRequestRecord>();
                 });
         }
 
@@ -85,10 +78,8 @@ namespace GuessWhoServices.Coordinators
                         throw FaultsFactory.Create(FriendFaultKeys.CODE_INVALID_DISPLAY_NAME);
                     }
 
-                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create()) 
-                    {
-                        return unitOfWork.Friendships.SearchProfilesByDisplayName(trimmed) ?? new List<UserProfileSearchRecord>();
-                    }
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
+                    return unitOfWork.Friendships.SearchProfilesByDisplayName(trimmed) ?? new List<UserProfileSearchRecord>();
                 });
         }
 
@@ -102,14 +93,13 @@ namespace GuessWhoServices.Coordinators
 
                     using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-                    long fromUserId = ResolveFromUserIdOrThrow(unitOfWork, fromAccountId);
+                    long fromUserId = ResolveUserIdFromAccountOrThrow(unitOfWork, fromAccountId);
 
                     EnsureNotSelfOrThrow(fromUserId, toUserId);
-                    EnsureDestinationActiveOrThrow(unitOfWork, toUserId);
 
                     if (unitOfWork.Friendships.AreAlreadyFriends(fromUserId, toUserId))
                     {
-                        return SendFriendRequestResult.OkAutoAccepted();
+                        throw FaultsFactory.Create(FriendFaultKeys.CODE_ALREADY_FRIENDS);
                     }
 
                     using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
@@ -127,7 +117,7 @@ namespace GuessWhoServices.Coordinators
                     }
 
                     FriendRequestDataResult existingPending =
-                    unitOfWork.Friendships.TryReturnExistingPending(fromUserId, toUserId);
+                        unitOfWork.Friendships.TryReturnExistingPending(fromUserId, toUserId);
 
                     SendFriendRequestResult mappedExisting = TryMap(existingPending);
 
@@ -138,7 +128,7 @@ namespace GuessWhoServices.Coordinators
                     }
 
                     IFriendRequestIdProvider created =
-                    unitOfWork.Friendships.CreateNewRequest(fromUserId, toUserId, nowUtc);
+                        unitOfWork.Friendships.CreateNewRequest(fromUserId, toUserId, nowUtc);
 
                     unitOfWork.Flush();
 
@@ -146,10 +136,7 @@ namespace GuessWhoServices.Coordinators
 
                     if (createdId < MIN_VALID_ID)
                     {
-                        Logger.WarnFormat("{0}: created friend request id was not generated after Flush. fromUserId='{1}', toUserId='{2}'.",
-                            LOG_CTX_SEND, fromUserId, toUserId);
-
-                        throw FaultsFactory.Create(FriendFaultKeys.CODE_UNEXPECTED_ERROR);
+                        throw FaultsFactory.Create(FriendFaultKeys.CODE_REQUEST_ID_NOT_GENERATED);
                     }
 
                     transaction.Commit();
@@ -166,18 +153,20 @@ namespace GuessWhoServices.Coordinators
                 {
                     ValidateActionArgsOrThrow(args);
 
-                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create()) 
-                    using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction()) 
-                    {
-                        FriendRequestDataResult result = unitOfWork.Friendships.AcceptFriendRequest(args);
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-                        EnsureActionSucceededOrThrow(result);
+                    ResolveUserIdFromAccountOrThrow(unitOfWork, args.AccountId);
 
-                        unitOfWork.Flush(); 
-                        transaction.Commit();
+                    using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
 
-                        return true;
-                    }
+                    FriendRequestDataResult result = unitOfWork.Friendships.AcceptFriendRequest(args);
+
+                    EnsureActionSucceededOrThrow(result);
+
+                    unitOfWork.Flush();
+                    transaction.Commit();
+
+                    return true;
                 });
         }
 
@@ -189,18 +178,20 @@ namespace GuessWhoServices.Coordinators
                 {
                     ValidateActionArgsOrThrow(args);
 
-                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create()) 
-                    using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction()) 
-                    {
-                        FriendRequestDataResult result = unitOfWork.Friendships.RejectFriendRequest(args);
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-                        EnsureActionSucceededOrThrow(result);
+                    ResolveUserIdFromAccountOrThrow(unitOfWork, args.AccountId);
 
-                        unitOfWork.Flush(); 
-                        transaction.Commit();
+                    using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
 
-                        return true;
-                    }
+                    FriendRequestDataResult result = unitOfWork.Friendships.RejectFriendRequest(args);
+
+                    EnsureActionSucceededOrThrow(result);
+
+                    unitOfWork.Flush();
+                    transaction.Commit();
+
+                    return true;
                 });
         }
 
@@ -212,63 +203,62 @@ namespace GuessWhoServices.Coordinators
                 {
                     ValidateActionArgsOrThrow(args);
 
-                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create()) 
-                    using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction()) 
-                    {
-                        FriendRequestDataResult result = unitOfWork.Friendships.CancelFriendRequest(args);
+                    using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-                        EnsureActionSucceededOrThrow(result);
+                    ResolveUserIdFromAccountOrThrow(unitOfWork, args.AccountId);
 
-                        unitOfWork.Flush(); 
-                        transaction.Commit();
+                    using IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction();
 
-                        return true;
-                    }
+                    FriendRequestDataResult result = unitOfWork.Friendships.CancelFriendRequest(args);
+
+                    EnsureActionSucceededOrThrow(result);
+
+                    unitOfWork.Flush();
+                    transaction.Commit();
+
+                    return true;
                 });
         }
 
         private static void ValidateSendFriendRequestIdsOrThrow(long fromAccountId, long toUserId)
         {
-            if (fromAccountId >= MIN_VALID_ID && toUserId >= MIN_VALID_ID)
+            if (fromAccountId < MIN_VALID_ID || toUserId < MIN_VALID_ID)
             {
-                return;
+                throw FaultsFactory.Create(FriendFaultKeys.CODE_INVALID_IDS);
             }
-
-            throw FaultsFactory.Create(FriendFaultKeys.CODE_INVALID_IDS);
         }
 
-        private long ResolveFromUserIdOrThrow(IGuessWhoUnitOfWork unitOfWork, long fromAccountId) 
+        private long ResolveUserIdFromAccountOrThrow(IGuessWhoUnitOfWork unitOfWork, long accountId)
         {
-            long fromUserId = unitOfWork.Friendships.TryResolveUserIdFromAccountId(fromAccountId);
+            long userId = unitOfWork.Friendships.TryResolveUserIdFromAccountId(accountId);
 
-            EnsureUserIdFoundOrThrow(fromUserId);
+            if (userId < MIN_VALID_ID)
+            {
+                throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_AUTHORIZED);
+            }
 
-            return fromUserId;
+            return userId;
         }
 
         private static void EnsureNotSelfOrThrow(long fromUserId, long toUserId)
         {
-            if (fromUserId != toUserId)
+            if (fromUserId == toUserId)
             {
-                return;
+                throw FaultsFactory.Create(FriendFaultKeys.CODE_CANNOT_FRIEND_SELF);
             }
-
-            throw FaultsFactory.Create(FriendFaultKeys.CODE_CANNOT_FRIEND_SELF);
         }
 
-        private void EnsureDestinationActiveOrThrow(IGuessWhoUnitOfWork unitOfWork, long toUserId) 
+        private void EnsureDestinationActiveOrThrow(IGuessWhoUnitOfWork unitOfWork, long toUserId)
         {
-            if (unitOfWork.Friendships.IsUserProfileActive(toUserId))
+            if (!unitOfWork.Friendships.IsUserProfileActive(toUserId))
             {
-                return;
+                throw FaultsFactory.Create(FriendFaultKeys.CODE_DESTINATION_INACTIVE);
             }
-
-            throw FaultsFactory.Create(FriendFaultKeys.CODE_DESTINATION_INACTIVE);
         }
 
         private static SendFriendRequestResult TryMap(FriendRequestDataResult dataResult)
         {
-            if (dataResult == null)
+            if (dataResult == null || dataResult.Status == FriendRequestDataStatus.NotFound)
             {
                 return null;
             }
@@ -276,42 +266,14 @@ namespace GuessWhoServices.Coordinators
             switch (dataResult.Status)
             {
                 case FriendRequestDataStatus.AutoAccepted:
-                    return SendFriendRequestResult.OkCreated(dataResult.FriendRequestId);
-
+                    return SendFriendRequestResult.OkAutoAccepted();
                 case FriendRequestDataStatus.ExistingPending:
                     return SendFriendRequestResult.ExistingPending(dataResult.FriendRequestId);
-
                 case FriendRequestDataStatus.Created:
                     return SendFriendRequestResult.OkCreated(dataResult.FriendRequestId);
-
-                case FriendRequestDataStatus.AlreadyFriends:
-                    return SendFriendRequestResult.OkAutoAccepted();
-
                 default:
                     return null;
             }
-        }
-
-        private static long ParseAccountIdOrThrow(string accountId)
-        {
-            string trimmed = (accountId ?? string.Empty).Trim();
-
-            if (!long.TryParse(trimmed, out long value) || value < MIN_VALID_ID)
-            {
-                throw FaultsFactory.Create(FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
-            }
-
-            return value;
-        }
-
-        private static void EnsureUserIdFoundOrThrow(long userId)
-        {
-            if (userId >= MIN_VALID_ID)
-            {
-                return;
-            }
-
-            throw FaultsFactory.Create(FriendFaultKeys.CODE_ACCOUNT_NOT_FOUND);
         }
 
         private static void ValidateActionArgsOrThrow(FriendRequestActionArgs args)
@@ -324,10 +286,7 @@ namespace GuessWhoServices.Coordinators
 
         private static void EnsureActionSucceededOrThrow(FriendRequestDataResult result)
         {
-            if (result == null)
-            {
-                throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_FOUND);
-            }
+            if (result == null) throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_FOUND);
 
             switch (result.Status)
             {
@@ -335,22 +294,13 @@ namespace GuessWhoServices.Coordinators
                 case FriendRequestDataStatus.Rejected:
                 case FriendRequestDataStatus.Canceled:
                     return;
-
                 case FriendRequestDataStatus.NotFound:
                     throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_FOUND);
-
                 case FriendRequestDataStatus.NotPending:
                     throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_PENDING);
-
                 case FriendRequestDataStatus.NotAuthorized:
                     throw FaultsFactory.Create(FriendFaultKeys.CODE_NOT_AUTHORIZED);
-
                 default:
-                   
-                    LogManager.GetLogger(typeof(FriendshipManager))
-                        .WarnFormat("{0}: unexpected FriendRequestDataStatus '{1}' for friendRequestId '{2}'.",
-                        LOG_CTX_ACCEPT, result.Status, result.FriendRequestId);
-
                     throw FaultsFactory.Create(FriendFaultKeys.CODE_UNEXPECTED_ERROR);
             }
         }

@@ -7,16 +7,16 @@ namespace GuessWhoServerDomain.Domain.Models.Friends
         private const long INVALID_ID = 0;
         private const byte INVALID_STATUS_ID = 0;
 
-        public long FriendRequestId { get; }
-        public long RequesterUserId { get; }
-        public long AddresseeUserId { get; }
-
-        public string RequesterDisplayName { get; }
-        public byte StatusId { get; }
-
-        public DateTime CreatedAtUtc { get; }
+        public long FriendRequestId { get; set; }
+        public long RequesterUserId { get; set; }
+        public long AddresseeUserId { get; set; }
+        public string RequesterDisplayName { get; set; }
+        public byte StatusId { get; set; }
+        public DateTime CreatedAtUtc { get; set; }
 
         public bool IsValid => FriendRequestId > INVALID_ID;
+
+        public FriendRequestRecord() { }
 
         public FriendRequestRecord(
             long friendRequestId,
@@ -36,13 +36,15 @@ namespace GuessWhoServerDomain.Domain.Models.Friends
 
         public static FriendRequestRecord CreateInvalid()
         {
-            return new FriendRequestRecord(
-                INVALID_ID,
-                INVALID_ID,
-                INVALID_ID,
-                string.Empty,
-                INVALID_STATUS_ID,
-                default);
+            return new FriendRequestRecord
+            {
+                FriendRequestId = INVALID_ID,
+                RequesterUserId = INVALID_ID,
+                AddresseeUserId = INVALID_ID,
+                RequesterDisplayName = string.Empty,
+                StatusId = INVALID_STATUS_ID,
+                CreatedAtUtc = default
+            };
         }
     }
 }

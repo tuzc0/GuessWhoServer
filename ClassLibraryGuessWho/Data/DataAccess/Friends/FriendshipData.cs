@@ -1,6 +1,6 @@
 ﻿using GuessWhoServerDomain.Domain.Enums.Friends;
 using GuessWhoServerDomain.Domain.Interfaces.Repositories;
-using GuessWhoServerDomain.Domain.Models.Friends; 
+using GuessWhoServerDomain.Domain.Models.Friends;
 using GuessWhoServerDomain.Domain.Parameters.Friends;
 using GuessWhoServerDomain.Domain.Results.Friends;
 using System;
@@ -40,14 +40,16 @@ namespace GuessWhoDataAccess.Data.DataAccess.Friends
                     join a in dataContext.ACCOUNT.AsNoTracking()
                         on p.USERID equals a.USERID
                     where p.ISACTIVE
+                          && !p.ISGUEST
                           && !a.ISDELETED
                           && p.DISPLAYNAME.Contains(trimmed)
                     orderby p.DISPLAYNAME
-                    select new UserProfileSearchRecord(
-                        p.USERID,
-                        p.DISPLAYNAME,
-                        p.AVATARID) 
-                    )
+                    select new UserProfileSearchRecord
+                    {
+                        UserId = p.USERID,
+                        DisplayName = p.DISPLAYNAME,
+                        AvatarId = p.AVATARID
+                    })
                     .Take(MAX_PROFILE_SEARCH_RESULTS)
                     .ToList();
         }
@@ -209,6 +211,7 @@ namespace GuessWhoDataAccess.Data.DataAccess.Friends
                     where a.ACCOUNTID == accountId
                           && !a.ISDELETED
                           && p.ISACTIVE
+                          && !p.ISGUEST
                     select a.USERID
                     ).SingleOrDefault();
         }
@@ -217,32 +220,36 @@ namespace GuessWhoDataAccess.Data.DataAccess.Friends
         {
             return dataContext.USER_PROFILE
                 .AsNoTracking()
-                .Where(p => p.USERID == userId)
-                .Select(p => p.ISACTIVE)
-                .SingleOrDefault();
+                .Any(p => p.USERID == userId && p.ISACTIVE && !p.ISGUEST);
         }
 
         public IList<UserProfileSearchRecord> GetFriends(long userId)
         {
-            IQueryable<UserProfileSearchRecord> friendsWhereIAmFirst =
+            var friendsWhereIAmFirst =
                 from f in dataContext.FRIENDSHIP.AsNoTracking()
                 where f.USER1ID == userId
                 join p in dataContext.USER_PROFILE.AsNoTracking()
                     on f.USER2ID equals p.USERID
-                join a in dataContext.ACCOUNT.AsNoTracking()
-                    on p.USERID equals a.USERID
-                where p.ISACTIVE && !a.ISDELETED
-                select new UserProfileSearchRecord(p.USERID, p.DISPLAYNAME, p.AVATARID);
+                where p.ISACTIVE && !p.ISGUEST
+                select new UserProfileSearchRecord
+                {
+                    UserId = p.USERID,
+                    DisplayName = p.DISPLAYNAME,
+                    AvatarId = p.AVATARID
+                };
 
-            IQueryable<UserProfileSearchRecord> friendsWhereIAmSecond =
+            var friendsWhereIAmSecond =
                 from f in dataContext.FRIENDSHIP.AsNoTracking()
                 where f.USER2ID == userId
                 join p in dataContext.USER_PROFILE.AsNoTracking()
                     on f.USER1ID equals p.USERID
-                join a in dataContext.ACCOUNT.AsNoTracking()
-                    on p.USERID equals a.USERID
-                where p.ISACTIVE && !a.ISDELETED
-                select new UserProfileSearchRecord(p.USERID, p.DISPLAYNAME, p.AVATARID);
+                where p.ISACTIVE && !p.ISGUEST
+                select new UserProfileSearchRecord
+                {
+                    UserId = p.USERID,
+                    DisplayName = p.DISPLAYNAME,
+                    AvatarId = p.AVATARID
+                };
 
             return friendsWhereIAmFirst.Concat(friendsWhereIAmSecond).ToList();
         }
@@ -258,20 +265,19 @@ namespace GuessWhoDataAccess.Data.DataAccess.Friends
                 from fr in dataContext.FRIEND_REQUEST.AsNoTracking()
                 join p in dataContext.USER_PROFILE.AsNoTracking()
                     on fr.REQUESTERUSERID equals p.USERID
-                join a in dataContext.ACCOUNT.AsNoTracking()
-                    on p.USERID equals a.USERID
                 where fr.ADDRESSEEUSERID == userId
                       && fr.STATUSID == FRIEND_REQUEST_STATUS_PENDING
-                      && !a.ISDELETED
                       && p.ISACTIVE
-                select new FriendRequestRecord(
-                    fr.FRIENDREQUESTID,
-                    fr.REQUESTERUSERID,
-                    fr.ADDRESSEEUSERID,
-                    p.DISPLAYNAME,
-                    fr.STATUSID,
-                    fr.CREATEDATUTC
-                )
+                      && !p.ISGUEST
+                select new FriendRequestRecord
+                {
+                    FriendRequestId = fr.FRIENDREQUESTID,
+                    RequesterUserId = fr.REQUESTERUSERID,
+                    AddresseeUserId = fr.ADDRESSEEUSERID,
+                    RequesterDisplayName = p.DISPLAYNAME,
+                    StatusId = fr.STATUSID,
+                    CreatedAtUtc = fr.CREATEDATUTC
+                }
             ).ToList();
         }
 
@@ -286,20 +292,19 @@ namespace GuessWhoDataAccess.Data.DataAccess.Friends
                 from fr in dataContext.FRIEND_REQUEST.AsNoTracking()
                 join p in dataContext.USER_PROFILE.AsNoTracking()
                     on fr.ADDRESSEEUSERID equals p.USERID
-                join a in dataContext.ACCOUNT.AsNoTracking()
-                    on p.USERID equals a.USERID
                 where fr.REQUESTERUSERID == userId
                       && fr.STATUSID == FRIEND_REQUEST_STATUS_PENDING
-                      && !a.ISDELETED
                       && p.ISACTIVE
-                select new FriendRequestRecord(
-                    fr.FRIENDREQUESTID,
-                    fr.REQUESTERUSERID,
-                    fr.ADDRESSEEUSERID,
-                    p.DISPLAYNAME,
-                    fr.STATUSID,
-                    fr.CREATEDATUTC
-                )
+                      && !p.ISGUEST
+                select new FriendRequestRecord
+                {
+                    FriendRequestId = fr.FRIENDREQUESTID,
+                    RequesterUserId = fr.REQUESTERUSERID,
+                    AddresseeUserId = fr.ADDRESSEEUSERID,
+                    RequesterDisplayName = p.DISPLAYNAME,
+                    StatusId = fr.STATUSID,
+                    CreatedAtUtc = fr.CREATEDATUTC
+                }
             ).ToList();
         }
 
@@ -319,8 +324,6 @@ namespace GuessWhoDataAccess.Data.DataAccess.Friends
             {
                 USER1ID = user1Id,
                 USER2ID = user2Id,
-                USERIDLOW = low,
-                USERIDHIGH = high,
                 CREATEDATUTC = createdAtUtc
             });
         }
