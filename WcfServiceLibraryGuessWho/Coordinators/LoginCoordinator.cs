@@ -1,16 +1,17 @@
 ﻿using GuessWhoCore.Contracts.Faults;
+using GuessWhoCore.Dtos;
+using GuessWhoDataAccess.Data.Factories;
+using GuessWhoServerDomain.Domain.Enums.Accounts;
+using GuessWhoServerDomain.Domain.Models.Session;
+using GuessWhoServices.Coordinators.Base;
+using GuessWhoServices.Coordinators.Interfaces;
+using GuessWhoServices.Coordinators.InternalDtos;
 using GuessWhoServices.Errors;
+using GuessWhoServices.Infrastructure.Session;
 using GuessWhoServices.Services.ErrorHandling;
 using log4net;
 using System;
 using System.ServiceModel;
-using GuessWhoServices.Coordinators.Base;
-using GuessWhoServices.Coordinators.Interfaces;
-using GuessWhoServices.Coordinators.InternalDtos;
-using GuessWhoServerDomain.Domain.Models.Session;
-using GuessWhoCore.Dtos;
-using GuessWhoServerDomain.Domain.Enums.Accounts;
-using GuessWhoDataAccess.Data.Factories;
 
 namespace GuessWhoServices.Coordinators
 {
@@ -27,18 +28,19 @@ namespace GuessWhoServices.Coordinators
 
         private readonly ILoginManager loginManager;
         private readonly IGuessWhoUnitOfWorkFactory unitOfWorkFactory;
+        private readonly IOnlineUserRegistry onlineUserRegistry;
 
         public LoginCoordinator(
             ILoginManager loginManager,
-            IGuessWhoUnitOfWorkFactory unitOfWorkFactory)
+            IGuessWhoUnitOfWorkFactory unitOfWorkFactory,
+            IOnlineUserRegistry onlineUserRegistry)
         {
-            this.loginManager = loginManager ??
-                throw new ArgumentNullException(nameof(loginManager));
-            this.unitOfWorkFactory = unitOfWorkFactory ??
-                throw new ArgumentNullException(nameof(unitOfWorkFactory));
+            this.loginManager = loginManager ?? throw new ArgumentNullException(nameof(loginManager));
+            this.unitOfWorkFactory = unitOfWorkFactory ?? throw new ArgumentNullException(nameof(unitOfWorkFactory));
+            this.onlineUserRegistry = onlineUserRegistry ?? throw new ArgumentNullException(nameof(onlineUserRegistry));
         }
 
-        public SessionLoginResult LoginAndInitializeSession(LoginArgs args)
+        public SessionLoginResult LoginAndInitializeSession(LoginSessionArgs args)
         {
             return ExecuteService(
                 LOG_CTX_LOGIN_INIT,
@@ -46,7 +48,7 @@ namespace GuessWhoServices.Coordinators
                 {
                     EnsureArgsNotNull(args);
 
-                    SessionLoginResult loginResult = loginManager.Login(args);
+                    SessionLoginResult loginResult = loginManager.Login(args.LoginArgs);
 
                     if (loginResult == null || !loginResult.IsSuccess || loginResult.Profile == null)
                     {
@@ -56,62 +58,99 @@ namespace GuessWhoServices.Coordinators
                     long userId = loginResult.Profile.UserId;
                     EnsureValidUserIdOrThrow(userId);
 
-                    using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
-                    using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
+                    bool isLoginCommitted = false;
+
+                    RegisterOrReplaceResult presenceResult = onlineUserRegistry.RegisterOrReplace(
+                        new RegisterOrReplaceRequest(userId, args.Channel));
+
+                    try
                     {
-                        bool sessionsTerminated = unitOfWork.Matches.ForceLeaveAllMatchesForUser(userId);
-
-                        if (!sessionsTerminated)
+                        if (!presenceResult.IsRegistered)
                         {
-                            Logger.WarnFormat("{0}: could not terminate active sessions for userId '{1}'.",
-                                LOG_CTX_LOGIN_INIT, userId);
+                            Logger.WarnFormat(
+                                "{0}: blocked login (account in use). userId='{1}'.",
+                                LOG_CTX_LOGIN_INIT,
+                                userId);
+
+                            throw FaultsFactory.Create(LoginFaultKeys.CODE_PROFILE_ALREADY_ACTIVE);
                         }
 
-                        bool markedActive = unitOfWork.UserAccounts.MarkUserProfileActive(userId);
-
-                        if (!markedActive)
+                        using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
+                        using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
                         {
-                            Logger.ErrorFormat("{0}: could not mark profile active for userId '{1}'.",
-                                LOG_CTX_LOGIN_INIT, userId);
+                            bool sessionsTerminated = unitOfWork.Matches.ForceLeaveAllMatchesForUser(userId);
 
-                            throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_PROFILE_MARK_ACTIVE_FAILED);
+                            if (!sessionsTerminated)
+                            {
+                                Logger.WarnFormat(
+                                    "{0}: could not terminate active match sessions for userId '{1}'.",
+                                    LOG_CTX_LOGIN_INIT,
+                                    userId);
+                            }
+
+                            bool markedActive = unitOfWork.UserAccounts.MarkUserProfileActive(userId);
+
+                            if (!markedActive)
+                            {
+                                Logger.ErrorFormat(
+                                    "{0}: could not mark profile active for userId '{1}'.",
+                                    LOG_CTX_LOGIN_INIT,
+                                    userId);
+
+                                throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_PROFILE_MARK_ACTIVE_FAILED);
+                            }
+
+                            unitOfWork.Flush();
+                            transaction.Commit();
                         }
 
-                        unitOfWork.Flush();
-                        transaction.Commit();
+                        isLoginCommitted = true;
+
+                        return loginResult;
                     }
-
-                    return loginResult;
+                    finally
+                    {
+                        if (!isLoginCommitted)
+                        {
+                            onlineUserRegistry.Remove(new RemoveRequest(userId, args.Channel));
+                        }
+                    }
                 });
         }
 
-        public bool Logout(long userProfileId)
+        public bool Logout(LogoutSessionArgs args)
         {
             return ExecuteService(
                 LOG_CTX_LOGOUT,
                 () =>
                 {
-                    EnsureValidUserIdOrThrow(userProfileId);
+                    EnsureArgsNotNull(args);
+
+                    EnsureValidUserIdOrThrow(args.UserProfileId);
+
+                    onlineUserRegistry.Remove(new RemoveRequest(args.UserProfileId, args.Channel));
 
                     using (IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create())
                     using (IGuessWhoDbTransaction transaction = unitOfWork.BeginTransaction())
                     {
-                        bool sessionsTerminated = unitOfWork.Matches.ForceLeaveAllMatchesForUser(userProfileId);
+                        bool sessionsTerminated = unitOfWork.Matches.ForceLeaveAllMatchesForUser(args.UserProfileId);
 
                         if (!sessionsTerminated)
                         {
-                            Logger.WarnFormat("{0}: could not terminate active sessions for userProfileId '{1}'.",
-                                LOG_CTX_LOGOUT, userProfileId);
-
-                            throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_LOGOUT_TERMINATE_SESSIONS_FAILED);
+                            Logger.WarnFormat(
+                                "{0}: could not terminate active match sessions for userProfileId '{1}'.",
+                                LOG_CTX_LOGOUT,
+                                args.UserProfileId);
                         }
 
-                        bool markedInactive = unitOfWork.UserAccounts.MarkUserProfileInactive(userProfileId);
+                        bool markedInactive = unitOfWork.UserAccounts.MarkUserProfileInactive(args.UserProfileId);
 
                         if (!markedInactive)
                         {
-                            Logger.WarnFormat("{0}: could not mark profile inactive for userProfileId '{1}'.",
-                                LOG_CTX_LOGOUT, userProfileId);
+                            Logger.WarnFormat(
+                                "{0}: could not mark profile inactive for userProfileId '{1}'.",
+                                LOG_CTX_LOGOUT,
+                                args.UserProfileId);
 
                             throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_LOGOUT_MARK_INACTIVE_FAILED);
                         }
@@ -124,7 +163,19 @@ namespace GuessWhoServices.Coordinators
                 });
         }
 
-        private static void EnsureArgsNotNull(LoginArgs args)
+        public void TouchPresence(long userId)
+        {
+            const int MIN_VALID_ID = 1;
+
+            if (userId < MIN_VALID_ID)
+            {
+                throw FaultsFactory.Create(LoginCoordinatorFaultKeys.CODE_USER_ID_INVALID);
+            }
+
+            onlineUserRegistry.Touch(new TouchRequest(userId));
+        }
+
+        private static void EnsureArgsNotNull(object args)
         {
             if (args != null)
             {

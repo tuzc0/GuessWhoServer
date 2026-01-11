@@ -5,8 +5,10 @@ namespace GuessWhoServices.Coordinators.Interfaces
 {
     public interface ILoginCoordinator
     {
-        SessionLoginResult LoginAndInitializeSession(LoginArgs args);
+        SessionLoginResult LoginAndInitializeSession(LoginSessionArgs args);
 
-        bool Logout(long userProfileId);
+        bool Logout(LogoutSessionArgs args);
+
+        void TouchPresence(long userId);
     }
 }

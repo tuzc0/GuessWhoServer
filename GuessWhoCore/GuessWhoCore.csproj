@@ -71,6 +71,7 @@
     <Compile Include="Contracts\Requests\SendMatchInvitationRequest.cs" />
     <Compile Include="Contracts\Requests\SetMatchPrivateRequest.cs" />
     <Compile Include="Contracts\Requests\SubscribeLobbyRequest.cs" />
+    <Compile Include="Contracts\Requests\TouchPresenceRequest.cs" />
     <Compile Include="Contracts\Requests\UnsubscribeLobbyRequest.cs" />
     <Compile Include="Contracts\Response\BasicResponse.cs" />
     <Compile Include="Contracts\Requests\ChooseSecretCharacterRequest.cs" />

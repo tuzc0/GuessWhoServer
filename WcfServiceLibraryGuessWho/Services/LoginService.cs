@@ -43,7 +43,16 @@ namespace GuessWhoServices.Services
 
                     LoginArgs loginArgs = BuildLoginArgs(request);
 
-                    SessionLoginResult result = loginCoordinator.LoginAndInitializeSession(loginArgs);
+                    IContextChannel channel = OperationContext.Current?.Channel;
+
+                    if (channel == null)
+                    {
+                        throw FaultsFactory.Create(LoginFaultKeys.CODE_REQUEST_NULL);
+                    }
+
+                    var sessionArgs = new LoginSessionArgs(loginArgs, channel);
+
+                    SessionLoginResult result = loginCoordinator.LoginAndInitializeSession(sessionArgs);
 
                     if (result == null || !result.IsSuccess)
                     {
@@ -51,6 +60,14 @@ namespace GuessWhoServices.Services
                             "{0}: login failed for email '{1}'.",
                             LOG_CTX_LOGIN_USER,
                             NormalizeEmail(request.Email));
+
+                        return new LoginResponse
+                        {
+                            UserId = 0,
+                            DisplayName = EMPTY,
+                            Email = EMPTY,
+                            ValidUser = false
+                        };
                     }
 
                     return new LoginResponse
@@ -71,11 +88,36 @@ namespace GuessWhoServices.Services
                 {
                     EnsureRequestNotNull(request);
 
-                    bool success = loginCoordinator.Logout(request.UserProfileId);
+                    IContextChannel channel = OperationContext.Current?.Channel;
+
+                    if (channel == null)
+                    {
+                        throw FaultsFactory.Create(LoginFaultKeys.CODE_REQUEST_NULL);
+                    }
+
+                    bool success = loginCoordinator.Logout(
+                        new LogoutSessionArgs(request.UserProfileId, channel));
 
                     return new BasicResponse
                     {
                         Success = success
+                    };
+                });
+        }
+
+        public BasicResponse TouchPresence(TouchPresenceRequest request)
+        {
+            return ExecuteService(
+                "LoginService.TouchPresence",
+                () =>
+                {
+                    EnsureRequestNotNull(request);
+
+                    loginCoordinator.TouchPresence(request.UserId);
+
+                    return new BasicResponse
+                    {
+                        Success = true
                     };
                 });
         }

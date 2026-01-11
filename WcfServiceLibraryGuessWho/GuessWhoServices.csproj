@@ -162,6 +162,7 @@
     <Compile Include="Coordinators\InternalDtos\JoinLobbyLogicResult.cs" />
     <Compile Include="Coordinators\InternalDtos\LeaveLobbyLogicResult.cs" />
     <Compile Include="Coordinators\InternalDtos\LobbySubscriptionArgs.cs" />
+    <Compile Include="Coordinators\InternalDtos\LoginSessionArgs.cs" />
     <Compile Include="Coordinators\InternalDtos\ReadyLobbyLogicResult.cs" />
     <Compile Include="Coordinators\InternalDtos\TournamentSubscriptionArgs.cs" />
     <Compile Include="Coordinators\LeaderboardManager.cs" />
@@ -190,6 +191,8 @@
     <Compile Include="Infrastructure\ITournamentSubscriptionStore.cs" />
     <Compile Include="Infrastructure\LobbySubscriptionStore.cs" />
     <Compile Include="Infrastructure\MatchLifecycleNotifier.cs" />
+    <Compile Include="Infrastructure\Session\OnlineRegistrySettings.cs" />
+    <Compile Include="Infrastructure\Session\OnlineUserRegistry.cs" />
     <Compile Include="Infrastructure\TournamentCallbackDispatcher.cs" />
     <Compile Include="Infrastructure\TournamentSubscriptionStore.cs" />
     <Compile Include="IsExternalInit.cs" />
