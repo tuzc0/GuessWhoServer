@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace GuessWhoCore.Contracts.Request
+namespace GuessWhoCore.Contracts.Requests
 {
     [DataContract]
     public class SearchProfileRequest

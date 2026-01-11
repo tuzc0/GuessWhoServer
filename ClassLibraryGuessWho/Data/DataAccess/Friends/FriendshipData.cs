@@ -324,6 +324,8 @@ namespace GuessWhoDataAccess.Data.DataAccess.Friends
             {
                 USER1ID = user1Id,
                 USER2ID = user2Id,
+                USERIDLOW = low,
+                USERIDHIGH = high,
                 CREATEDATUTC = createdAtUtc
             });
         }

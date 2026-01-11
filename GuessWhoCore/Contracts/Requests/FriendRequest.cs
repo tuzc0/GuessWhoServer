@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.Serialization;
 
-namespace GuessWhoCore.Contracts.Requests
+namespace GuessWhoCore.Contracts.Response
 {
     [DataContract]
     public class FriendRequest

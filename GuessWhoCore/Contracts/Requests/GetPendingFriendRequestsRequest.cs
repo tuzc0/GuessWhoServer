@@ -6,6 +6,6 @@ namespace GuessWhoCore.Contracts.Requests
     public class GetPendingFriendRequestsRequest
     {
         [DataMember(IsRequired = true)]
-        public string AccountId { get; set; }
+        public long AccountId { get; set; }
     }
 }

@@ -16,7 +16,7 @@ using GuessWhoServices.Coordinators.Interfaces;
 
 namespace GuessWhoServices.Services
 {
-    [ServiceBehavior(IncludeExceptionDetailInFaults = false, InstanceContextMode = InstanceContextMode.PerCall)]
+    [ServiceBehavior(IncludeExceptionDetailInFaults = true, InstanceContextMode = InstanceContextMode.PerCall)]
     public sealed class FriendService : ServiceBase, IFriendService
     {
         protected override ILog Logger { get; } = LogManager.GetLogger(typeof(FriendService));
@@ -66,12 +66,13 @@ namespace GuessWhoServices.Services
                 {
                     EnsureRequestNotNull(request);
 
-                    DateTime nowUtc = DateTime.UtcNow;
+                    ValidateIdOrThrow(request.FromAccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
+                    ValidateIdOrThrow(request.ToUserId, FriendFaultKeys.CODE_INVALID_IDS);
 
                     var result = friendshipManager.SendFriendRequest(
                         request.FromAccountId,
                         request.ToUserId,
-                        nowUtc);
+                        DateTime.UtcNow);
 
                     if (result == null)
                     {
@@ -141,9 +142,9 @@ namespace GuessWhoServices.Services
                 () =>
                 {
                     EnsureRequestNotNull(request);
-                    long accountId = ParseIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
+                    ValidateIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
 
-                    IList<UserProfileSearchRecord> friends = friendshipManager.GetFriends(accountId);
+                    IList<UserProfileSearchRecord> friends = friendshipManager.GetFriends(request.AccountId);
 
                     return new GetFriendsResponse
                     {
@@ -159,9 +160,9 @@ namespace GuessWhoServices.Services
                 () =>
                 {
                     EnsureRequestNotNull(request);
-                    long accountId = ParseIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
+                    ValidateIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
 
-                    IList<FriendRequestRecord> records = friendshipManager.GetPendingRequests(accountId);
+                    IList<FriendRequestRecord> records = friendshipManager.GetPendingRequests(request.AccountId);
 
                     return new GetPendingRequestsResponse
                     {
@@ -180,22 +181,18 @@ namespace GuessWhoServices.Services
 
         private static FriendRequestActionArgs BuildActionArgs(FriendRequestOperationRequest request)
         {
-            long accountId = ParseIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
-            long friendRequestId = ParseIdOrThrow(request.FriendRequestId, FriendFaultKeys.CODE_INVALID_IDS);
+            ValidateIdOrThrow(request.AccountId, FriendFaultKeys.CODE_INVALID_ACCOUNT_ID);
+            ValidateIdOrThrow(request.FriendRequestId, FriendFaultKeys.CODE_INVALID_IDS);
 
-            return new FriendRequestActionArgs(accountId, friendRequestId, DateTime.UtcNow);
+            return new FriendRequestActionArgs(request.AccountId, request.FriendRequestId, DateTime.UtcNow);
         }
 
-        private static long ParseIdOrThrow(string raw, string code)
+        private static void ValidateIdOrThrow(long id, string code)
         {
-            string trimmed = (raw ?? EMPTY).Trim();
-
-            if (!long.TryParse(trimmed, out long value) || value < MIN_VALID_ID)
+            if (id < MIN_VALID_ID)
             {
                 throw FaultsFactory.Create(code);
             }
-
-            return value;
         }
 
         private static List<UserProfileSearchResult> MapProfiles(IList<UserProfileSearchRecord> profiles)
