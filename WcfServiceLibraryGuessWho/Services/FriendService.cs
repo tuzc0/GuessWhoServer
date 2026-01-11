@@ -30,6 +30,7 @@ namespace GuessWhoServices.Services
         private const string LOG_CTX_GET_PENDING = "FriendService.GetPendingRequests";
 
         private const string EMPTY = "";
+        private const long INVALID_ID = 0;
         private const int MIN_VALID_ID = 1;
 
         private readonly IFriendshipManager friendshipManager;
@@ -80,7 +81,7 @@ namespace GuessWhoServices.Services
                         {
                             Success = false,
                             AutoAccepted = false,
-                            FriendRequestId = EMPTY
+                            FriendRequestId = INVALID_ID
                         };
                     }
 
@@ -88,7 +89,7 @@ namespace GuessWhoServices.Services
                     {
                         Success = result.Success,
                         AutoAccepted = result.AutoAccepted,
-                        FriendRequestId = result.FriendRequestId ?? EMPTY
+                        FriendRequestId = result.FriendRequestId
                     };
                 });
         }
