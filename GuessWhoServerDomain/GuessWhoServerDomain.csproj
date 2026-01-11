@@ -67,7 +67,7 @@
     <Compile Include="Domain\Enums\Matches\MatchMode.cs" />
     <Compile Include="Domain\Enums\Matches\MatchStatus.cs" />
     <Compile Include="Domain\Enums\Matches\MatchVisibility.cs" />
-    <Compile Include="Domain\Enums\Matches\SetMatchPrivateResultCode.cs" />
+    <Compile Include="Domain\Enums\Matches\SetMatchVisibilityResultCode.cs" />
     <Compile Include="Domain\Enums\Matches\StartMatchResultCode.cs" />
     <Compile Include="Domain\Enums\Security\VerificationCodeResult.cs" />
     <Compile Include="Domain\Enums\Tournaments\TournamentStatus.cs" />
@@ -176,7 +176,7 @@
     <Compile Include="Domain\Results\Match\KickPlayerResult.cs" />
     <Compile Include="Domain\Results\Match\LeaveMatchResult.cs" />
     <Compile Include="Domain\Results\Match\MarkReadyResult.cs" />
-    <Compile Include="Domain\Results\Match\SetMatchPrivateResult.cs" />
+    <Compile Include="Domain\Results\Match\SetMatchVisibilityResult.cs" />
     <Compile Include="Domain\Results\Match\StartMatchResult.cs" />
     <Compile Include="Domain\Results\Sessions\AccountWithProfileForLoginResult.cs" />
     <Compile Include="Domain\Results\Turns\AdvanceTurnResult.cs" />

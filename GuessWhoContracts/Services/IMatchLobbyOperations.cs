@@ -22,7 +22,7 @@ namespace GuessWhoContracts.Services
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]
-        BasicResponse SetMatchPrivate(SetMatchPrivateRequest request);
+        BasicResponse SetMatchVisibility(SetMatchVisibilityRequest request);
 
         [OperationContract]
         [FaultContract(typeof(ServiceFault))]

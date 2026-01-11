@@ -155,7 +155,7 @@ namespace GuessWhoTests.Services.Coordinators.Match
         {
             SetMatchPrivateResult result = logic.SetMatchPrivate(0, USER_ID);
 
-            Assert.AreEqual(SetMatchPrivateResultCode.InvalidArgs, result.Code);
+            Assert.AreEqual(SetMatchVisibilityResultCode.InvalidArgs, result.Code);
         }
 
         [TestMethod]

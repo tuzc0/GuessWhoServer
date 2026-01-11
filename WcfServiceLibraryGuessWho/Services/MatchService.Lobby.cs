@@ -156,9 +156,9 @@ namespace GuessWhoServices.Services
             });
         }
 
-        public BasicResponse SetMatchPrivate(SetMatchPrivateRequest request)
+        public BasicResponse SetMatchVisibility(SetMatchVisibilityRequest request)
         {
-            return ExecuteService(CONTEXT_SET_PRIVATE, () =>
+            return ExecuteService(CONTEXT_SET_VISIBILITY, () =>
             {
                 EnsureRequestNotNull(request);
 
@@ -167,15 +167,16 @@ namespace GuessWhoServices.Services
                     return BasicFail(CODE_INVALID_ARGS, KEY_INVALID_ARGS);
                 }
 
-                SetMatchPrivateResult result = lifecycleLogic.SetMatchPrivate(request.MatchId, request.UserId);
+                byte targetVisibilityId = request.IsPrivate
+                    ? (byte)MatchVisibility.Private
+                    : (byte)MatchVisibility.Public;
 
-                if (!result.IsSuccess)
-                {
-                    string code = result.Code.ToString();
-                    return BasicFail(code, code);
-                }
+                SetMatchVisibilityResult result =
+                    lifecycleLogic.SetMatchVisibility(request.MatchId, request.UserId, targetVisibilityId);
 
-                return BasicOk();
+                return result.IsSuccess
+                    ? BasicOk()
+                    : BasicFail(result.Code.ToString(), result.Code.ToString());
             });
         }
 

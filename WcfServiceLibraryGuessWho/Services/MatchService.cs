@@ -37,7 +37,7 @@ namespace GuessWhoServices.Services
         private const string CONTEXT_CREATE_MATCH = "MatchService.CreateMatch";
         private const string CONTEXT_JOIN_MATCH = "MatchService.JoinMatch";
         private const string CONTEXT_LEAVE_MATCH = "MatchService.LeaveMatch";
-        private const string CONTEXT_SET_PRIVATE = "MatchService.SetMatchPrivate";
+        private const string CONTEXT_SET_VISIBILITY = "MatchService.SetMatchVisibility";
         private const string CONTEXT_SEARCH_PUBLIC = "MatchService.SearchPublicMatch";
         private const string CONTEXT_SET_READY = "MatchService.SetPlayerReadyStatus";
         private const string CONTEXT_SUBSCRIBE = "MatchService.SubscribeLobby";

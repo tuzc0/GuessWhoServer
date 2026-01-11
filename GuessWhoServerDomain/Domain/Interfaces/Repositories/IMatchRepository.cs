@@ -20,7 +20,7 @@ namespace GuessWhoServerDomain.Domain.Interfaces.Repositories
         StartMatchResult StartMatch(long matchId, long hostUserId);
         EndMatchResult EndMatch(EndMatchArgs matchArgs);
         MarkReadyResult MarkReady(MatchPlayerArgs playerArgs);
-        SetMatchPrivateResult SetMatchPrivate(long matchId, long hostUserId);
+        SetMatchVisibilityResult SetMatchVisibility(long matchId, long hostUserId, byte targetVisibilityId);
 
         ChooseSecretCharacterResult ChooseSecretCharacter(ChooseSecretCharacterArgs args);
         ChangeSecretCharacterResult ChangeSecretCharacter(ChangeSecretCharacterArgs args);

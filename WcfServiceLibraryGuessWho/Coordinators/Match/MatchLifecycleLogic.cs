@@ -125,26 +125,25 @@ namespace GuessWhoServices.Coordinators.Match
             return result;
         }
 
-        public SetMatchPrivateResult SetMatchPrivate(long matchId, long callerUserId)
+        public SetMatchVisibilityResult SetMatchVisibility(long matchId, long callerUserId, byte targetVisibilityId)
         {
             if (matchId <= INVALID_ID || callerUserId <= INVALID_ID)
             {
-                return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.InvalidArgs);
+                return SetMatchVisibilityResult.Fail(SetMatchVisibilityResultCode.InvalidArgs);
             }
 
             using IGuessWhoUnitOfWork unitOfWork = unitOfWorkFactory.Create();
 
-            SetMatchPrivateResult result =
-                unitOfWork.Matches.SetMatchPrivate(matchId, callerUserId);
+            SetMatchVisibilityResult result =
+                unitOfWork.Matches.SetMatchVisibility(matchId, callerUserId, targetVisibilityId);
 
             if (result.IsSuccess)
             {
                 unitOfWork.Flush();
-
-                return SetMatchPrivateResult.Success();
+                return SetMatchVisibilityResult.Success();
             }
 
-            return SetMatchPrivateResult.Fail(result.Code);
+            return SetMatchVisibilityResult.Fail(result.Code);
         }
 
         public MatchSnapshot SearchPublicMatch(string matchCode)

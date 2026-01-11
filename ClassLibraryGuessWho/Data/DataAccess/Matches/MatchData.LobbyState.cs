@@ -10,20 +10,21 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
 {
     public sealed partial class MatchData
     {
-        private const string SQL_SET_MATCH_PRIVATE_ATOMIC =
+        private const string SQL_SET_MATCH_VISIBILITY_ATOMIC =
             @"UPDATE M
-              SET M.VISIBILITYID = @VisibilityPrivate
-              FROM [MATCH] M
-              INNER JOIN [MATCH_PLAYER] HostMP
-                  ON HostMP.MATCHID = M.MATCHID
-              WHERE M.MATCHID = @MatchId
-                AND M.STATUSID = @MatchStatusLobby
-                AND M.STARTTIME IS NULL
-                AND M.ENDTIME IS NULL
-                AND M.VISIBILITYID = @VisibilityPublic
-                AND HostMP.USERID = @HostUserId
-                AND HostMP.ISHOST = 1
-                AND HostMP.LEFTATUTC IS NULL;";
+                SET M.VISIBILITYID = @TargetVisibility
+                FROM [MATCH] M
+                INNER JOIN [MATCH_PLAYER] HostMP
+                   ON HostMP.MATCHID = M.MATCHID
+                WHERE M.MATCHID = @MatchId
+                    AND M.STATUSID = @MatchStatusLobby
+                    AND M.STARTTIME IS NULL
+                    AND M.ENDTIME IS NULL
+                    AND M.VISIBILITYID <> @TargetVisibility
+                    AND HostMP.USERID = @HostUserId
+                    AND HostMP.ISHOST = 1
+                    AND HostMP.LEFTATUTC IS NULL;";
+
 
         private sealed class SetPrivateDiagnostic
         {
@@ -73,24 +74,23 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
             return MarkReadyResult.Success();
         }
 
-        public SetMatchPrivateResult SetMatchPrivate(long matchId, long hostUserId)
+        public SetMatchVisibilityResult SetMatchVisibility(long matchId, long hostUserId, byte targetVisibilityId)
         {
             if (matchId <= 0 || hostUserId <= 0)
             {
-                return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.InvalidArgs);
+                return SetMatchVisibilityResult.Fail(SetMatchVisibilityResultCode.InvalidArgs);
             }
 
             int rowsAffected = dataContext.Database.ExecuteSqlCommand(
-                SQL_SET_MATCH_PRIVATE_ATOMIC,
+                SQL_SET_MATCH_VISIBILITY_ATOMIC,
                 new SqlParameter("@MatchId", matchId),
                 new SqlParameter("@HostUserId", hostUserId),
                 new SqlParameter("@MatchStatusLobby", MatchStatusIds.LOBBY),
-                new SqlParameter("@VisibilityPublic", MatchVisibilityIds.PUBLIC),
-                new SqlParameter("@VisibilityPrivate", MatchVisibilityIds.PRIVATE));
+                new SqlParameter("@TargetVisibility", targetVisibilityId));
 
             if (rowsAffected > 0)
             {
-                return SetMatchPrivateResult.Success();
+                return SetMatchVisibilityResult.Success();
             }
 
             SetPrivateDiagnostic diagnostic =
@@ -112,17 +112,12 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
 
             if (diagnostic == null)
             {
-                return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.MatchNotFound);
+                return SetMatchVisibilityResult.Fail(SetMatchVisibilityResultCode.MatchNotFound);
             }
 
             if (!diagnostic.HostIsActiveHost)
             {
-                return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.HostNotAuthorized);
-            }
-
-            if (diagnostic.VisibilityId != MatchVisibilityIds.PUBLIC)
-            {
-                return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.AlreadyPrivate);
+                return SetMatchVisibilityResult.Fail(SetMatchVisibilityResultCode.HostNotAuthorized);
             }
 
             bool isNotLobby =
@@ -132,10 +127,15 @@ namespace GuessWhoDataAccess.Data.DataAccess.Matches
 
             if (isNotLobby)
             {
-                return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.MatchNotInLobby);
+                return SetMatchVisibilityResult.Fail(SetMatchVisibilityResultCode.MatchNotInLobby);
             }
 
-            return SetMatchPrivateResult.Fail(SetMatchPrivateResultCode.ConcurrentUpdate);
+            if (diagnostic.VisibilityId == targetVisibilityId)
+            {
+                return SetMatchVisibilityResult.Fail(SetMatchVisibilityResultCode.AlreadyInDesiredVisibility);
+            }
+
+            return SetMatchVisibilityResult.Fail(SetMatchVisibilityResultCode.ConcurrentUpdate);
         }
     }
 }

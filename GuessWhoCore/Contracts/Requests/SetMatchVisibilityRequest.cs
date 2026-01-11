@@ -3,9 +3,11 @@
 namespace GuessWhoCore.Contracts.Requests
 {
     [DataContract]
-    public sealed class SetMatchPrivateRequest
+    public sealed class SetMatchVisibilityRequest
     {
         [DataMember(IsRequired = true)] public long MatchId { get; set; }
         [DataMember(IsRequired = true)] public long UserId { get; set; }
+
+        [DataMember(IsRequired = true)] public bool IsPrivate { get; set; }
     }
 }
